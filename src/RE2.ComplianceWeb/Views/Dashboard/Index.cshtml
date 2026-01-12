@@ -1,0 +1,88 @@
+@{
+    ViewData["Title"] = "Compliance Dashboard";
+}
+
+<div class="container-fluid">
+    <h1>Compliance Dashboard</h1>
+    <p>Overview of licence management and GDP compliance status</p>
+
+    <div class="row mb-4">
+        <!-- Expiring Licences Alert -->
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <h5 class="card-title">Expiring Licences</h5>
+                    <p class="card-text display-4">--</p>
+                    <p class="text-muted">Next 90 days</p>
+                    <small><em>Alert monitoring to be implemented (T122)</em></small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Blocked Transactions -->
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <h5 class="card-title">Blocked Transactions</h5>
+                    <p class="card-text display-4">--</p>
+                    <p class="text-muted">Pending review</p>
+                    <small><em>Dashboard to be implemented (T122)</em></small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Licences -->
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h5 class="card-title">Active Licences</h5>
+                    <p class="card-text display-4">--</p>
+                    <p class="text-muted">Current status</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Qualified Customers -->
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body">
+                    <h5 class="card-title">Qualified Customers</h5>
+                    <p class="card-text display-4">--</p>
+                    <p class="text-muted">Approved status</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Recent Alerts</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <em>Alert list to be implemented (T122)</em>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Pending Approvals</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <em>Pending approvals list to be implemented (T122)</em>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

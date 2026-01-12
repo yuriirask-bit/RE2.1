@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\RE2.ComplianceCore\RE2.ComplianceCore.csproj" />
+    <ProjectReference Include="..\RE2.DataAccess\RE2.DataAccess.csproj" />
+    <ProjectReference Include="..\RE2.Shared\RE2.Shared.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

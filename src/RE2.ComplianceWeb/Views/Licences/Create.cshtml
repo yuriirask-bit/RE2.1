@@ -1,0 +1,47 @@
+@{
+    ViewData["Title"] = "Create Licence";
+}
+
+<div class="container">
+    <h1>Create New Licence</h1>
+
+    <form method="post" action="/Licences/Create">
+        <div class="mb-3">
+            <label for="licenceNumber" class="form-label">Licence Number</label>
+            <input type="text" class="form-control" id="licenceNumber" name="licenceNumber" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="licenceType" class="form-label">Licence Type</label>
+            <select class="form-select" id="licenceType" name="licenceType" required>
+                <option value="">Select type...</option>
+                <option value="WholesaleLicence">Wholesale Licence</option>
+                <option value="OpiumActExemption">Opium Act Exemption</option>
+                <option value="ImportPermit">Import Permit</option>
+                <option value="ExportPermit">Export Permit</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="issueDate" class="form-label">Issue Date</label>
+            <input type="date" class="form-control" id="issueDate" name="issueDate" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="expiryDate" class="form-label">Expiry Date</label>
+            <input type="date" class="form-control" id="expiryDate" name="expiryDate" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="scope" class="form-label">Scope</label>
+            <textarea class="form-control" id="scope" name="scope" rows="3"></textarea>
+        </div>
+
+        <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+            <button type="submit" class="btn btn-primary">Create Licence</button>
+            <a href="/Licences" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+
+    <p class="mt-3 text-muted"><em>Form submission to be implemented (T076)</em></p>
+</div>

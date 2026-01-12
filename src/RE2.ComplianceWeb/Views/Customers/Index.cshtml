@@ -1,0 +1,47 @@
+@{
+    ViewData["Title"] = "Customer Management";
+}
+
+<div class="container">
+    <h1>Customer Management</h1>
+    <p>Manage customer profiles and compliance qualifications</p>
+
+    <div class="mb-3">
+        <a href="/Customers/Create" class="btn btn-primary">Create New Customer</a>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <input type="text" class="form-control" placeholder="Search customers...">
+        </div>
+        <div class="col-md-3">
+            <select class="form-select">
+                <option value="">All Statuses</option>
+                <option value="Approved">Approved</option>
+                <option value="Pending">Pending</option>
+                <option value="Suspended">Suspended</option>
+            </select>
+        </div>
+    </div>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Customer Number</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Country</th>
+                <th>Approval Status</th>
+                <th>Licences</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td colspan="7" class="text-center">
+                    <em>Customer listing to be implemented (T092)</em>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
