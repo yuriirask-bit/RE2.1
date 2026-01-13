@@ -1,32 +1,101 @@
+using RE2.Shared.Constants;
+
 namespace RE2.ComplianceCore.Models;
 
 /// <summary>
-/// Licence type definition (wholesale, exemptions, permits)
-/// with permitted activities and substance mappings
-/// T060: LicenceType domain model (data-model.md entity 2)
+/// Represents a category of legal authorization with defined rules and requirements.
+/// Per data-model.md entity 2: LicenceType
+/// T060: Domain model implementation.
 /// </summary>
 public class LicenceType
 {
-    public Guid Id { get; set; }
-    public string Code { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
+    /// <summary>
+    /// Unique identifier.
+    /// </summary>
+    public Guid LicenceTypeId { get; set; }
 
-    // Permitted activities (possess, store, distribute, manufacture, import, export)
-    public List<string> PermittedActivities { get; set; } = new();
+    /// <summary>
+    /// Type name (e.g., "Wholesale Licence (WDA)", "Opium Act Exemption").
+    /// Required, must be unique.
+    /// </summary>
+    public required string Name { get; set; }
 
-    // Regulatory authority (IGJ, NVWA, Ministry)
-    public string IssuingAuthority { get; set; } = string.Empty;
+    /// <summary>
+    /// Typical authority for this type (e.g., "IGJ", "Farmatec").
+    /// Required.
+    /// </summary>
+    public required string IssuingAuthority { get; set; }
 
-    // Validity period defaults
-    public int DefaultValidityMonths { get; set; }
+    /// <summary>
+    /// Standard validity period in months (nullable for permanent licences).
+    /// </summary>
+    public int? TypicalValidityMonths { get; set; }
 
-    // Active status
-    public bool IsActive { get; set; }
+    /// <summary>
+    /// Activities this type authorizes (flags enum).
+    /// Required, must have at least one activity.
+    /// </summary>
+    public LicenceTypes.PermittedActivity PermittedActivities { get; set; }
 
-    // Audit fields
-    public DateTime CreatedAt { get; set; }
-    public string CreatedBy { get; set; } = string.Empty;
-    public DateTime? ModifiedAt { get; set; }
-    public string? ModifiedBy { get; set; }
+    /// <summary>
+    /// Whether this type is still in use.
+    /// Default: true.
+    /// </summary>
+    public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// Validates the licence type according to business rules.
+    /// </summary>
+    /// <returns>Validation result with any violations.</returns>
+    public ValidationResult Validate()
+    {
+        var violations = new List<ValidationViolation>();
+
+        if (string.IsNullOrWhiteSpace(Name))
+        {
+            violations.Add(new ValidationViolation
+            {
+                ErrorCode = ErrorCodes.VALIDATION_ERROR,
+                Message = "Name is required"
+            });
+        }
+
+        if (string.IsNullOrWhiteSpace(IssuingAuthority))
+        {
+            violations.Add(new ValidationViolation
+            {
+                ErrorCode = ErrorCodes.VALIDATION_ERROR,
+                Message = "IssuingAuthority is required"
+            });
+        }
+
+        if (PermittedActivities == LicenceTypes.PermittedActivity.None)
+        {
+            violations.Add(new ValidationViolation
+            {
+                ErrorCode = ErrorCodes.VALIDATION_ERROR,
+                Message = "PermittedActivities must include at least one activity"
+            });
+        }
+
+        return violations.Any()
+            ? ValidationResult.Failure(violations)
+            : ValidationResult.Success();
+    }
+
+    /// <summary>
+    /// Deactivates this licence type.
+    /// </summary>
+    public void Deactivate()
+    {
+        IsActive = false;
+    }
+
+    /// <summary>
+    /// Activates this licence type.
+    /// </summary>
+    public void Activate()
+    {
+        IsActive = true;
+    }
 }

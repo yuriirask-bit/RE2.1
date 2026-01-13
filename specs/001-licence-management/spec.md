@@ -220,26 +220,28 @@ As a QA user or training coordinator, I need to maintain an index of GDP-relevan
 ### Edge Cases
 
 **Licence & Transaction Edge Cases:**
-- What happens when a customer's licence expires mid-transaction (order placed while valid but expires before shipment)? *Clarified: Soft-block with override workflow allows compliance review and approval with documented justification (e.g., confirming renewal in progress).*
-- How does the system handle concurrent modifications when two users edit the same licence or customer record? *Clarified: Optimistic locking detects conflicts; second user must resolve by choosing version or merging changes.*
-- How does the system handle licences with conditional restrictions (e.g., approved for certain substance categories but not others)?
-- What happens when regulatory authorities revoke a licence unexpectedly (not standard expiry)?
-- How does the system distinguish between different jurisdiction requirements (Netherlands domestic vs. EU cross-border vs. non-EU import/export)?
-- What happens when a customer has multiple legal entities with different licence sets?
-- How does the system handle grace periods where regulatory authorities allow continued operation during renewal processing?
-- What happens when historical licence data needs to be corrected after transactions have been completed under the original (incorrect) information?
-- How does the system handle quantity threshold monitoring when customers place multiple small orders across different time periods?
-- What happens when a substance is reclassified (e.g., moved from List II to List I), affecting existing licences and orders?
 
-**GDP & Supply Chain Edge Cases:**
-- What happens when a 3PL's GDP certificate is suspended mid-shipment while products are in their custody?
-- How does the system handle temperature excursions detected during distribution - does this affect future GDP qualification?
-- What happens when a supplier's WDA is revoked but products from them are already in our inventory?
-- How does the system handle split shipments where part goes through GDP-approved routes and part doesn't?
-- What happens when a CAPA deadline is missed - does this automatically impact GDP status or require manual review?
-- How does the system handle sites that are temporarily closed (e.g., for maintenance) - should they be marked as unavailable for distribution?
-- What happens when EudraGMDP verification shows a different status than what the partner provided?
-- How does the system handle training records when staff change roles or leave the company?
+| Edge Case | Disposition | Reference |
+|-----------|-------------|-----------|
+| Customer's licence expires mid-transaction (order placed while valid but expires before shipment) | **v1.0 SCOPE** - Soft-block with override workflow per clarification Q1 | FR-019a |
+| Concurrent modifications when two users edit the same licence or customer record | **v1.0 SCOPE** - Optimistic locking with conflict resolution per clarification Q3 | FR-027a-c |
+| Licences with conditional restrictions (approved for certain substance categories but not others) | **v1.0 SCOPE** - Handled via licence-to-substance mappings per FR-004 | FR-004, User Story 1 |
+| Regulatory authorities revoke licence unexpectedly (not standard expiry) | **v1.0 SCOPE** - Manual status update to "Revoked", system blocks transactions per FR-005 | FR-005, FR-015 |
+| Distinguish jurisdiction requirements (Netherlands domestic vs. EU cross-border vs. non-EU) | **v1.0 SCOPE** - Cross-border indicator in transaction validation per FR-021 | FR-021, Assumption 4 |
+| Customer has multiple legal entities with different licence sets | **v1.0 SCOPE** - Separate customer profiles per legal entity per Assumption 17 | Assumption 17 |
+| Grace periods where authorities allow continued operation during renewal processing | **v1.0 SCOPE** - Grace period tracking in Licence model per Assumption 16 | Assumption 16 |
+| Historical licence data corrected after transactions completed under incorrect information | **v1.0 SCOPE** - Manual impact assessment via correction impact report per SC-038 | Assumption 18, T163a-d |
+| Quantity threshold monitoring when customers place multiple small orders across time periods | **v1.0 SCOPE** - Threshold monitoring aggregates quantities per monitoring period (monthly/annual) per FR-022 | FR-022, T132a-g |
+| Substance reclassified (e.g., moved from List II to List I), affecting existing licences and orders | **v1.0 SCOPE** - Reclassification workflow with customer impact analysis per FR-066 | FR-066, T080a-o |
+| 3PL's GDP certificate suspended mid-shipment while products in their custody | **DEFERRED v2.0** - Real-time shipment tracking out of scope per Assumption 12 | Assumption 12 |
+| Temperature excursions during distribution affecting future GDP qualification | **DEFERRED v2.0** - Real-time temperature monitoring via WMS/QMS per Assumption 12 | Assumption 12 |
+| Supplier's WDA revoked but products already in inventory | **DEFERRED v2.0** - Inventory recall workflows out of scope per Assumption 9 | Assumption 9 |
+| Split shipments where part goes through GDP-approved routes and part doesn't | **DEFERRED v2.0** - Advanced logistics routing out of scope; single route per shipment assumed | Assumption 22 |
+| CAPA deadline missed - automatic impact on GDP status or manual review? | **v1.0 SCOPE** - Manual review; dashboard highlights overdue CAPAs per FR-042 but no automatic status change | FR-042, User Story 9 |
+| Sites temporarily closed (e.g., maintenance) - marked unavailable for distribution? | **DEFERRED v2.0** - Site availability scheduling out of scope; manual site deactivation available | GDP operational controls |
+| EudraGMDP verification shows different status than partner provided | **v1.0 SCOPE** - Manual verification records discrepancy; QA user investigates per FR-045 | FR-045, User Story 10 |
+| Training records when staff change roles or leave company | **v1.0 SCOPE** - Training records linked to staff member ID; historical records retained per FR-050 | FR-050, User Story 12 |
+
 
 ## Requirements *(mandatory)*
 
@@ -251,7 +253,7 @@ As a QA user or training coordinator, I need to maintain an index of GDP-relevan
 - **FR-004**: System MUST define licence-to-substance mappings (e.g., "Opium Act exemption X covers substances A, B, C") to control which products a given licence authorizes
 - **FR-005**: System MUST record for each licence: unique licence number, issuing authority, issue date, expiry date, scope/restrictions, current status (valid, expired, suspended, revoked), and holder (internal company or specific customer)
 - **FR-006**: System MUST calculate and display remaining validity period for each licence in days
-- **FR-007**: System MUST generate alerts when licences are within a configurable period of expiry (default: 90 days for own licences, 60 days for customer licences, 30 days final warning)
+- **FR-007**: System MUST generate alerts when licences are within a configurable period of expiry (default: 90 days for own licences, 60 days for customer licences, 30 days final warning) using unified alert generation service per FR-043
 - **FR-008**: System MUST allow attachment of supporting documentation (scanned licences, certificates, PDF permits, letters) to licence records
 - **FR-009**: System MUST record verification method (authority website check, email confirmation, copy of decision), verification date, and verifier name for each licence verification
 - **FR-010**: System MUST record licence scope changes with effective dates to maintain historical authorization records
@@ -270,7 +272,7 @@ As a QA user or training coordinator, I need to maintain an index of GDP-relevan
 
 - **FR-018**: System MUST provide API endpoint for transaction validation that accepts order details (customer ID, product list with substances and quantities, destination country, transaction type) and returns compliance check results (pass/fail/pending status, specific violations, required actions)
 - **FR-019**: System MUST return "pending compliance" status for orders where customer lacks required valid licences for any product, including detailed violation information (missing licence type, expired dates, invalid status) that calling system can use to block warehouse processing
-- **FR-019a**: System MUST provide compliance override workflow accessible via web UI allowing designated approvers (Compliance Manager role or configured authorized roles) to review pending orders, view specific compliance violations, document justification (e.g., "Emergency medical supply - licence renewal in progress with IGJ"), and approve order for processing; required justification fields (reason code, text min 20 chars, authority ref)
+- **FR-019a**: System MUST provide compliance override workflow accessible via web UI allowing designated approvers to review pending orders, view specific compliance violations, document justification, and approve order for processing. **Role Configuration**: Override approval roles are configurable per deployment via appsettings.json (default: "ComplianceManager" role). When multiple roles are configured, ANY user in ANY configured role can approve (logical OR). System validates approver has active employee status per FR-031. Required justification fields: reason code (from predefined list: "Emergency Medical Supply", "Licence Renewal In Progress", "Authority Pre-Approval", "Other"), free-text justification (minimum 20 characters), authority reference number (optional).
 - **FR-019b**: System MUST expose API endpoint for checking override approval status that external systems can poll or receive webhook notifications when pending orders are approved or rejected
 - **FR-020**: System MUST return structured error/warning messages in API responses indicating which specific licence or permit is missing or invalid for each non-compliant product, formatted for display in calling systems
 - **FR-021**: System MUST validate required import/export permits for cross-border shipments of Opium Act drugs and controlled precursors (export permit from NL, import certificate from destination country) when transaction validation API is called with cross-border indicator
@@ -293,7 +295,7 @@ As a QA user or training coordinator, I need to maintain an index of GDP-relevan
 
 - **FR-030**: System MUST support configurable workflows for high-risk events (adding controlled substance to customer scope, approving exception sale, adding new country) requiring review and approval by designated roles
 - **FR-031**: System MUST implement role-based access control so only authorized users can create or modify licence records, approve exceptions, or override system blocks
-- **FR-031a**: System MUST support hybrid authentication: enterprise SSO/SAML integration (for internal staff connecting to organizational identity providers like Active Directory, Azure AD, Okta) AND local username/password authentication (for external partners, auditors, or deployments without enterprise SSO)
+- **FR-031a**: System MUST support hybrid authentication: Azure Active Directory B2C for enterprise SSO integration (supporting SAML 2.0, OAuth2, OpenID Connect protocols for connecting to organizational identity providers like Active Directory, Azure AD, Okta) AND local username/password authentication (for external partners, auditors, or deployments without enterprise SSO). Technology selection: Azure AD B2C as SSO provider per plan.md technical context.
 - **FR-031b**: System MUST manage user sessions securely with configurable timeout periods, automatic logout on inactivity, and audit logging of all authentication events (successful logins, failed attempts, logouts, session expirations)
 - **FR-031c**: System MUST allow administrators to configure which authentication method(s) are enabled per deployment and map SSO groups/claims to internal application roles
 - **FR-032**: System MUST provide dashboards highlighting key risks (customers with expiring licences, blocked orders due to missing exemptions, abnormal order volumes) for compliance and QA managers
@@ -319,7 +321,7 @@ As a QA user or training coordinator, I need to maintain an index of GDP-relevan
 
 ### Functional Requirements - GDP Certificates & Monitoring
 
-- **FR-043**: System MUST record validity periods of GDP certificates and WDAs for the company and key partners and generate automated alerts before expiry
+- **FR-043**: System MUST record validity periods of GDP certificates and WDAs for the company and key partners and generate automated alerts before expiry using unified alert generation service shared with FR-007
 - **FR-044**: System MUST allow attaching GDP certificates, WDA copies, and inspection reports to entity records (company, suppliers, 3PLs, warehouses)
 - **FR-045**: System MUST log verification of partner GDP status via EudraGMDP or national databases (date, verifier, outcome) to prove ongoing monitoring
 
@@ -339,14 +341,14 @@ As a QA user or training coordinator, I need to maintain an index of GDP-relevan
 
 - **FR-052**: System MUST achieve 99.5% uptime during business operations, allowing maximum 4 hours of combined planned and unplanned downtime per month
 - **FR-053**: System MUST schedule planned maintenance activities during off-peak hours (configurable maintenance windows, typically evenings/weekends) with advance notification to users
-- **FR-054**: System MUST implement failover capabilities for critical compliance check functions (transaction validation, licence lookups, alert generation) to minimize impact of component failures
+- **FR-054**: System MUST implement failover capabilities for critical compliance check functions (transaction validation, licence lookups, alert generation) to minimize impact of component failures. **Critical functions** (must remain available during partial failures): Transaction validation API (FR-018), customer compliance status lookup API (FR-060), licence lookup, warehouse operation validation (FR-023), alert generation for expiry warnings. **Non-critical functions** (may degrade gracefully during component failures): Report generation (FR-026), audit log queries, dashboard analytics, document upload, workflow approvals. System MUST return HTTP 503 with Retry-After header for degraded non-critical endpoints.
 - **FR-055**: System MUST provide graceful degradation when non-critical features are unavailable (e.g., reports, dashboards), allowing core compliance operations (order validation, licence management) to continue
 - **FR-056**: System MUST monitor system health metrics (response times, error rates, resource utilization) and alert administrators when thresholds are exceeded or availability is at risk
 
 ### Functional Requirements - Integration & APIs
 
 - **FR-057**: System MUST provide RESTful API endpoints for integration with external order management systems (ERP, custom order entry systems) and warehouse management systems (WMS)
-- **FR-058**: System MUST support synchronous API calls for real-time transaction validation (response within 3 seconds) that block/allow order processing based on compliance checks
+- **FR-058**: System MUST support synchronous API calls for real-time transaction validation with response time under 3 seconds at 95th percentile (p95) that block/allow order processing based on compliance checks. Target p50 response time: <1 second. Maximum acceptable p99 response time: 5 seconds.
 - **FR-059**: System MUST provide webhook/callback mechanism for asynchronous notifications when compliance status changes (e.g., pending order approved, customer suspended due to licence expiry)
 - **FR-060**: System MUST support customer/product master data synchronization APIs allowing external systems to query customer compliance status, licence validity, and GDP qualifications before displaying options to users
 - **FR-061**: System MUST maintain transaction audit records for all API calls including calling system identity, request payload, response, timestamp, and user context (which external user triggered the validation)
@@ -355,6 +357,17 @@ As a QA user or training coordinator, I need to maintain an index of GDP-relevan
 - **FR-064**: System MUST return standardized error codes and messages in API responses to enable consistent error handling by calling systems (e.g., "LICENCE_EXPIRED", "SUBSTANCE_NOT_AUTHORIZED", "THRESHOLD_EXCEEDED")
 - **FR-065**: System MUST provide API documentation (OpenAPI/Swagger specification) and test sandbox environment for integration development and testing
 - **FR-066**: System MUST support controlled substance reclassification (e.g., moving substance from Opium Act List II to List I, or adding substance to precursor category) with effective date management. When substance is reclassified: (1) System records new classification with effective date, (2) System identifies all customers whose licence scope includes the substance, (3) System validates whether customer's existing licences authorize the new classification, (4) System flags affected customers as "Requires Re-Qualification" if existing licences insufficient, (5) System generates notification to compliance team listing affected customers and required actions, (6) System prevents new transactions with reclassified substance for affected customers until licences updated, (7) Historical transactions remain valid under classification at time of transaction. Reclassification audit trail records regulatory authority reference, effective date, substances affected, and customers flagged for re-qualification.
+
+### Non-Functional Requirements - Security
+
+- **NFR-001**: System MUST pass OWASP Top 10 vulnerability scanning with zero critical or high-severity findings before production deployment
+- **NFR-002**: System MUST implement input validation on all API endpoints preventing SQL injection, XSS, command injection, and path traversal attacks per OWASP guidelines
+- **NFR-003**: System MUST enforce HTTPS-only communication in production environments with TLS 1.2 minimum, rejecting all HTTP requests
+- **NFR-004**: System MUST implement API rate limiting per integration system (default: 100 requests/minute per API key) to prevent denial-of-service attacks per FR-063
+- **NFR-005**: System MUST perform automated security scanning (SAST/DAST) in CI/CD pipeline with build failure on high-severity vulnerabilities
+- **NFR-006**: System MUST log all authentication failures, authorization denials, and API authentication attempts to Azure Application Insights with alerts on suspicious patterns (>10 failed attempts in 5 minutes from single IP)
+- **NFR-007**: System MUST encrypt sensitive data at rest (licence documents in Blob Storage using Azure-managed keys) and in transit (API communication via HTTPS/TLS)
+
 
 ### Key Entities
 
@@ -407,7 +420,8 @@ Note: Complete catalog (30 entities) in data-model.md
 - **SC-004**: System identifies 100% of licence expiries at least 60 days in advance with zero missed alerts
 
 **Transaction Compliance & Performance:**
-- **SC-005**: Pre-transaction compliance checks (licence validation, substance authorization, permit verification) complete in under 3 seconds per order, allowing seamless order processing
+
+- **SC-005**: Pre-transaction compliance checks (licence validation, substance authorization, permit verification) complete in under 3 seconds at p95 (95th percentile), under 1 second at p50 (median), allowing seamless order processing
 - **SC-006**: System correctly blocks 100% of non-compliant transactions (false negatives rate = 0% for missing/invalid licences)
 - **SC-007**: System false-positive rate for compliant transactions is less than 1% (accounting for legitimate edge cases)
 - **SC-008**: Reduction in compliance-related incidents (selling to unqualified customers, operating with expired licences, missing permits) by 95% within 6 months of implementation
@@ -459,6 +473,14 @@ Note: Complete catalog (30 entities) in data-model.md
 - **SC-037**: API versioning changes do not break existing integrations; backward compatibility maintained for minimum 6 months allowing gradual migration
 - **SC-038**: Compliance officers can generate historical validation report showing all transactions potentially affected by licence data correction (where licence effective dates overlap transaction dates) within 5 minutes, with report indicating whether each transaction would have been compliant under corrected licence data, enabling manual impact assessment per Assumption 18
 
+**Security & Compliance:**
+- **SC-039**: Zero critical or high-severity vulnerabilities detected in OWASP Top 10 security scans before production deployment
+- **SC-040**: 100% of API endpoints pass input validation testing against OWASP injection attack patterns (SQL injection, XSS, command injection)
+- **SC-041**: Automated security scanning (SAST with SonarQube or Checkmarx, DAST with OWASP ZAP) integrated in CI pipeline and executed on every commit
+- **SC-042**: API rate limiting prevents >150 requests/minute from single integration system (50% margin above normal 100 req/min limit) with HTTP 429 response
+- **SC-043**: All production communication uses HTTPS with TLS 1.2+ verified via SSL Labs scan scoring A- or higher
+
+
 ## Assumptions
 
 1. **Regulatory Framework**: System assumes compliance with Dutch Opium Act, Medicines Act (Geneesmiddelenwet), EU GDP guidelines (2013/C 68/01), and relevant precursor regulations as of 2026. Any regulatory changes will require specification and implementation updates.
@@ -504,3 +526,5 @@ Note: Complete catalog (30 entities) in data-model.md
 21. **Business Hours & Availability**: System is designed for high availability (99.5% uptime) during business operations. "Business hours" are defined as Monday-Friday 07:00-19:00 CET/CEST (covers order entry, warehouse operations, compliance activities across European time zones). "Off-peak hours" for planned maintenance are evenings (19:00-23:00), nights (23:00-07:00), and weekends. Critical compliance functions (transaction validation, licence lookups, alert generation) must remain available during business hours; non-critical features (complex reports, analytics dashboards) may have brief maintenance windows. Emergency orders or 24/7 operations are supported but not the primary design target.
 
 22. **Integration Systems & API Consumers**: System is designed to integrate with typical pharmaceutical wholesale ERP systems (SAP ECC/S4HANA, Microsoft Dynamics 365, Infor, custom Java/.NET systems) and warehouse management systems (Manhattan, Blue Yonder, SAP EWM, custom WMS). Integration patterns assume RESTful APIs with JSON payloads as primary integration mechanism. External systems are expected to make synchronous API calls during order entry/shipment workflows and handle "pending compliance" status by holding orders in their own databases until webhook notification or polling indicates approval. Batch integration patterns (nightly file exchange, bulk validation) are out of scope for initial implementation but may be future enhancement.
+
+23. **D365 F&O Version Compatibility**: System integrates with Microsoft Dynamics 365 Finance & Operations version 10.0.30 or later via OData v4 virtual data entities. Minimum supported version: 10.0.30 (October 2022 release) which provides stable OData endpoint support, ETag-based concurrency control, and Managed Identity authentication. Older versions (10.0.x < 30) may work but are not tested. Cloud-hosted D365 F&O instances are primary target; on-premises deployments require network connectivity and certificate-based authentication configuration.

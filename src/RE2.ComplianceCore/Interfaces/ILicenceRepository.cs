@@ -3,17 +3,17 @@ using RE2.ComplianceCore.Models;
 namespace RE2.ComplianceCore.Interfaces;
 
 /// <summary>
-/// Repository interface for licence data access
-/// T068: ILicenceRepository interface
+/// Repository interface for Licence entity operations.
+/// T068: Repository interface for licence CRUD operations.
 /// </summary>
 public interface ILicenceRepository
 {
-    // TODO: Define methods for licence CRUD operations
-    // Task<Licence?> GetByIdAsync(Guid id);
-    // Task<Licence?> GetByLicenceNumberAsync(string licenceNumber);
-    // Task<IEnumerable<Licence>> GetByCustomerIdAsync(Guid customerId);
-    // Task<IEnumerable<Licence>> GetExpiringLicencesAsync(DateTime beforeDate);
-    // Task<Licence> CreateAsync(Licence licence);
-    // Task<Licence> UpdateAsync(Licence licence);
-    // Task<bool> DeleteAsync(Guid id);
+    Task<Licence?> GetByIdAsync(Guid licenceId, CancellationToken cancellationToken = default);
+    Task<Licence?> GetByLicenceNumberAsync(string licenceNumber, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Licence>> GetByHolderAsync(Guid holderId, string holderType, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Licence>> GetExpiringLicencesAsync(int daysAhead, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Licence>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<Guid> CreateAsync(Licence licence, CancellationToken cancellationToken = default);
+    Task UpdateAsync(Licence licence, CancellationToken cancellationToken = default);
+    Task DeleteAsync(Guid licenceId, CancellationToken cancellationToken = default);
 }

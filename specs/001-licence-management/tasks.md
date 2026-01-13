@@ -65,51 +65,64 @@ Project uses multi-project .NET solution structure per plan.md:
 
 ### Authentication & Authorization Foundation
 
-- [ ] T021 Configure Azure AD authentication in RE2.ComplianceApi per research.md section 6 (stateless JWT)
-- [ ] T022 Configure Azure AD B2C authentication in RE2.ComplianceApi for external users per research.md section 6
-- [ ] T023 Configure multiple authentication schemes (AzureAd + AzureAdB2C) in RE2.ComplianceApi Program.cs
-- [ ] T024 Configure authorization policies (InternalUsers, ExternalUsers, AnyUser) in RE2.ComplianceApi
-- [ ] T025 Configure Azure AD authentication in RE2.ComplianceWeb Program.cs for compliance UI users
-- [ ] T026 Create User model in src/RE2.Shared/Constants/ with roles (ComplianceManager, QAUser, SalesAdmin, etc.) per data-model.md entity 28
+- [X] T021 Configure Azure AD authentication in RE2.ComplianceApi per research.md section 6 (stateless JWT)
+- [X] T022 Configure Azure AD B2C authentication in RE2.ComplianceApi for external users per research.md section 6
+- [X] T023 Configure multiple authentication schemes (AzureAd + AzureAdB2C) in RE2.ComplianceApi Program.cs
+- [X] T024 Configure authorization policies (InternalUsers, ExternalUsers, AnyUser) in RE2.ComplianceApi
+- [X] T025 Configure Azure AD authentication in RE2.ComplianceWeb Program.cs for compliance UI users
+- [X] T026 Create User model in src/RE2.Shared/Constants/ with roles (ComplianceManager, QAUser, SalesAdmin, etc.) per data-model.md entity 28
 
 ### External System Integration Foundation
 
-- [ ] T027 Create IDataverseClient interface in src/RE2.ComplianceCore/Interfaces/IDataverseClient.cs
-- [ ] T028 Create ID365FoClient interface in src/RE2.ComplianceCore/Interfaces/ID365FoClient.cs
-- [ ] T029 Create IDocumentStorage interface in src/RE2.ComplianceCore/Interfaces/IDocumentStorage.cs
-- [ ] T030 Implement DataverseClient with ServiceClient and Managed Identity in src/RE2.DataAccess/Dataverse/DataverseClient.cs per research.md section 1
-- [ ] T031 Implement D365FoClient with HttpClient and OAuth2 in src/RE2.DataAccess/D365FinanceOperations/D365FoClient.cs per research.md section 2
-- [ ] T032 Implement DocumentStorageClient with Azure Blob Storage SDK in src/RE2.DataAccess/BlobStorage/DocumentStorageClient.cs
-- [ ] T033 Configure standard resilience handler for DataverseClient in RE2.DataAccess per research.md section 4 (retry, circuit breaker, timeout)
-- [ ] T034 Configure standard resilience handler for D365FoClient in RE2.DataAccess per research.md section 4
-- [ ] T035 Create InfrastructureExtensions.AddDataverseServices() in src/RE2.DataAccess/DependencyInjection/InfrastructureExtensions.cs per research.md section 3
-- [ ] T036 Create InfrastructureExtensions.AddD365FOServices() in src/RE2.DataAccess/DependencyInjection/InfrastructureExtensions.cs
-- [ ] T037 Create InfrastructureExtensions.AddBlobStorageServices() in src/RE2.DataAccess/DependencyInjection/InfrastructureExtensions.cs
-- [ ] T038 Register DI services in RE2.ComplianceApi Program.cs using extension methods
-- [ ] T039 Register DI services in RE2.ComplianceWeb Program.cs using extension methods
-- [ ] T040 Register DI services in RE2.ComplianceFunctions Program.cs using extension methods
+- [X] T027 Create IDataverseClient interface in src/RE2.ComplianceCore/Interfaces/IDataverseClient.cs
+- [X] T028 Create ID365FoClient interface in src/RE2.ComplianceCore/Interfaces/ID365FoClient.cs
+- [X] T029 Create IDocumentStorage interface in src/RE2.ComplianceCore/Interfaces/IDocumentStorage.cs
+- [X] T030 Implement DataverseClient with ServiceClient and Managed Identity in src/RE2.DataAccess/Dataverse/DataverseClient.cs per research.md section 1
+- [X] T031 Implement D365FoClient with HttpClient and OAuth2 in src/RE2.DataAccess/D365FinanceOperations/D365FoClient.cs per research.md section 2
+- [X] T032 Implement DocumentStorageClient with Azure Blob Storage SDK in src/RE2.DataAccess/BlobStorage/DocumentStorageClient.cs
+- [X] T033 Configure standard resilience handler for DataverseClient in RE2.DataAccess per research.md section 4 (retry, circuit breaker, timeout)
+- [X] T034 Configure standard resilience handler for D365FoClient in RE2.DataAccess per research.md section 4
+- [X] T035 Create InfrastructureExtensions.AddDataverseServices() in src/RE2.DataAccess/DependencyInjection/InfrastructureExtensions.cs per research.md section 3
+- [X] T036 Create InfrastructureExtensions.AddD365FOServices() in src/RE2.DataAccess/DependencyInjection/InfrastructureExtensions.cs
+- [X] T037 Create InfrastructureExtensions.AddBlobStorageServices() in src/RE2.DataAccess/DependencyInjection/InfrastructureExtensions.cs
+- [X] T038 Register DI services in RE2.ComplianceApi Program.cs using extension methods
+- [X] T039 Register DI services in RE2.ComplianceWeb Program.cs using extension methods
+- [X] T040 Register DI services in RE2.ComplianceFunctions Program.cs using extension methods
 
 ### API Infrastructure Foundation
 
-- [ ] T041 Configure API versioning with Asp.Versioning.Mvc in RE2.ComplianceApi per research.md section 5 (URL path versioning)
-- [ ] T042 Configure Swagger/OpenAPI for v1 API documentation in RE2.ComplianceApi
-- [ ] T043 Configure OAuth2 security in Swagger for testing in RE2.ComplianceApi per research.md section 6
-- [ ] T044 Create error handling middleware in src/RE2.ComplianceApi/Middleware/ErrorHandlingMiddleware.cs
-- [ ] T045 Create request logging middleware in src/RE2.ComplianceApi/Middleware/RequestLoggingMiddleware.cs
-- [ ] T046 Configure Application Insights telemetry in RE2.ComplianceApi and RE2.ComplianceFunctions
-- [ ] T047 Create standardized error response DTOs in src/RE2.Shared/Models/ per transaction-validation-api.yaml ErrorResponse schema
+- [X] T041 Configure API versioning with Asp.Versioning.Mvc in RE2.ComplianceApi per research.md section 5 (URL path versioning)
+- [X] T042 Configure Swagger/OpenAPI for v1 API documentation in RE2.ComplianceApi
+- [X] T043 Configure OAuth2 security in Swagger for testing in RE2.ComplianceApi per research.md section 6
+- [X] T044 Create error handling middleware in src/RE2.ComplianceApi/Middleware/ErrorHandlingMiddleware.cs
+- [X] T045 Create request logging middleware in src/RE2.ComplianceApi/Middleware/RequestLoggingMiddleware.cs
+- [X] T046 Configure Application Insights telemetry in RE2.ComplianceApi and RE2.ComplianceFunctions
+- [X] T047 Create standardized error response DTOs in src/RE2.Shared/Models/ per transaction-validation-api.yaml ErrorResponse schema
 
 ### Shared Domain Foundation
 
-- [ ] T048 [P] Create ErrorCodes constants in src/RE2.Shared/Constants/ErrorCodes.cs per FR-064 (LICENCE_EXPIRED, LICENCE_MISSING, etc.)
-- [ ] T049 [P] Create LicenceTypes constants in src/RE2.Shared/Constants/LicenceTypes.cs
-- [ ] T050 [P] Create SubstanceCategories constants in src/RE2.Shared/Constants/SubstanceCategories.cs
-- [ ] T051 [P] Create DateTimeExtensions in src/RE2.Shared/Extensions/DateTimeExtensions.cs
-- [ ] T052 [P] Create ValidationResult value object in src/RE2.ComplianceCore/Models/ValidationResult.cs
+- [X] T048 [P] Create ErrorCodes constants in src/RE2.Shared/Constants/ErrorCodes.cs per FR-064 (LICENCE_EXPIRED, LICENCE_MISSING, etc.)
+- [X] T049 [P] Create LicenceTypes constants in src/RE2.Shared/Constants/LicenceTypes.cs
+- [X] T050 [P] Create SubstanceCategories constants in src/RE2.Shared/Constants/SubstanceCategories.cs
+- [X] T051 [P] Create DateTimeExtensions in src/RE2.Shared/Extensions/DateTimeExtensions.cs
+- [X] T052 [P] Create ValidationResult value object in src/RE2.ComplianceCore/Models/ValidationResult.cs
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
 ---
+
+### CLI Interface (Constitution Principle IV)
+
+- [ ] T052a Create RE2.ComplianceCli console application (.NET 8) in src/RE2.ComplianceCli/ with CommandLineParser NuGet package
+- [ ] T052b [P] Implement `validate-transaction` command accepting JSON via stdin, returning ValidationResult to stdout per Constitution Principle IV
+- [ ] T052c [P] Implement `lookup-customer` command accepting customer ID via args, returning compliance status JSON to stdout
+- [ ] T052d [P] Implement `lookup-licence` command accepting licence number via args, returning licence details JSON to stdout
+- [ ] T052e [P] Implement `generate-report` command accepting report type and filters via args, returning report data to stdout
+- [ ] T052f Configure RE2.ComplianceCli project references to RE2.ComplianceCore and RE2.DataAccess (same dependencies as API layer)
+- [ ] T052g Add CLI to solution and configure build pipeline to produce standalone executable
+- [ ] T052h [P] Create CLI integration tests in tests/RE2.ComplianceCli.Tests/ verifying stdin/stdout protocol
+- [ ] T052i Update quickstart.md with CLI usage examples and stdin/stdout protocol documentation
+
 
 ## Phase 3: User Story 1 - Manage Legal Licence Requirements (Priority: P1) 🎯 MVP
 
@@ -121,8 +134,8 @@ Project uses multi-project .NET solution structure per plan.md:
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T053 [P] [US1] Unit tests for LicenceType model in tests/RE2.ComplianceCore.Tests/Models/LicenceTypeTests.cs
-- [ ] T054 [P] [US1] Unit tests for ControlledSubstance model in tests/RE2.ComplianceCore.Tests/Models/ControlledSubstanceTests.cs
+- [X] T053 [P] [US1] Unit tests for LicenceType model in tests/RE2.ComplianceCore.Tests/Models/LicenceTypeTests.cs
+- [X] T054 [P] [US1] Unit tests for ControlledSubstance model in tests/RE2.ComplianceCore.Tests/Models/ControlledSubstanceTests.cs
 - [ ] T055 [P] [US1] Unit tests for LicenceSubstanceMapping model in tests/RE2.ComplianceCore.Tests/Models/LicenceSubstanceMappingTests.cs
 - [ ] T056 [P] [US1] Unit tests for Licence model in tests/RE2.ComplianceCore.Tests/Models/LicenceTests.cs
 - [ ] T057 [US1] Contract tests for Dataverse LicenceType entity in tests/RE2.Contract.Tests/DataverseLicenceTypeContractTests.cs
@@ -152,6 +165,25 @@ Project uses multi-project .NET solution structure per plan.md:
 - [ ] T078 [US1] Add validation for licence type permitted activities mapping per data-model.md validation rules
 - [ ] T079 [US1] Add validation for substance-to-licence-type mappings per data-model.md validation rules
 - [ ] T080 [US1] Configure route authorization: only ComplianceManager role can create/modify licence types
+
+### Substance Reclassification Support (FR-066)
+
+- [ ] T080a [P] [US1] Create SubstanceReclassification domain model in src/RE2.ComplianceCore/Models/SubstanceReclassification.cs per FR-066
+- [ ] T080b [P] [US1] Create SubstanceReclassificationDto for Dataverse in src/RE2.DataAccess/Dataverse/Models/SubstanceReclassificationDto.cs
+- [ ] T080c [US1] Extend ControlledSubstance model with effective date tracking for classification changes
+- [ ] T080d [US1] Create ISubstanceReclassificationRepository interface in src/RE2.ComplianceCore/Interfaces/ISubstanceReclassificationRepository.cs
+- [ ] T080e [US1] Implement DataverseSubstanceReclassificationRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseSubstanceReclassificationRepository.cs
+- [ ] T080f [US1] Create SubstanceReclassificationService in src/RE2.ComplianceCore/Services/LicenceValidation/SubstanceReclassificationService.cs with customer impact analysis per FR-066
+- [ ] T080g [US1] Implement reclassification workflow: record new classification with effective date, identify affected customers, validate licence sufficiency
+- [ ] T080h [US1] Create SubstanceReclassificationController v1 in src/RE2.ComplianceApi/Controllers/V1/SubstanceReclassificationController.cs with POST /api/v1/substances/{id}/reclassify endpoint
+- [ ] T080i [US1] Create reclassification UI in src/RE2.ComplianceWeb/Views/Substances/Reclassify.cshtml with regulatory authority reference, effective date, affected customers preview
+- [ ] T080j [US1] Implement customer flagging logic per FR-066: set "Requires Re-Qualification" status for customers with insufficient licences
+- [ ] T080k [US1] Implement compliance team notification generation listing affected customers and required actions
+- [ ] T080l [US1] Extend TransactionComplianceService to prevent transactions with reclassified substances for flagged customers until licences updated per FR-066
+- [ ] T080m [US1] Add historical transaction validation support: maintain transaction compliance under classification at time of transaction per FR-066
+- [ ] T080n [P] [US1] Unit tests for SubstanceReclassificationService in tests/RE2.ComplianceCore.Tests/Services/SubstanceReclassificationServiceTests.cs
+- [ ] T080o [US1] Integration tests for reclassification API in tests/RE2.ComplianceApi.Tests/Controllers/V1/SubstanceReclassificationControllerTests.cs
+
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - compliance managers can manage licence types, controlled substances, and mappings via API and web UI
 
@@ -208,10 +240,14 @@ Project uses multi-project .NET solution structure per plan.md:
 ### Implementation for User Story 3
 
 - [ ] T104 [P] [US3] Create LicenceDocument domain model in src/RE2.ComplianceCore/Models/LicenceDocument.cs per data-model.md entity 12
-- [ ] T105 [P] [US3] Create LicenceVerification domain model in src/RE2.ComplianceCore/Models/LicenceVerification.cs per data-model.md entity 13
+- [ ] T105 [P] [US3] Create LicenceVerification domain model in src/RE2.ComplianceCore/Models/LicenceVerification.cs per data-model.md entity 13 with properties: verificationMethod (enum: AuthorityWebsite, EmailConfirmation, FarmatecDatabase, PhysicalDocumentReview), verificationDate, verifierName, outcome, notes
 - [ ] T106 [P] [US3] Create LicenceScopeChange domain model in src/RE2.ComplianceCore/Models/LicenceScopeChange.cs per data-model.md entity 14
 - [ ] T107 [P] [US3] Create Alert domain model in src/RE2.ComplianceCore/Models/Alert.cs per data-model.md entity 11
 - [ ] T108 [P] [US3] Create LicenceDocument DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/LicenceDocumentDto.cs
+- [ ] T108a [P] [US3] Create LicenceVerification DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/LicenceVerificationDto.cs
+- [ ] T108b [US3] Extend ILicenceRepository interface with GetVerificationHistory(licenceId) method
+- [ ] T108c [US3] Implement verification history queries in DataverseLicenceRepository
+
 - [ ] T109 [P] [US3] Create Alert DTO for D365 F&O in src/RE2.DataAccess/D365FinanceOperations/Models/AlertDto.cs
 - [ ] T110 [US3] Extend ILicenceRepository with document upload methods
 - [ ] T111 [US3] Implement document upload in DataverseLicenceRepository using IDocumentStorage
@@ -223,8 +259,8 @@ Project uses multi-project .NET solution structure per plan.md:
 - [ ] T117 [US3] Add file upload UI in src/RE2.ComplianceWeb/Views/Licences/UploadDocument.cshtml
 - [ ] T118 [US3] Add verification recording UI in src/RE2.ComplianceWeb/Views/Licences/RecordVerification.cshtml
 - [ ] T119 [US3] Add scope change history UI in src/RE2.ComplianceWeb/Views/Licences/ScopeHistory.cshtml
-- [ ] T120 [US3] Create LicenceExpiryMonitor Azure Function in src/RE2.ComplianceFunctions/LicenceExpiryMonitor.cs (timer trigger, daily at 2 AM) per FR-007
-- [ ] T121 [US3] Implement alert generation logic in LicenceExpiryMonitor for 90/60/30 day warnings
+- [ ] T120 [US3] Create unified AlertGenerationService in src/RE2.ComplianceCore/Services/AlertGeneration/AlertGenerationService.cs supporting multiple entity types (Licence, GdpCredential, Customer re-verification)
+- [ ] T121 [US3] Create LicenceExpiryMonitor Azure Function in src/RE2.ComplianceFunctions/LicenceExpiryMonitor.cs (timer trigger, daily at 2 AM) using AlertGenerationService for 90/60/30 day warnings per FR-007
 - [ ] T122 [US3] Add alert display dashboard in src/RE2.ComplianceWeb/Views/Dashboard/Index.cshtml
 
 **Checkpoint**: At this point, User Stories 1-3 are complete - full licence lifecycle management with documents, verification, and expiry monitoring
@@ -252,6 +288,18 @@ Project uses multi-project .NET solution structure per plan.md:
 - [ ] T130 [P] [US4] Create TransactionViolation domain model in src/RE2.ComplianceCore/Models/TransactionViolation.cs per data-model.md entity 9
 - [ ] T131 [P] [US4] Create TransactionLicenceUsage domain model in src/RE2.ComplianceCore/Models/TransactionLicenceUsage.cs per data-model.md entity 8
 - [ ] T132 [P] [US4] Create Threshold domain model in src/RE2.ComplianceCore/Models/Threshold.cs per data-model.md entity 10
+
+### Threshold Configuration (FR-022)
+
+- [ ] T132a [P] [US4] Create IThresholdRepository interface in src/RE2.ComplianceCore/Interfaces/IThresholdRepository.cs
+- [ ] T132b [US4] Implement DataverseThresholdRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseThresholdRepository.cs
+- [ ] T132c [US4] Create ThresholdService in src/RE2.ComplianceCore/Services/RiskMonitoring/ThresholdService.cs with CRUD operations and validation logic
+- [ ] T132d [US4] Create ThresholdsController v1 in src/RE2.ComplianceApi/Controllers/V1/ThresholdsController.cs with GET, POST, PUT, DELETE endpoints for customer-substance threshold configuration
+- [ ] T132e [US4] Create threshold configuration UI in src/RE2.ComplianceWeb/Views/Thresholds/ (Index, Create, Edit views) with customer selector, substance selector, threshold type (monthly quantity, annual frequency), limit value fields
+- [ ] T132f [US4] Create ThresholdsController for web UI in src/RE2.ComplianceWeb/Controllers/ThresholdsController.cs
+- [ ] T132g [US4] Configure authorization: ComplianceManager role can manage thresholds per FR-031
+
+
 - [ ] T133 [P] [US4] Create Transaction DTOs for D365 F&O in src/RE2.DataAccess/D365FinanceOperations/Models/TransactionDto.cs
 - [ ] T134 [US4] Create ITransactionRepository interface in src/RE2.ComplianceCore/Interfaces/ITransactionRepository.cs
 - [ ] T135 [US4] Implement D365FoTransactionRepository in src/RE2.DataAccess/D365FinanceOperations/Repositories/D365FoTransactionRepository.cs
@@ -259,7 +307,7 @@ Project uses multi-project .NET solution structure per plan.md:
 - [ ] T137 [US4] Implement customer licence validation in TransactionComplianceService (FR-018, FR-019)
 - [ ] T138 [US4] Implement company licence validation in TransactionComplianceService (FR-024)
 - [ ] T139 [US4] Implement cross-border permit validation in TransactionComplianceService (FR-021)
-- [ ] T140 [US4] Implement threshold checking in TransactionComplianceService (FR-022)
+- [ ] T140 [US4] Implement threshold checking in TransactionComplianceService (FR-022) using ThresholdService to retrieve configured thresholds and evaluate transaction quantities against limits
 - [ ] T141 [US4] Create TransactionValidationController v1 in src/RE2.ComplianceApi/Controllers/V1/TransactionValidationController.cs per transaction-validation-api.yaml
 - [ ] T142 [US4] Implement POST /api/v1/transactions/validate endpoint per transaction-validation-api.yaml with <3 second response time (SC-005)
 - [ ] T143 [US4] Implement GET /api/v1/transactions/{externalId}/status endpoint per transaction-validation-api.yaml
@@ -268,7 +316,8 @@ Project uses multi-project .NET solution structure per plan.md:
 - [ ] T146 [US4] Implement override approval UI in src/RE2.ComplianceWeb/Views/Transactions/ApproveOverride.cshtml per FR-019a
 - [ ] T147 [US4] Create ComplianceOverrideController for web UI in src/RE2.ComplianceWeb/Controllers/ComplianceOverrideController.cs
 - [ ] T148 [US4] Implement POST /api/v1/transactions/{transactionId}/override endpoint per transaction-validation-api.yaml (FR-019a)
-- [ ] T149 [US4] Configure authorization: only ComplianceManager role can approve overrides per FR-031
+- [ ] T149 [US4] Configure authorization: implement role-based override approval per FR-019a with appsettings.json configuration (OverrideApprovalRoles array), validate approver in configured roles, enforce justification field requirements
+- [ ] T149a [US4] Add appsettings.json configuration section for override approval roles with default ["ComplianceManager"] and role precedence documentation (any configured role can approve)
 
 **Checkpoint**: At this point, User Stories 1-4 are complete - real-time transaction validation API operational, blocking non-compliant orders
 
@@ -292,13 +341,18 @@ Project uses multi-project .NET solution structure per plan.md:
 - [ ] T154 [US5] Create IAuditRepository interface in src/RE2.ComplianceCore/Interfaces/IAuditRepository.cs
 - [ ] T155 [US5] Implement D365FoAuditRepository in src/RE2.DataAccess/D365FinanceOperations/Repositories/D365FoAuditRepository.cs
 - [ ] T156 [US5] Create audit logging interceptor for all data modification operations (FR-027)
-- [ ] T157 [US5] Implement optimistic locking with RowVersion in all repositories per data-model.md (FR-027a)
+- [ ] T157 [US5] Implement optimistic locking with RowVersion/ETag in all Dataverse and D365 F&O repositories per research.md section 7: catch ConcurrencyVersionMismatch exceptions (Dataverse), handle PreconditionFailed responses (D365), throw custom ConcurrencyException for upper layers
+- [ ] T157a [US5] Create ConcurrencyException custom exception in src/RE2.ComplianceCore/Exceptions/ with properties: EntityType, EntityId, LocalVersion, RemoteVersion, ConflictingFields
 - [ ] T158 [US5] Create conflict resolution UI component in src/RE2.ComplianceWeb/Views/Shared/_ConflictResolution.cshtml per FR-027b
 - [ ] T159 [US5] Implement conflict detection and resolution workflow per FR-027b
 - [ ] T160 [US5] Create ReportingService in src/RE2.ComplianceCore/Services/Reporting/ReportingService.cs
 - [ ] T161 [US5] Implement transaction audit report generation (FR-026: by substance, customer, country)
 - [ ] T162 [US5] Implement licence usage report generation
 - [ ] T163 [US5] Implement customer compliance history report generation (FR-029)
+- [ ] T163a [US5] Create LicenceCorrectionImpactService in src/RE2.ComplianceCore/Services/Reporting/LicenceCorrectionImpactService.cs implementing SC-038 historical validation report
+- [ ] T163b [US5] Implement impact analysis logic: query transactions where licence effective dates overlap transaction dates, re-validate each transaction under corrected licence data, return list of transactions with original vs. corrected compliance status
+- [ ] T163c [US5] Add GET /api/v1/reports/licence-correction-impact endpoint to ReportsController v1 accepting licenceId and correctionDate parameters
+- [ ] T163d [US5] Create licence correction impact report UI in src/RE2.ComplianceWeb/Views/Reports/LicenceCorrectionImpact.cshtml showing affected transactions table with columns: TransactionID, Date, Customer, OriginalStatus, CorrectedStatus, ImpactSeverity per SC-038
 - [ ] T164 [US5] Create ReportsController v1 in src/RE2.ComplianceApi/Controllers/V1/ReportsController.cs
 - [ ] T165 [US5] Create reports UI in src/RE2.ComplianceWeb/Views/Reports/ (Index, TransactionAudit, LicenceUsage, CustomerCompliance views)
 - [ ] T166 [US5] Create ReportsController for web UI in src/RE2.ComplianceWeb/Controllers/ReportsController.cs
@@ -326,8 +380,15 @@ Project uses multi-project .NET solution structure per plan.md:
 - [ ] T172 [US6] Create custom authorization requirement ActiveEmployeeRequirement in src/RE2.ComplianceApi/Authorization/ActiveEmployeeRequirement.cs per research.md section 6
 - [ ] T173 [US6] Create authorization handler ActiveEmployeeHandler in src/RE2.ComplianceApi/Authorization/ActiveEmployeeHandler.cs
 - [ ] T174 [US6] Configure custom authorization policies (CanManageLicences, InternalTenantOnly, ActiveEmployeeOnly) in RE2.ComplianceApi Program.cs
-- [ ] T175 [US6] Implement Azure Logic App workflow definition for high-risk event approvals in infra/logic-apps/approval-workflow.json per FR-030
-- [ ] T176 [US6] Create approval workflow trigger endpoints in RE2.ComplianceApi
+- [ ] T175 [US6] Implement Azure Logic App workflow definition for high-risk event approvals in infra/logic-apps/approval-workflow.json per FR-030 with HTTP trigger, approval action, and callback to ComplianceApi
+- [ ] T176 [US6] Create ApprovalWorkflowController v1 in src/RE2.ComplianceApi/Controllers/V1/ApprovalWorkflowController.cs with:
+  - POST /api/v1/workflows/trigger (trigger Logic App for high-risk events)
+  - POST /api/v1/workflows/callback (receive approval/rejection from Logic App)
+  - GET /api/v1/workflows/{workflowId}/status (check workflow state)
+
+- [ ] T176a Implement workflow state synchronization: update internal approval status when Logic App callback received, generate audit events per FR-030
+- [ ] T176b Configure Azure Logic App deployment in infra/bicep/logic-apps.bicep with Managed Identity authentication to ComplianceApi callback endpoints
+
 - [ ] T177 [US6] Create compliance dashboard in src/RE2.ComplianceWeb/Views/Dashboard/ComplianceRisks.cshtml per FR-032
 - [ ] T178 [US6] Implement dashboard highlighting: customers with expiring licences, blocked orders, abnormal order volumes
 - [ ] T179 [US6] Add role-based UI hiding/showing in Razor views (e.g., hide "Create Licence" button if not ComplianceManager)
@@ -395,7 +456,6 @@ Project uses multi-project .NET solution structure per plan.md:
 - [ ] T209 [US8] Extend CustomersController web UI to include GDP credentials tab
 - [ ] T210 [US8] Implement EudraGMDP verification recording UI per FR-045
 - [ ] T211 [US8] Implement re-qualification reminder logic per FR-039
-- [ ] T212 [US8] Create GdpCertificateMonitor Azure Function in src/RE2.ComplianceFunctions/GdpCertificateMonitor.cs (timer trigger, daily) per FR-043
 
 **Checkpoint**: At this point, User Stories 7-8 are complete - full GDP partner qualification operational
 
@@ -452,7 +512,7 @@ Project uses multi-project .NET solution structure per plan.md:
 - [ ] T234 [US10] Extend GdpComplianceService with certificate expiry monitoring methods (FR-043)
 - [ ] T235 [US10] Extend GdpProvidersController API with document attachment endpoints
 - [ ] T236 [US10] Add document attachment UI in src/RE2.ComplianceWeb/Views/GdpProviders/Documents.cshtml per FR-044
-- [ ] T237 [US10] Extend GdpCertificateMonitor Azure Function with expiry alert generation per FR-043
+- [ ] T237 [US10] Extend LicenceExpiryMonitor Azure Function to monitor GDP certificate expiry using shared AlertGenerationService per FR-043, or create separate GdpCertificateMonitor if scheduling requirements differ
 - [ ] T238 [US10] Implement EudraGMDP verification logging per FR-045
 - [ ] T239 [US10] Add verification log display in GDP provider details view
 
@@ -504,6 +564,15 @@ Project uses multi-project .NET solution structure per plan.md:
 - [ ] T254 [P] [US12] Create GdpSiteSop domain model in src/RE2.ComplianceCore/Models/GdpSiteSop.cs per data-model.md entity 24
 - [ ] T255 [P] [US12] Create TrainingRecord domain model in src/RE2.ComplianceCore/Models/TrainingRecord.cs per data-model.md entity 25
 - [ ] T256 [P] [US12] Create GdpChangeRecord domain model in src/RE2.ComplianceCore/Models/GdpChangeRecord.cs per data-model.md entity 26
+
+- [ ] T256a [P] [US4] Create IntegrationSystem domain model in src/RE2.ComplianceCore/Models/IntegrationSystem.cs per data-model.md entity 27
+- [ ] T256b [P] [US4] Create IntegrationSystem DTO for D365 F&O in src/RE2.DataAccess/D365FinanceOperations/Models/IntegrationSystemDto.cs
+- [ ] T256c [US4] Create IIntegrationSystemRepository interface in src/RE2.ComplianceCore/Interfaces/IIntegrationSystemRepository.cs
+- [ ] T256d [US4] Implement D365FoIntegrationSystemRepository in src/RE2.DataAccess/D365FinanceOperations/Repositories/D365FoIntegrationSystemRepository.cs
+- [ ] T256e [US4] Extend TransactionValidationController to record calling system identity (IntegrationSystem ID) in transaction audit per FR-061
+- [ ] T256f [US4] Create IntegrationSystemsController v1 in src/RE2.ComplianceApi/Controllers/V1/IntegrationSystemsController.cs for managing API client registrations per data-model.md entity 27
+
+
 - [ ] T257 [P] [US12] Create GdpSop DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/GdpSopDto.cs
 - [ ] T258 [US12] Create IGdpSopRepository interface in src/RE2.ComplianceCore/Interfaces/IGdpSopRepository.cs
 - [ ] T259 [US12] Implement DataverseGdpSopRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseGdpSopRepository.cs
@@ -544,23 +613,29 @@ Project uses multi-project .NET solution structure per plan.md:
 - [ ] T285 [P] Add unit tests for GdpComplianceService in tests/RE2.ComplianceCore.Tests/Services/GdpComplianceServiceTests.cs
 - [ ] T286 [P] Add unit tests for ReportingService in tests/RE2.ComplianceCore.Tests/Services/ReportingServiceTests.cs
 - [ ] T287 Security hardening: implement rate limiting per transaction-validation-api.yaml headers
-- [ ] T288 Security hardening: add OWASP top 10 vulnerability scanning to CI pipeline
-- [ ] T289 Security hardening: validate all user inputs against injection attacks
-- [ ] T290 Security hardening: implement HTTPS-only enforcement in production
+- [ ] T288 Security hardening: integrate OWASP dependency check and SAST scanning (SonarQube or similar) in .azure/pipelines/ci-build.yml per NFR-005 with build failure on high/critical severity
+- [ ] T289 Security hardening: implement comprehensive input validation in RE2.ComplianceApi using FluentValidation for all DTOs, validating against OWASP injection patterns per NFR-002, with unit tests in tests/RE2.ComplianceApi.Tests/Validation/
+- [ ] T290 Security hardening: enforce HTTPS-only in production via middleware (RE2.ComplianceApi/Middleware/HttpsEnforcementMiddleware.cs) returning HTTP 403 for non-HTTPS requests per NFR-003
+- [ ] T290a Security testing: perform DAST scanning with OWASP ZAP against deployed staging environment per NFR-005, verify zero high-severity findings per SC-039
+- [ ] T290b Security testing: verify API rate limiting implementation per NFR-004 using load testing tool, confirm HTTP 429 responses at threshold per SC-042
+- [ ] T290c Security testing: verify TLS configuration using SSL Labs scan, target A- or higher grade per SC-043
 - [ ] T291 Run quickstart.md validation: verify local development setup works end-to-end
 - [ ] T292 Create Azure Bicep infrastructure templates in infra/bicep/ per plan.md project structure
 - [ ] T293 [P] Create Azure DevOps CI pipeline in .azure/pipelines/ci-build.yml
 - [ ] T294 [P] Create Azure DevOps CD pipelines (staging and production) in .azure/pipelines/
-- [ ] T295 Performance testing: verify <3 second transaction validation response time (SC-005, SC-032)
+- [ ] T295 Performance testing: verify transaction validation response times meet targets using load testing tool (JMeter or k6): p50 <1s, p95 <3s, p99 <5s per FR-058 and SC-005 with test scenarios for simple validation (single product, valid licence) and complex validation (multiple products, cross-border, threshold checks)
 - [ ] T296 Performance testing: verify <1 second customer compliance status lookup (SC-033)
 - [ ] T297 Load testing: verify 50 concurrent validation requests supported (SC-032)
 - [ ] T298 Availability testing: verify 99.5% uptime target achievable (SC-028)
-- [ ] T299 [P] Implement health check endpoints (/health, /ready) in RE2.ComplianceApi per FR-056 with Dataverse/D365/Blob connectivity checks
-- [ ] T300 [P] Implement API version deprecation middleware adding X-API-Deprecated, X-API-Sunset-Date, Link headers per FR-062
-- [ ] T301 Configure Azure Monitor alerts (availability, response time, health checks) and document recovery playbooks targeting MTTR <30 min per SC-031
-- [ ] T302 [P] Implement health check endpoints per FR-056
-- [ ] T303 [P] Implement API deprecation middleware per FR-062
-- [ ] T304 Configure Azure Monitor MTTR alerts per SC-031
+- [ ] T299 [P] Implement health check endpoints (/health, /ready) in RE2.ComplianceApi per FR-056 with Dataverse/D365/Blob connectivity checks, degraded state detection for non-critical features per FR-054
+
+- [ ] T300 [P] Implement API version deprecation middleware in RE2.ComplianceApi adding X-API-Deprecated, X-API-Sunset-Date, Link headers per FR-062, with version routing enforcement: return HTTP 410 Gone for versions beyond sunset date (6 months after deprecation notice), redirect to latest version documentation
+
+- [ ] T300a Implement API version compatibility layer in RE2.ComplianceApi: maintain previous API version (v1 initially) for minimum 6 months after v2 release per FR-062, transform v1 requests to v2 internal format
+- [ ] T300b Create version migration guide template in docs/api/version-migration/ with breaking changes, upgrade path, code examples per FR-062
+
+- [ ] T301 Configure Azure Monitor alerts for critical path availability (transaction validation, customer lookup), response time thresholds (3s for validation per SC-005), health check failures, and document recovery playbooks targeting MTTR <30 min per SC-031
+
 
 ---
 
@@ -745,8 +820,9 @@ With 3+ developers:
 - **Phase 12 (User Story 10 - P2)**: 9 tasks
 - **Phase 13 (User Story 11 - P2)**: 9 tasks
 - **Phase 14 (User Story 12 - P3)**: 23 tasks
-- **Phase 15 (Polish)**: 32 tasks
-- **TOTAL**: 304 tasks
+- **Phase 15 (Polish)**: 29 tasks (reduced from 32 due to duplicate removal)
+- **TOTAL**: 301 tasks (reduced from 304)
+
 
 **MVP Scope** (User Stories 1-3): 52 + 20 (Setup) + 32 (Foundation) = **104 tasks**
 
