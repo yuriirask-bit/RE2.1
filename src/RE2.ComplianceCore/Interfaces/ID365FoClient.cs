@@ -1,16 +1,89 @@
 namespace RE2.ComplianceCore.Interfaces;
 
 /// <summary>
-/// Interface for D365 Finance & Operations API client to access virtual data entities
-/// (transactions, audit events, alerts)
+/// Abstraction for Dynamics 365 Finance & Operations OData API client.
+/// Per research.md section 2: Uses OData v4 with HttpClient and OAuth2 authentication.
+/// D365 F&O stores transactional data: validation requests/results, audit events, alerts/notifications.
 /// </summary>
 public interface ID365FoClient
 {
-    // T028: Placeholder for D365 F&O operations
-    // TODO: Add methods for querying D365 F&O virtual entities
-    // - GetTransactionById
-    // - QueryTransactions
-    // - GetAlertById
-    // - CreateAuditEvent
-    // - etc.
+    /// <summary>
+    /// Executes an OData GET request to retrieve entities.
+    /// </summary>
+    /// <typeparam name="T">The type to deserialize the response into.</typeparam>
+    /// <param name="entitySetName">The entity set name (e.g., "Products", "SalesOrders").</param>
+    /// <param name="query">Optional OData query string (e.g., "$filter=Status eq 'Active'").</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The deserialized response.</returns>
+    Task<T?> GetAsync<T>(
+        string entitySetName,
+        string? query = null,
+        CancellationToken cancellationToken = default) where T : class;
+
+    /// <summary>
+    /// Executes an OData GET request to retrieve a single entity by key.
+    /// </summary>
+    /// <typeparam name="T">The type to deserialize the response into.</typeparam>
+    /// <param name="entitySetName">The entity set name.</param>
+    /// <param name="key">The entity key value.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The deserialized entity.</returns>
+    Task<T?> GetByKeyAsync<T>(
+        string entitySetName,
+        string key,
+        CancellationToken cancellationToken = default) where T : class;
+
+    /// <summary>
+    /// Executes an OData POST request to create a new entity.
+    /// </summary>
+    /// <typeparam name="T">The type of the entity to create.</typeparam>
+    /// <param name="entitySetName">The entity set name.</param>
+    /// <param name="entity">The entity data to create.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The created entity with server-generated values.</returns>
+    Task<T?> CreateAsync<T>(
+        string entitySetName,
+        T entity,
+        CancellationToken cancellationToken = default) where T : class;
+
+    /// <summary>
+    /// Executes an OData PATCH request to update an existing entity.
+    /// </summary>
+    /// <typeparam name="T">The type of the entity to update.</typeparam>
+    /// <param name="entitySetName">The entity set name.</param>
+    /// <param name="key">The entity key value.</param>
+    /// <param name="entity">The entity data to update (partial updates supported).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task UpdateAsync<T>(
+        string entitySetName,
+        string key,
+        T entity,
+        CancellationToken cancellationToken = default) where T : class;
+
+    /// <summary>
+    /// Executes an OData DELETE request to remove an entity.
+    /// </summary>
+    /// <param name="entitySetName">The entity set name.</param>
+    /// <param name="key">The entity key value.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task DeleteAsync(
+        string entitySetName,
+        string key,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Executes a custom OData action or function.
+    /// </summary>
+    /// <typeparam name="TRequest">The request payload type.</typeparam>
+    /// <typeparam name="TResponse">The response type.</typeparam>
+    /// <param name="actionOrFunctionName">The action or function name.</param>
+    /// <param name="request">The request payload (null for parameterless actions).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The response from the action/function.</returns>
+    Task<TResponse?> ExecuteActionAsync<TRequest, TResponse>(
+        string actionOrFunctionName,
+        TRequest? request = null,
+        CancellationToken cancellationToken = default)
+        where TRequest : class
+        where TResponse : class;
 }

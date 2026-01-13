@@ -12,14 +12,34 @@ A comprehensive licence management and GDP compliance system for Dutch pharmaceu
 ## Technical Context
 
 **Language/Version**: C# 12 / .NET 8 LTS (Long-Term Support, November 2026 EOL)
-**Primary Dependencies**: ASP.NET Core 8.0, Microsoft.Extensions.* (DI, Configuration, Logging), Azure SDK libraries (Azure.Identity, Azure.Storage.Blobs, Azure.Messaging.ServiceBus), Entity Framework Core 8.0 (for internal state only - NOT for business data storage)
+**Primary Dependencies**: ASP.NET Core 8.0, Microsoft.Extensions.* (DI, Configuration, Logging), Azure SDK libraries (Azure.Identity, Azure.Storage.Blobs, Azure.Messaging.ServiceBus), Entity Framework Core 8.0 (for internal state only - NOT for business data storage), Microsoft.PowerPlatform.Dataverse.Client 1.0.x, D365 F&O OData client (System.Net.Http.Json, Microsoft.OData.Client 7.x) targeting D365 F&O version 10.0.30+
 **Storage**: NO local data storage for business data (licences, customers, transactions) - all accessed via API calls to Dataverse virtual tables and D365 F&O virtual data entities. Azure Blob Storage for document attachments (PDFs, scanned licences). Optional: Azure Cache for Redis for performance optimization of frequently-accessed external data.
 **Testing**: xUnit (unit and integration tests), Moq (mocking), FluentAssertions (readable assertions), Microsoft.AspNetCore.Mvc.Testing (API integration tests), TestContainers (external service mocking for integration tests)
 **Target Platform**: Azure App Service (Web Apps for ASP.NET Core APIs and web UI), Azure Functions (scheduled jobs for expiry alerts, monitoring), Azure API Management (API gateway for external integrations), Azure Logic Apps (workflow orchestration for approval processes)
 **Project Type**: web (backend APIs + web UI for compliance staff + Azure Functions for background jobs)
 **Performance Goals**: <3 seconds for transaction validation API calls (FR-018, SC-005), <1 second for customer compliance status lookup (SC-033), <2 minutes for audit report generation (SC-009), support 50 concurrent validation requests (SC-032)
 **Constraints**: Stateless services (no session state on servers), all data fetched via external APIs on demand or cached temporarily, 99.5% uptime during business hours (FR-052), failover capability for critical functions (FR-054), API response times maintained during partial failures (FR-055)
-**Scale/Scope**: 10,000 customers/partners, 50 GDP sites, 100 substance categories, 100,000 transactions/year, 1,000 active licences, RESTful APIs with JSON payloads, hybrid authentication (Azure AD B2C for SSO + local identity for external users), structured logging via Azure Application Insights
+**Scale/Scope**: 10,000 customers/partners, 50 GDP sites, 100 substance categories, 100,000 transactions/year, 1,000 active licences, RESTful APIs with JSON payloads, hybrid authentication (Azure AD B2C for enterprise SSO supporting SAML/OAuth2/OIDC + Azure AD B2C local accounts for external users), structured logging via Azure Application Insights
+
+## System Criticality Classification
+
+**Critical Path (99.9% availability target, failover required)**:
+- Transaction validation API (POST /api/v1/transactions/validate)
+- Customer compliance lookup API (GET /api/v1/customers/{id}/compliance-status)
+- Warehouse operation validation API (POST /api/v1/warehouse/operations/validate)
+- Licence expiry alert generation (Azure Function)
+- Health check endpoints
+
+**Non-Critical Path (95% availability target, graceful degradation allowed)**:
+- Report generation APIs
+- Audit log queries
+- Compliance dashboards
+- Document upload/download
+- Workflow approval UI
+- Training record management
+
+**Degradation Strategy**: Non-critical endpoints return HTTP 503 Service Unavailable with Retry-After: 300 header when dependent services (Dataverse, D365 F&O) are unavailable. Critical endpoints implement retry with exponential backoff and circuit breaker patterns (research.md section 4).
+
 
 ## Constitution Check
 
@@ -184,7 +204,7 @@ infra/                                     # Azure infrastructure as code
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
 | **Multi-service architecture** (Azure App Service + Functions + API Management + Logic Apps) instead of single library | Enterprise integration requirements mandate separation of concerns: (1) API Management provides external system authentication, rate limiting, and API versioning (FR-063, FR-062); (2) Azure Functions enable scheduled background jobs (daily expiry checks, weekly reports) without blocking web requests; (3) Logic Apps orchestrate multi-step approval workflows (FR-030) with visual design for business users; (4) 99.5% availability requirement (FR-052) necessitates Azure App Service's built-in failover and scaling | Single library/monolith cannot provide: (a) Azure API Management's enterprise-grade API gateway features (OAuth2, rate limiting, versioning), (b) Scheduled job execution without external orchestrator, (c) Visual workflow design for business stakeholders, (d) Azure platform's built-in high availability and auto-scaling |
-| **Web APIs instead of CLI** as primary interface | System is integration layer for external ERP/WMS systems (FR-057) requiring real-time synchronous API calls during order processing (FR-058, <3 second response). Web UI required for compliance staff to manage licences and approve exceptions (FR-019a). Command-line interface not suitable for: (1) Real-time integration with SAP/Dynamics/WMS, (2) Browser-based compliance workflows, (3) Azure Logic Apps workflow triggers | CLI cannot provide: (a) Real-time integration with external enterprise systems expecting RESTful APIs, (b) Browser-based UI for compliance staff (document upload, approval workflows), (c) Webhook callbacks for async notifications (FR-059), (d) Azure API Management integration. **Mitigation**: Core business logic will be structured as libraries with clear boundaries, testable independently of HTTP layer |
+| **Web APIs instead of CLI** as primary interface | System is integration layer for external ERP/WMS systems (FR-057) requiring real-time synchronous API calls during order processing (FR-058, <3 second response). Web UI required for compliance staff to manage licences and approve exceptions (FR-019a). **Mitigation implemented**: RE2.ComplianceCli project provides CLI wrapper for all core operations (transaction validation, customer lookup, licence management, report generation) using stdin/stdout JSON protocol per Constitution Principle IV. CLI uses same core libraries as API layer, ensuring observability and scriptability. | Single CLI interface cannot provide: (a) Real-time integration with external enterprise systems expecting RESTful APIs, (b) Browser-based UI for compliance staff (document upload, approval workflows), (c) Webhook callbacks for async notifications (FR-059). **Solution**: Multi-interface architecture with CLI for debugging/scripting, Web API for integration, Web UI for interactive workflows |
 
 ---
 

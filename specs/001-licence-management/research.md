@@ -2209,7 +2209,53 @@ public async Task GetLicences_WithoutToken_ReturnsUnauthorized()
 
 ---
 
-## 7. References
+## 7. Concurrency Control with External Systems
+
+### Dataverse Optimistic Concurrency
+
+**Mechanism**: Dataverse supports optimistic concurrency via `RowVersion` (timestamp) column automatically maintained by the platform.
+
+**Usage**:
+```csharp
+// ServiceClient with concurrency token
+var entity = new Entity("re_licence");
+entity["re_licencenumber"] = "ABC123";
+entity["re_expirydate"] = DateTime.Now.AddYears(1);
+entity.RowVersion = existingRowVersion; // Retrieved from previous read
+
+try {
+    serviceClient.Update(entity);
+} catch (FaultException<OrganizationServiceFault> ex) {
+    if (ex.Detail.ErrorCode == -2147088254) { // ConcurrencyVersionMismatch
+        // Handle conflict per FR-027b
+    }
+}
+Reference: Dataverse Optimistic Concurrency https://learn.microsoft.com/en-us/power-apps/developer/data-platform/optimistic-concurrency
+D365 F&O Optimistic Concurrency
+Mechanism: D365 Finance & Operations OData endpoints support ETag-based concurrency via standard If-Match header.
+Usage:
+// HttpClient with ETag
+var response = await httpClient.GetAsync($"/data/Licences('{licenceId}')");
+var etag = response.Headers.ETag.Tag;
+
+var updateRequest = new HttpRequestMessage(HttpMethod.Patch, $"/data/Licences('{licenceId}')");
+updateRequest.Headers.IfMatch.Add(new EntityTagHeaderValue(etag));
+updateRequest.Content = JsonContent.Create(updateDto);
+
+var updateResponse = await httpClient.SendAsync(updateRequest);
+if (updateResponse.StatusCode == HttpStatusCode.PreconditionFailed) {
+    // Handle conflict per FR-027b
+}
+Reference: D365 F&O OData Concurrency https://learn.microsoft.com/en-us/dynamics365/fin-ops-core/dev-itpro/data-entities/odata#concurrency-control
+Fallback Strategy
+If external system does not support concurrency tokens (e.g., legacy systems):
+•	Implement application-level locking with last-write-wins warning
+•	Store local modification timestamp in ComplianceCore models
+•	Detect conflicts by comparing local timestamp with external system modifiedon field
+•	Present conflict resolution UI per FR-027b even without server-side enforcement
+
+
+## 8. References
 
 ### Official Microsoft Documentation
 

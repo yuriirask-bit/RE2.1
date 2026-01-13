@@ -1,56 +1,193 @@
+using RE2.Shared.Constants;
+using RE2.Shared.Extensions;
+
 namespace RE2.ComplianceCore.Models;
 
 /// <summary>
-/// Licence instance (customer's specific authorization)
-/// T063: Licence domain model (data-model.md entity 1)
+/// Represents a legal authorization (permit, exemption, certificate) held by the company or a customer.
+/// Per data-model.md entity 1: Licence
+/// T063: Domain model implementation.
 /// </summary>
 public class Licence
 {
-    public Guid Id { get; set; }
-    public string LicenceNumber { get; set; } = string.Empty;
+    /// <summary>
+    /// Unique identifier.
+    /// </summary>
+    public Guid LicenceId { get; set; }
 
-    // Relationships
+    /// <summary>
+    /// Official licence/permit number from issuing authority.
+    /// Required, indexed.
+    /// </summary>
+    public required string LicenceNumber { get; set; }
+
+    /// <summary>
+    /// Reference to LicenceType (category of authorization).
+    /// Required.
+    /// </summary>
     public Guid LicenceTypeId { get; set; }
-    public Guid? CustomerId { get; set; } // Nullable for company-wide licences
 
-    // Validity
-    public DateTime IssueDate { get; set; }
-    public DateTime ExpiryDate { get; set; }
-    public DateTime EffectiveStartDate { get; set; }
-    public DateTime? EffectiveEndDate { get; set; }
+    /// <summary>
+    /// Who holds this licence ("Company" or "Customer").
+    /// Required.
+    /// </summary>
+    public required string HolderType { get; set; }
 
-    // Status
-    public string Status { get; set; } = string.Empty; // Active, Expired, Suspended, Revoked
-    public bool IsSuspended { get; set; }
-    public DateTime? SuspensionDate { get; set; }
-    public string? SuspensionReason { get; set; }
+    /// <summary>
+    /// Reference to holder entity (Company or Customer ID).
+    /// Required.
+    /// </summary>
+    public Guid HolderId { get; set; }
 
-    // Scope
-    public string Scope { get; set; } = string.Empty; // Description of authorized scope
-    public List<string> AuthorizedActivities { get; set; } = new();
-    public List<Guid> AuthorizedSubstances { get; set; } = new(); // Substance IDs
+    /// <summary>
+    /// Name of authority (e.g., "IGJ", "Farmatec", "CBG-MEB").
+    /// Required.
+    /// </summary>
+    public required string IssuingAuthority { get; set; }
 
-    // Issuing authority
-    public string IssuingAuthority { get; set; } = string.Empty;
-    public string? IssuingOfficer { get; set; }
+    /// <summary>
+    /// Date licence was issued.
+    /// Required.
+    /// </summary>
+    public DateOnly IssueDate { get; set; }
 
-    // Verification tracking (FR-009)
-    public DateTime? LastVerifiedDate { get; set; }
-    public string? VerificationMethod { get; set; } // IGJ website, email, Farmatec
-    public string? VerifiedBy { get; set; }
+    /// <summary>
+    /// Date licence expires (null = no expiry).
+    /// </summary>
+    public DateOnly? ExpiryDate { get; set; }
 
-    // Alert tracking (FR-007)
-    public DateTime? NextReviewDate { get; set; }
-    public bool AlertGenerated90Days { get; set; }
-    public bool AlertGenerated60Days { get; set; }
-    public bool AlertGenerated30Days { get; set; }
+    /// <summary>
+    /// Current status ("Valid", "Expired", "Suspended", "Revoked").
+    /// Required.
+    /// </summary>
+    public required string Status { get; set; }
 
-    // Optimistic concurrency (FR-027a)
-    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+    /// <summary>
+    /// Textual description of restrictions or conditions.
+    /// </summary>
+    public string? Scope { get; set; }
 
-    // Audit fields
-    public DateTime CreatedAt { get; set; }
-    public string CreatedBy { get; set; } = string.Empty;
-    public DateTime? ModifiedAt { get; set; }
-    public string? ModifiedBy { get; set; }
+    /// <summary>
+    /// What activities this licence allows (flags).
+    /// </summary>
+    public LicenceTypes.PermittedActivity PermittedActivities { get; set; }
+
+    /// <summary>
+    /// Record creation timestamp.
+    /// </summary>
+    public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Last modification timestamp.
+    /// </summary>
+    public DateTime ModifiedDate { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Optimistic concurrency token.
+    /// </summary>
+    public byte[]? RowVersion { get; set; }
+
+    /// <summary>
+    /// Navigation property to LicenceType.
+    /// </summary>
+    public LicenceType? LicenceType { get; set; }
+
+    /// <summary>
+    /// Navigation property to substance mappings.
+    /// </summary>
+    public List<LicenceSubstanceMapping>? SubstanceMappings { get; set; }
+
+    /// <summary>
+    /// Validates the licence according to business rules.
+    /// Per data-model.md: ExpiryDate must be after IssueDate if specified.
+    /// </summary>
+    /// <returns>Validation result with any violations.</returns>
+    public ValidationResult Validate()
+    {
+        var violations = new List<ValidationViolation>();
+
+        if (string.IsNullOrWhiteSpace(LicenceNumber))
+        {
+            violations.Add(new ValidationViolation
+            {
+                ErrorCode = ErrorCodes.VALIDATION_ERROR,
+                Message = "LicenceNumber is required"
+            });
+        }
+
+        if (LicenceTypeId == Guid.Empty)
+        {
+            violations.Add(new ValidationViolation
+            {
+                ErrorCode = ErrorCodes.VALIDATION_ERROR,
+                Message = "LicenceTypeId is required"
+            });
+        }
+
+        if (HolderId == Guid.Empty)
+        {
+            violations.Add(new ValidationViolation
+            {
+                ErrorCode = ErrorCodes.VALIDATION_ERROR,
+                Message = "HolderId is required"
+            });
+        }
+
+        if (string.IsNullOrWhiteSpace(IssuingAuthority))
+        {
+            violations.Add(new ValidationViolation
+            {
+                ErrorCode = ErrorCodes.VALIDATION_ERROR,
+                Message = "IssuingAuthority is required"
+            });
+        }
+
+        // Per data-model.md: ExpiryDate must be after IssueDate if specified
+        if (ExpiryDate.HasValue && ExpiryDate.Value <= IssueDate)
+        {
+            violations.Add(new ValidationViolation
+            {
+                ErrorCode = ErrorCodes.VALIDATION_ERROR,
+                Message = "ExpiryDate must be after IssueDate"
+            });
+        }
+
+        return violations.Any()
+            ? ValidationResult.Failure(violations)
+            : ValidationResult.Success();
+    }
+
+    /// <summary>
+    /// Checks if the licence is currently expired.
+    /// Per data-model.md: Status automatically set to Expired when ExpiryDate < Today.
+    /// </summary>
+    /// <returns>True if expired, false otherwise (includes no expiry date).</returns>
+    public bool IsExpired()
+    {
+        return ExpiryDate.HasValue && ExpiryDate.Value.IsExpired();
+    }
+
+    /// <summary>
+    /// Checks if the licence is expiring within the specified number of days.
+    /// Used for alert generation per FR-007 (90/60/30 day warnings).
+    /// </summary>
+    /// <param name="warningDays">Number of days before expiry.</param>
+    /// <returns>True if expiring within the warning period.</returns>
+    public bool IsExpiringWithin(int warningDays)
+    {
+        return ExpiryDate.HasValue && ExpiryDate.Value.IsExpiringWithin(warningDays);
+    }
+
+    /// <summary>
+    /// Updates the status based on expiry date.
+    /// Per data-model.md: Status automatically set to Expired when ExpiryDate < Today.
+    /// </summary>
+    public void UpdateStatus()
+    {
+        if (IsExpired() && Status == "Valid")
+        {
+            Status = "Expired";
+            ModifiedDate = DateTime.UtcNow;
+        }
+    }
 }
