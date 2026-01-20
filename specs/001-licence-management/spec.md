@@ -393,6 +393,8 @@ As a QA user or training coordinator, I need to maintain an index of GDP-relevan
 
 - **GDP Credential**: Represents a partner's GDP compliance status. Key attributes: entity name, WDA number, GDP certificate number, EudraGMDP entry reference, validity period, qualification status, last verification date, next review due date. Relationships: belongs to one Trading Partner or Service Provider, has Verification Log entries, subject to Qualification Reviews.
 
+- **GDP Credential Verification**: Represents a verification event for a partner's GDP status. Key attributes: verification ID, GDP credential reference, verification method (enum: EudraGMDP, NationalDatabase, DirectAuthorityContact, PhysicalDocumentReview), verification date, verifier name, outcome (Valid, Invalid, Inconclusive, Pending), notes, next verification due date. Relationships: belongs to one GdpCredential, creates Audit Event.
+
 - **GDP Inspection**: Represents a regulatory or internal GDP audit. Key attributes: inspection date, inspector/authority (IGJ/NVWA/internal), site inspected, WDA inspected, findings (list), classification (critical/major/other), corrective actions required, inspection report reference. Relationships: applies to one GDP Site, references one WDA, generates multiple CAPAs, creates Audit Events.
 
 - **CAPA (Corrective and Preventive Action)**: Represents an action to address a GDP deficiency. Key attributes: CAPA ID, linked finding (from inspection), description, owner (person responsible), due date, completion date, status (open/overdue/completed), verification notes. Relationships: originates from one GDP Inspection, assigned to one Owner (user), tracked in dashboards.
@@ -407,7 +409,7 @@ As a QA user or training coordinator, I need to maintain an index of GDP-relevan
 
 - **Integration System**: Represents an external system authorized to call compliance APIs. Key attributes: system name, system type (ERP/order management/WMS/custom), authentication credentials (API key/OAuth client ID), authorized endpoints, IP whitelist (optional), active status, integration contact person. Relationships: originates Transaction validation requests, subject to API Audit Events, may have rate limiting policies applied.
 
-Note: Complete catalog (30 entities) in data-model.md
+Note: Complete catalog in data-model.md (see data-model.md for authoritative entity count)
 
 ## Success Criteria *(mandatory)*
 
