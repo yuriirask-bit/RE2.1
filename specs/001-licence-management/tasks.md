@@ -111,7 +111,9 @@ Project uses multi-project .NET solution structure per plan.md:
 
 ---
 
-### CLI Interface (Constitution Principle IV)
+### CLI Interface (Constitution Principle IV) ⚠️ REQUIRED FOR COMPLIANCE
+
+**Priority**: Should complete alongside or immediately after Phase 2 Foundational tasks to achieve constitution compliance. Not blocking user story implementation but required for final sign-off.
 
 - [ ] T052a Create RE2.ComplianceCli console application (.NET 8) in src/RE2.ComplianceCli/ with CommandLineParser NuGet package
 - [ ] T052b [P] Implement `validate-transaction` command accepting JSON via stdin, returning ValidationResult to stdout per Constitution Principle IV
@@ -122,6 +124,8 @@ Project uses multi-project .NET solution structure per plan.md:
 - [ ] T052g Add CLI to solution and configure build pipeline to produce standalone executable
 - [ ] T052h [P] Create CLI integration tests in tests/RE2.ComplianceCli.Tests/ verifying stdin/stdout protocol
 - [ ] T052i Update quickstart.md with CLI usage examples and stdin/stdout protocol documentation
+
+**Constitution Compliance Note**: Tasks T052a-T052i implement Constitution Principle IV (CLI Interface Requirement). While Web APIs are the primary interface (justified violation in plan.md), completing these CLI tasks achieves full constitution compliance by providing text I/O protocol for debugging and scripting. These tasks SHOULD be completed before final constitution sign-off.
 
 
 ## Phase 3: User Story 1 - Manage Legal Licence Requirements (Priority: P1) 🎯 MVP
@@ -848,3 +852,22 @@ With 3+ developers:
 - **Performance Targets**: <3s transaction validation (SC-005), <1s customer lookup (SC-033)
 - **Commit Strategy**: Commit after each task or logical group
 - **Avoid**: Vague tasks, same file conflicts, cross-story dependencies that break independence
+
+---
+
+## Out of Scope (v1.0)
+
+The following items are explicitly **NOT** included in the current task list per spec.md Assumptions and Edge Cases:
+
+| Item | Reference | Rationale |
+|------|-----------|-----------|
+| Inventory recall workflows | Assumption 9 | Managed by separate WMS/QMS systems |
+| Real-time temperature monitoring | Assumption 12 | Handled by WMS/QMS integration |
+| Real-time shipment tracking | Edge Case: 3PL suspension mid-shipment | Deferred to v2.0 |
+| Site availability scheduling | Edge Case: Sites temporarily closed | Deferred to v2.0 |
+| Advanced logistics routing | Edge Case: Split shipments | Single route per shipment assumed |
+| Batch integration patterns | Assumption 22 | RESTful sync APIs only for v1.0 |
+| SMS notifications | Assumption 8 | Email and in-app only for v1.0 |
+| Automated EudraGMDP API integration | Assumption 13 | Manual verification with logging |
+
+These items may be considered for future versions based on operational feedback.
