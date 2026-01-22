@@ -4,9 +4,13 @@ using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
 using Polly;
 using RE2.ComplianceCore.Interfaces;
+using RE2.ComplianceCore.Services.LicenceValidation;
+using RE2.ComplianceCore.Services.SubstanceManagement;
 using RE2.DataAccess.BlobStorage;
 using RE2.DataAccess.D365FinanceOperations;
 using RE2.DataAccess.Dataverse;
+using RE2.DataAccess.Dataverse.Repositories;
+using RE2.DataAccess.InMemory;
 
 namespace RE2.DataAccess.DependencyInjection;
 
@@ -38,6 +42,19 @@ public static class InfrastructureExtensions
 
             return new DataverseClient(dataverseUrl, logger);
         });
+
+        // Register repositories
+        services.AddScoped<ILicenceRepository, DataverseLicenceRepository>();
+        services.AddScoped<ILicenceTypeRepository, DataverseLicenceTypeRepository>();
+        services.AddScoped<IControlledSubstanceRepository, DataverseControlledSubstanceRepository>();
+        services.AddScoped<ISubstanceReclassificationRepository, DataverseSubstanceReclassificationRepository>();
+        services.AddScoped<ILicenceSubstanceMappingRepository, DataverseLicenceSubstanceMappingRepository>();
+
+        // Register business services
+        services.AddScoped<ILicenceService, LicenceService>();
+        services.AddScoped<ISubstanceReclassificationService, SubstanceReclassificationService>();
+        services.AddScoped<IControlledSubstanceService, ControlledSubstanceService>();
+        services.AddScoped<ILicenceSubstanceMappingService, LicenceSubstanceMappingService>();
 
         return services;
     }
@@ -139,6 +156,73 @@ public static class InfrastructureExtensions
         services.AddDataverseServices(configuration);
         services.AddD365FOServices(configuration);
         services.AddBlobStorageServices(configuration);
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers in-memory repositories for local development and testing.
+    /// Use this instead of AddDataverseServices when running locally without Dataverse access.
+    /// Enables testing of User Story 1 (Licence Management) without external dependencies.
+    /// </summary>
+    /// <param name="services">Service collection.</param>
+    /// <param name="seedData">Whether to seed initial test data (default: true).</param>
+    /// <returns>Service collection for chaining.</returns>
+    public static IServiceCollection AddInMemoryRepositories(
+        this IServiceCollection services,
+        bool seedData = true)
+    {
+        // Create singleton instances so data persists across requests
+        var licenceTypeRepo = new InMemoryLicenceTypeRepository();
+        var substanceRepo = new InMemoryControlledSubstanceRepository();
+        var licenceRepo = new InMemoryLicenceRepository();
+        var reclassificationRepo = new InMemorySubstanceReclassificationRepository();
+        var mappingRepo = new InMemoryLicenceSubstanceMappingRepository();
+
+        // Seed test data if requested
+        if (seedData)
+        {
+            InMemorySeedData.SeedAll(licenceTypeRepo, substanceRepo, licenceRepo);
+        }
+
+        // Register as singletons
+        services.AddSingleton<ILicenceTypeRepository>(licenceTypeRepo);
+        services.AddSingleton<IControlledSubstanceRepository>(substanceRepo);
+        services.AddSingleton<ILicenceRepository>(licenceRepo);
+        services.AddSingleton<ISubstanceReclassificationRepository>(reclassificationRepo);
+        services.AddSingleton<ILicenceSubstanceMappingRepository>(mappingRepo);
+
+        // Register business services (same as Dataverse setup)
+        services.AddScoped<ILicenceService, LicenceService>();
+        services.AddScoped<ISubstanceReclassificationService, SubstanceReclassificationService>();
+        services.AddScoped<IControlledSubstanceService, ControlledSubstanceService>();
+        services.AddScoped<ILicenceSubstanceMappingService, LicenceSubstanceMappingService>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers services based on configuration.
+    /// If "UseInMemoryRepositories" is true, uses in-memory repositories.
+    /// Otherwise, uses Dataverse repositories.
+    /// </summary>
+    /// <param name="services">Service collection.</param>
+    /// <param name="configuration">Configuration instance.</param>
+    /// <returns>Service collection for chaining.</returns>
+    public static IServiceCollection AddComplianceDataServices(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var useInMemory = configuration.GetValue<bool>("UseInMemoryRepositories");
+
+        if (useInMemory)
+        {
+            services.AddInMemoryRepositories(seedData: true);
+        }
+        else
+        {
+            services.AddDataverseServices(configuration);
+        }
 
         return services;
     }

@@ -180,4 +180,191 @@ public class LicenceTests
         // Assert
         Assert.Equal(status, licence.Status);
     }
+
+    #region T078: Permitted Activities Validation Tests
+
+    [Fact]
+    public void Licence_ValidatePermittedActivities_SucceedsWhenSubsetOfLicenceType()
+    {
+        // Arrange - Licence type allows Possess, Store, Distribute
+        var licenceType = new LicenceType
+        {
+            LicenceTypeId = Guid.NewGuid(),
+            Name = "WDA",
+            IssuingAuthority = "IGJ",
+            PermittedActivities = LicenceTypes.PermittedActivity.Possess |
+                                 LicenceTypes.PermittedActivity.Store |
+                                 LicenceTypes.PermittedActivity.Distribute,
+            IsActive = true
+        };
+
+        // Licence only has Possess and Distribute (subset of type's activities)
+        var licence = new Licence
+        {
+            LicenceId = Guid.NewGuid(),
+            LicenceNumber = "WDA-2024-001",
+            LicenceTypeId = licenceType.LicenceTypeId,
+            HolderType = "Company",
+            HolderId = Guid.NewGuid(),
+            IssuingAuthority = "IGJ",
+            IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            Status = "Valid",
+            PermittedActivities = LicenceTypes.PermittedActivity.Possess |
+                                 LicenceTypes.PermittedActivity.Distribute
+        };
+
+        // Act
+        var result = licence.ValidatePermittedActivities(licenceType);
+
+        // Assert
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void Licence_ValidatePermittedActivities_SucceedsWhenExactMatch()
+    {
+        // Arrange
+        var activities = LicenceTypes.PermittedActivity.Possess |
+                        LicenceTypes.PermittedActivity.Store |
+                        LicenceTypes.PermittedActivity.Distribute;
+
+        var licenceType = new LicenceType
+        {
+            LicenceTypeId = Guid.NewGuid(),
+            Name = "WDA",
+            IssuingAuthority = "IGJ",
+            PermittedActivities = activities,
+            IsActive = true
+        };
+
+        var licence = new Licence
+        {
+            LicenceId = Guid.NewGuid(),
+            LicenceNumber = "WDA-2024-001",
+            LicenceTypeId = licenceType.LicenceTypeId,
+            HolderType = "Company",
+            HolderId = Guid.NewGuid(),
+            IssuingAuthority = "IGJ",
+            IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            Status = "Valid",
+            PermittedActivities = activities
+        };
+
+        // Act
+        var result = licence.ValidatePermittedActivities(licenceType);
+
+        // Assert
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void Licence_ValidatePermittedActivities_FailsWhenLicenceHasUnauthorizedActivities()
+    {
+        // Arrange - Licence type only allows Possess and Store
+        var licenceType = new LicenceType
+        {
+            LicenceTypeId = Guid.NewGuid(),
+            Name = "Storage Permit",
+            IssuingAuthority = "IGJ",
+            PermittedActivities = LicenceTypes.PermittedActivity.Possess |
+                                 LicenceTypes.PermittedActivity.Store,
+            IsActive = true
+        };
+
+        // Licence tries to add Import activity (not allowed by type)
+        var licence = new Licence
+        {
+            LicenceId = Guid.NewGuid(),
+            LicenceNumber = "SP-2024-001",
+            LicenceTypeId = licenceType.LicenceTypeId,
+            HolderType = "Company",
+            HolderId = Guid.NewGuid(),
+            IssuingAuthority = "IGJ",
+            IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            Status = "Valid",
+            PermittedActivities = LicenceTypes.PermittedActivity.Possess |
+                                 LicenceTypes.PermittedActivity.Store |
+                                 LicenceTypes.PermittedActivity.Import // NOT ALLOWED
+        };
+
+        // Act
+        var result = licence.ValidatePermittedActivities(licenceType);
+
+        // Assert
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Violations, v => v.Message.Contains("Import") && v.Message.Contains("Unauthorized"));
+    }
+
+    [Fact]
+    public void Licence_ValidatePermittedActivities_FailsWithMultipleUnauthorizedActivities()
+    {
+        // Arrange - Licence type only allows Possess
+        var licenceType = new LicenceType
+        {
+            LicenceTypeId = Guid.NewGuid(),
+            Name = "Possession Permit",
+            IssuingAuthority = "Farmatec",
+            PermittedActivities = LicenceTypes.PermittedActivity.Possess,
+            IsActive = true
+        };
+
+        // Licence tries to add multiple unauthorized activities
+        var licence = new Licence
+        {
+            LicenceId = Guid.NewGuid(),
+            LicenceNumber = "PP-2024-001",
+            LicenceTypeId = licenceType.LicenceTypeId,
+            HolderType = "Company",
+            HolderId = Guid.NewGuid(),
+            IssuingAuthority = "Farmatec",
+            IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            Status = "Valid",
+            PermittedActivities = LicenceTypes.PermittedActivity.Possess |
+                                 LicenceTypes.PermittedActivity.Distribute |
+                                 LicenceTypes.PermittedActivity.Export
+        };
+
+        // Act
+        var result = licence.ValidatePermittedActivities(licenceType);
+
+        // Assert
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Violations, v => v.Message.Contains("Distribute"));
+        Assert.Contains(result.Violations, v => v.Message.Contains("Export"));
+    }
+
+    [Fact]
+    public void Licence_ValidatePermittedActivities_SucceedsWithNoActivities()
+    {
+        // Arrange - Both have no activities
+        var licenceType = new LicenceType
+        {
+            LicenceTypeId = Guid.NewGuid(),
+            Name = "Registration Only",
+            IssuingAuthority = "IGJ",
+            PermittedActivities = LicenceTypes.PermittedActivity.None,
+            IsActive = true
+        };
+
+        var licence = new Licence
+        {
+            LicenceId = Guid.NewGuid(),
+            LicenceNumber = "REG-2024-001",
+            LicenceTypeId = licenceType.LicenceTypeId,
+            HolderType = "Company",
+            HolderId = Guid.NewGuid(),
+            IssuingAuthority = "IGJ",
+            IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            Status = "Valid",
+            PermittedActivities = LicenceTypes.PermittedActivity.None
+        };
+
+        // Act
+        var result = licence.ValidatePermittedActivities(licenceType);
+
+        // Assert
+        Assert.True(result.IsValid);
+    }
+
+    #endregion
 }

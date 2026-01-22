@@ -1,0 +1,367 @@
+@model IEnumerable<RE2.ComplianceCore.Models.LicenceSubstanceMapping>
+@{
+    var licenceId = ViewBag.LicenceId as Guid?;
+    var licenceNumber = ViewBag.LicenceNumber as string;
+}
+
+<div class="card mt-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="bi bi-capsule-pill"></i> Authorized Substances
+        </h5>
+        @if (User.IsInRole("ComplianceManager") && licenceId.HasValue)
+        {
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addMappingModal">
+                <i class="bi bi-plus-lg"></i> Add Substance
+            </button>
+        }
+    </div>
+    <div class="card-body">
+        @if (Model == null || !Model.Any())
+        {
+            <p class="text-muted mb-0">No substances are currently authorized under this licence.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Substance</th>
+                            <th>Code</th>
+                            <th>Max Qty/Transaction</th>
+                            <th>Max Qty/Period</th>
+                            <th>Period</th>
+                            <th>Effective</th>
+                            <th>Expiry</th>
+                            <th>Status</th>
+                            @if (User.IsInRole("ComplianceManager"))
+                            {
+                                <th class="text-end">Actions</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var mapping in Model.OrderBy(m => m.Substance?.SubstanceName))
+                        {
+                            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+                            var isActive = mapping.EffectiveDate <= today &&
+                                          (!mapping.ExpiryDate.HasValue || mapping.ExpiryDate.Value >= today);
+                            var isPending = mapping.EffectiveDate > today;
+                            var isExpired = mapping.ExpiryDate.HasValue && mapping.ExpiryDate.Value < today;
+
+                            var rowClass = isExpired ? "table-secondary" : (isPending ? "table-info" : "");
+                            var statusBadge = isExpired ? ("bg-danger", "Expired") :
+                                             (isPending ? ("bg-info", "Pending") : ("bg-success", "Active"));
+
+                            <tr class="@rowClass">
+                                <td>
+                                    <strong>@(mapping.Substance?.SubstanceName ?? "Unknown")</strong>
+                                    @if (!string.IsNullOrEmpty(mapping.Restrictions))
+                                    {
+                                        <br />
+                                        <small class="text-warning">
+                                            <i class="bi bi-exclamation-triangle"></i> @mapping.Restrictions
+                                        </small>
+                                    }
+                                </td>
+                                <td>
+                                    <code>@(mapping.Substance?.InternalCode ?? "N/A")</code>
+                                </td>
+                                <td>
+                                    @if (mapping.MaxQuantityPerTransaction.HasValue)
+                                    {
+                                        <span>@mapping.MaxQuantityPerTransaction.Value.ToString("N2")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Unlimited</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (mapping.MaxQuantityPerPeriod.HasValue)
+                                    {
+                                        <span>@mapping.MaxQuantityPerPeriod.Value.ToString("N2")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Unlimited</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(mapping.PeriodType))
+                                    {
+                                        <span class="badge bg-secondary">@mapping.PeriodType</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>@mapping.EffectiveDate.ToString("yyyy-MM-dd")</td>
+                                <td>
+                                    @if (mapping.ExpiryDate.HasValue)
+                                    {
+                                        <span class="@(isExpired ? "text-danger" : "")">
+                                            @mapping.ExpiryDate.Value.ToString("yyyy-MM-dd")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">No expiry</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge @statusBadge.Item1">@statusBadge.Item2</span>
+                                </td>
+                                @if (User.IsInRole("ComplianceManager"))
+                                {
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-primary btn-edit-mapping"
+                                                    data-mapping-id="@mapping.MappingId"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#editMappingModal">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger btn-delete-mapping"
+                                                    data-mapping-id="@mapping.MappingId"
+                                                    data-substance-name="@(mapping.Substance?.SubstanceName ?? "this substance")">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-3">
+                <small class="text-muted">
+                    <span class="badge bg-success">Active</span> Currently effective mappings |
+                    <span class="badge bg-info">Pending</span> Future effective date |
+                    <span class="badge bg-danger">Expired</span> Past expiry date
+                </small>
+            </div>
+        }
+    </div>
+</div>
+
+@if (User.IsInRole("ComplianceManager") && licenceId.HasValue)
+{
+    <!-- Add Mapping Modal -->
+    <div class="modal fade" id="addMappingModal" tabindex="-1" aria-labelledby="addMappingModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addMappingModalLabel">Add Authorized Substance</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form asp-controller="LicenceMappings" asp-action="Create" method="post">
+                    <div class="modal-body">
+                        <input type="hidden" name="LicenceId" value="@licenceId" />
+                        <input type="hidden" name="ReturnUrl" value="@Context.Request.Path" />
+
+                        <div class="mb-3">
+                            <label for="SubstanceId" class="form-label">Substance *</label>
+                            <select class="form-select" id="SubstanceId" name="SubstanceId" required>
+                                <option value="">-- Select Substance --</option>
+                                @if (ViewBag.Substances != null)
+                                {
+                                    foreach (RE2.ComplianceCore.Models.ControlledSubstance substance in ViewBag.Substances)
+                                    {
+                                        <option value="@substance.SubstanceId">@substance.SubstanceName (@substance.InternalCode)</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="EffectiveDate" class="form-label">Effective Date *</label>
+                                    <input type="date" class="form-control" id="EffectiveDate" name="EffectiveDate"
+                                           value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="ExpiryDate" class="form-label">Expiry Date</label>
+                                    <input type="date" class="form-control" id="ExpiryDate" name="ExpiryDate" />
+                                    <small class="form-text text-muted">Leave blank to follow licence expiry</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="MaxQuantityPerTransaction" class="form-label">Max Qty/Transaction</label>
+                                    <input type="number" step="0.01" class="form-control" id="MaxQuantityPerTransaction"
+                                           name="MaxQuantityPerTransaction" placeholder="Unlimited" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="MaxQuantityPerPeriod" class="form-label">Max Qty/Period</label>
+                                    <input type="number" step="0.01" class="form-control" id="MaxQuantityPerPeriod"
+                                           name="MaxQuantityPerPeriod" placeholder="Unlimited" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="PeriodType" class="form-label">Period Type</label>
+                                    <select class="form-select" id="PeriodType" name="PeriodType">
+                                        <option value="">-- None --</option>
+                                        <option value="Monthly">Monthly</option>
+                                        <option value="Quarterly">Quarterly</option>
+                                        <option value="Annual">Annual</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="Restrictions" class="form-label">Restrictions</label>
+                            <textarea class="form-control" id="Restrictions" name="Restrictions" rows="2"
+                                      placeholder="Optional restrictions or conditions..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Substance</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Mapping Modal -->
+    <div class="modal fade" id="editMappingModal" tabindex="-1" aria-labelledby="editMappingModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editMappingModalLabel">Edit Substance Mapping</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form asp-controller="LicenceMappings" asp-action="Edit" method="post" id="editMappingForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="editMappingId" name="MappingId" />
+                        <input type="hidden" id="editLicenceId" name="LicenceId" value="@licenceId" />
+                        <input type="hidden" name="ReturnUrl" value="@Context.Request.Path" />
+
+                        <div class="mb-3">
+                            <label class="form-label">Substance</label>
+                            <input type="text" class="form-control" id="editSubstanceName" readonly />
+                            <input type="hidden" id="editSubstanceId" name="SubstanceId" />
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editEffectiveDate" class="form-label">Effective Date *</label>
+                                    <input type="date" class="form-control" id="editEffectiveDate" name="EffectiveDate" required />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editExpiryDate" class="form-label">Expiry Date</label>
+                                    <input type="date" class="form-control" id="editExpiryDate" name="ExpiryDate" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="editMaxQuantityPerTransaction" class="form-label">Max Qty/Transaction</label>
+                                    <input type="number" step="0.01" class="form-control" id="editMaxQuantityPerTransaction"
+                                           name="MaxQuantityPerTransaction" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="editMaxQuantityPerPeriod" class="form-label">Max Qty/Period</label>
+                                    <input type="number" step="0.01" class="form-control" id="editMaxQuantityPerPeriod"
+                                           name="MaxQuantityPerPeriod" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="editPeriodType" class="form-label">Period Type</label>
+                                    <select class="form-select" id="editPeriodType" name="PeriodType">
+                                        <option value="">-- None --</option>
+                                        <option value="Monthly">Monthly</option>
+                                        <option value="Quarterly">Quarterly</option>
+                                        <option value="Annual">Annual</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="editRestrictions" class="form-label">Restrictions</label>
+                            <textarea class="form-control" id="editRestrictions" name="Restrictions" rows="2"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteMappingModal" tabindex="-1" aria-labelledby="deleteMappingModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteMappingModalLabel">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to remove authorization for <strong id="deleteSubstanceName"></strong> from this licence?</p>
+                    <p class="text-danger"><small>This action cannot be undone.</small></p>
+                </div>
+                <div class="modal-footer">
+                    <form asp-controller="LicenceMappings" asp-action="Delete" method="post" id="deleteMappingForm">
+                        <input type="hidden" id="deleteMappingId" name="MappingId" />
+                        <input type="hidden" name="ReturnUrl" value="@Context.Request.Path" />
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle edit button clicks
+            document.querySelectorAll('.btn-edit-mapping').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var mappingId = this.dataset.mappingId;
+                    // In a real implementation, this would fetch the mapping data via AJAX
+                    // For now, we'll need to implement a controller action to get mapping data
+                    document.getElementById('editMappingId').value = mappingId;
+                });
+            });
+
+            // Handle delete button clicks
+            document.querySelectorAll('.btn-delete-mapping').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var mappingId = this.dataset.mappingId;
+                    var substanceName = this.dataset.substanceName;
+                    document.getElementById('deleteMappingId').value = mappingId;
+                    document.getElementById('deleteSubstanceName').textContent = substanceName;
+                    var modal = new bootstrap.Modal(document.getElementById('deleteMappingModal'));
+                    modal.show();
+                });
+            });
+        });
+    </script>
+}

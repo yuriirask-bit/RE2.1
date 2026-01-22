@@ -1,43 +1,86 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
+using RE2.ComplianceWeb.Authentication;
 using RE2.DataAccess.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// T025: Configure Azure AD authentication for ComplianceWeb (internal users only)
-// Per research.md section 6: Web UI uses OpenID Connect for browser-based authentication
-builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
-    .AddMicrosoftIdentityWebApp(options =>
-    {
-        builder.Configuration.Bind("AzureAd", options);
-        options.TokenValidationParameters.NameClaimType = "name";
-        options.TokenValidationParameters.RoleClaimType = "roles";
-    });
+// Check if we're using in-memory mode (local development without Azure AD)
+var useInMemory = builder.Configuration.GetValue<bool>("UseInMemoryRepositories");
 
-// Configure authorization policies (same as API for consistency)
-builder.Services.AddAuthorization(options =>
+if (useInMemory && builder.Environment.IsDevelopment())
 {
-    // Role-based policies (per data-model.md entity 28 User roles)
-    options.AddPolicy("ComplianceManager", policy =>
-        policy.RequireRole("ComplianceManager"));
+    // Development mode: Use auto-authenticating handler (no Azure AD required)
+    builder.Services.AddAuthentication(DevelopmentAuthHandler.SchemeName)
+        .AddScheme<AuthenticationSchemeOptions, DevelopmentAuthHandler>(
+            DevelopmentAuthHandler.SchemeName, _ => { });
 
-    options.AddPolicy("QAUser", policy =>
-        policy.RequireRole("QAUser", "ComplianceManager"));
+    // Simple authorization that accepts the development scheme
+    builder.Services.AddAuthorization(options =>
+    {
+        options.AddPolicy("ComplianceManager", policy =>
+            policy.RequireRole("ComplianceManager"));
+        options.AddPolicy("QAUser", policy =>
+            policy.RequireRole("QAUser", "ComplianceManager"));
+        options.AddPolicy("SalesAdmin", policy =>
+            policy.RequireRole("SalesAdmin", "ComplianceManager"));
+        options.AddPolicy("TrainingCoordinator", policy =>
+            policy.RequireRole("TrainingCoordinator", "QAUser", "ComplianceManager"));
+    });
+}
+else
+{
+    // T025: Configure Azure AD authentication for ComplianceWeb (internal users only)
+    // Per research.md section 6: Web UI uses OpenID Connect for browser-based authentication
+    builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
+        .AddMicrosoftIdentityWebApp(options =>
+        {
+            builder.Configuration.Bind("AzureAd", options);
+            options.TokenValidationParameters.NameClaimType = "name";
+            options.TokenValidationParameters.RoleClaimType = "roles";
+        });
 
-    options.AddPolicy("SalesAdmin", policy =>
-        policy.RequireRole("SalesAdmin", "ComplianceManager"));
+    // Configure authorization policies (same as API for consistency)
+    builder.Services.AddAuthorization(options =>
+    {
+        // Role-based policies (per data-model.md entity 28 User roles)
+        options.AddPolicy("ComplianceManager", policy =>
+            policy.RequireRole("ComplianceManager"));
 
-    options.AddPolicy("TrainingCoordinator", policy =>
-        policy.RequireRole("TrainingCoordinator", "QAUser", "ComplianceManager"));
-});
+        options.AddPolicy("QAUser", policy =>
+            policy.RequireRole("QAUser", "ComplianceManager"));
 
-// T039: Register external system integration services (Dataverse, D365 F&O, Blob Storage)
-builder.Services.AddExternalSystemIntegration(builder.Configuration);
+        options.AddPolicy("SalesAdmin", policy =>
+            policy.RequireRole("SalesAdmin", "ComplianceManager"));
+
+        options.AddPolicy("TrainingCoordinator", policy =>
+            policy.RequireRole("TrainingCoordinator", "QAUser", "ComplianceManager"));
+    });
+}
+
+// T039: Register data services (uses in-memory for local dev, Dataverse for production)
+// Set "UseInMemoryRepositories": true in appsettings.Development.json to test locally
+builder.Services.AddComplianceDataServices(builder.Configuration);
+
+// Only add D365 F&O and Blob Storage when not using in-memory mode
+if (!builder.Configuration.GetValue<bool>("UseInMemoryRepositories"))
+{
+    builder.Services.AddD365FOServices(builder.Configuration);
+    builder.Services.AddBlobStorageServices(builder.Configuration);
+}
 
 // Add services to the container.
-builder.Services.AddControllersWithViews()
-    .AddMicrosoftIdentityUI(); // Adds AccountController for sign-in/sign-out
+if (useInMemory && builder.Environment.IsDevelopment())
+{
+    builder.Services.AddControllersWithViews();
+}
+else
+{
+    builder.Services.AddControllersWithViews()
+        .AddMicrosoftIdentityUI(); // Adds AccountController for sign-in/sign-out
+}
 
 // Add session support for authentication
 builder.Services.AddSession(options =>

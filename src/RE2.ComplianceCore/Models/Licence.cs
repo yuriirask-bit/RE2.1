@@ -190,4 +190,56 @@ public class Licence
             ModifiedDate = DateTime.UtcNow;
         }
     }
+
+    /// <summary>
+    /// Validates the licence's permitted activities against its licence type.
+    /// T078: Licence's PermittedActivities must be a subset of LicenceType's PermittedActivities.
+    /// </summary>
+    /// <param name="licenceType">The licence type to validate against.</param>
+    /// <returns>Validation result with any violations.</returns>
+    public ValidationResult ValidatePermittedActivities(LicenceType licenceType)
+    {
+        var violations = new List<ValidationViolation>();
+
+        // Get activities that the licence has but the type doesn't allow
+        var unauthorizedActivities = PermittedActivities & ~licenceType.PermittedActivities;
+
+        if (unauthorizedActivities != LicenceTypes.PermittedActivity.None)
+        {
+            var unauthorizedList = GetActivityNames(unauthorizedActivities);
+            var allowedList = GetActivityNames(licenceType.PermittedActivities);
+
+            violations.Add(new ValidationViolation
+            {
+                ErrorCode = ErrorCodes.VALIDATION_ERROR,
+                Message = $"Licence has activities not permitted by licence type '{licenceType.Name}'. " +
+                         $"Unauthorized: {unauthorizedList}. Allowed: {allowedList}"
+            });
+        }
+
+        return violations.Any()
+            ? ValidationResult.Failure(violations)
+            : ValidationResult.Success();
+    }
+
+    /// <summary>
+    /// Converts permitted activity flags to a human-readable string.
+    /// </summary>
+    private static string GetActivityNames(LicenceTypes.PermittedActivity activities)
+    {
+        if (activities == LicenceTypes.PermittedActivity.None)
+            return "None";
+
+        var names = new List<string>();
+
+        if (activities.HasFlag(LicenceTypes.PermittedActivity.Possess)) names.Add("Possess");
+        if (activities.HasFlag(LicenceTypes.PermittedActivity.Store)) names.Add("Store");
+        if (activities.HasFlag(LicenceTypes.PermittedActivity.Distribute)) names.Add("Distribute");
+        if (activities.HasFlag(LicenceTypes.PermittedActivity.Import)) names.Add("Import");
+        if (activities.HasFlag(LicenceTypes.PermittedActivity.Export)) names.Add("Export");
+        if (activities.HasFlag(LicenceTypes.PermittedActivity.Manufacture)) names.Add("Manufacture");
+        if (activities.HasFlag(LicenceTypes.PermittedActivity.HandlePrecursors)) names.Add("HandlePrecursors");
+
+        return string.Join(", ", names);
+    }
 }

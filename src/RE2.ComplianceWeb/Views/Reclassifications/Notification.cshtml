@@ -1,0 +1,136 @@
+@model RE2.ComplianceCore.Interfaces.ComplianceNotification
+@{
+    ViewData["Title"] = "Compliance Notification";
+}
+
+<div class="container">
+    <h1>Compliance Notification</h1>
+    <p class="text-muted">FR-066: Reclassification impact notification for compliance team</p>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-bell"></i> Substance Reclassification Notification</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Substance</dt>
+                        <dd class="col-sm-8"><strong>@Model.SubstanceName</strong></dd>
+
+                        <dt class="col-sm-4">Regulatory Reference</dt>
+                        <dd class="col-sm-8">@Model.RegulatoryReference</dd>
+
+                        <dt class="col-sm-4">Effective Date</dt>
+                        <dd class="col-sm-8">@Model.EffectiveDate.ToString("yyyy-MM-dd")</dd>
+
+                        <dt class="col-sm-4">Total Affected Customers</dt>
+                        <dd class="col-sm-8">@Model.TotalAffectedCustomers</dd>
+
+                        <dt class="col-sm-4">Customers Requiring Action</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.CustomersRequiringAction > 0)
+                            {
+                                <span class="badge bg-danger fs-6">@Model.CustomersRequiringAction</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success fs-6">0</span>
+                            }
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            @if (Model.RequiredActions.Any())
+            {
+                <div class="card mb-4">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Customers Requiring Action</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>The following customers have been flagged for re-qualification due to insufficient licence coverage:</p>
+
+                        @foreach (var action in Model.RequiredActions)
+                        {
+                            <div class="card mb-3 border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <strong>@(action.CustomerName ?? action.CustomerId.ToString())</strong>
+                                </div>
+                                <div class="card-body">
+                                    <p class="mb-2"><strong>Action Required:</strong> @action.ActionRequired</p>
+                                    @if (!string.IsNullOrEmpty(action.LicenceGapSummary))
+                                    {
+                                        <p class="mb-2"><strong>Licence Gap:</strong> @action.LicenceGapSummary</p>
+                                    }
+                                    @if (action.RelevantLicenceIds.Any())
+                                    {
+                                        <p class="mb-0 text-muted small">
+                                            <strong>Current Licences:</strong> @action.RelevantLicenceIds.Count licence(s) on file
+                                        </p>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-check-circle"></i> No Customer Actions Required</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-0">
+                            All affected customers have sufficient licence coverage for the new classification.
+                            No immediate action is required.
+                        </p>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">Actions</h6>
+                </div>
+                <div class="card-body d-grid gap-2">
+                    <button class="btn btn-outline-primary" onclick="window.print();">
+                        <i class="bi bi-printer"></i> Print Notification
+                    </button>
+                    <a asp-action="Details" asp-route-id="@Model.ReclassificationId" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Details
+                    </a>
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-list"></i> All Reclassifications
+                    </a>
+                </div>
+            </div>
+
+            <div class="card bg-light">
+                <div class="card-header">
+                    <h6 class="mb-0">Next Steps</h6>
+                </div>
+                <div class="card-body">
+                    <ol class="small mb-0">
+                        <li class="mb-2">Contact flagged customers to inform them of the classification change</li>
+                        <li class="mb-2">Request updated licence documentation</li>
+                        <li class="mb-2">Verify new licences cover the required classification</li>
+                        <li class="mb-2">Mark customers as re-qualified in the system</li>
+                        <li>Document all communications for audit trail</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @@media print {
+        .btn, .card-header h6 { display: none; }
+        .col-md-4 { display: none; }
+        .col-md-8 { width: 100%; max-width: 100%; }
+    }
+</style>

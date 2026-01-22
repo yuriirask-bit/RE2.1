@@ -1,0 +1,136 @@
+@model RE2.ComplianceCore.Models.Licence
+@{
+    ViewData["Title"] = "Licence Details";
+}
+
+<div class="container">
+    <h1>Licence Details</h1>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                Licence: @Model.LicenceNumber
+                @{
+                    var statusClass = Model.Status switch
+                    {
+                        "Valid" => "bg-success",
+                        "Expired" => "bg-danger",
+                        "Suspended" => "bg-warning text-dark",
+                        "Revoked" => "bg-secondary",
+                        _ => "bg-info"
+                    };
+                }
+                <span class="badge @statusClass float-end">@Model.Status</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <dl class="row">
+                        <dt class="col-sm-4">Licence ID</dt>
+                        <dd class="col-sm-8"><code>@Model.LicenceId</code></dd>
+
+                        <dt class="col-sm-4">Licence Number</dt>
+                        <dd class="col-sm-8">@Model.LicenceNumber</dd>
+
+                        <dt class="col-sm-4">Licence Type</dt>
+                        <dd class="col-sm-8">@(Model.LicenceType?.Name ?? "Unknown")</dd>
+
+                        <dt class="col-sm-4">Holder Type</dt>
+                        <dd class="col-sm-8">@Model.HolderType</dd>
+
+                        <dt class="col-sm-4">Holder ID</dt>
+                        <dd class="col-sm-8"><code>@Model.HolderId</code></dd>
+                    </dl>
+                </div>
+                <div class="col-md-6">
+                    <dl class="row">
+                        <dt class="col-sm-4">Issuing Authority</dt>
+                        <dd class="col-sm-8">@Model.IssuingAuthority</dd>
+
+                        <dt class="col-sm-4">Issue Date</dt>
+                        <dd class="col-sm-8">@Model.IssueDate.ToString("yyyy-MM-dd")</dd>
+
+                        <dt class="col-sm-4">Expiry Date</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.ExpiryDate.HasValue)
+                            {
+                                <span class="@(Model.IsExpired() ? "text-danger fw-bold" : "")">
+                                    @Model.ExpiryDate.Value.ToString("yyyy-MM-dd")
+                                    @if (Model.IsExpired())
+                                    {
+                                        <span class="badge bg-danger ms-2">EXPIRED</span>
+                                    }
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">No expiry</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-4">Created</dt>
+                        <dd class="col-sm-8">@Model.CreatedDate.ToString("yyyy-MM-dd HH:mm")</dd>
+
+                        <dt class="col-sm-4">Last Modified</dt>
+                        <dd class="col-sm-8">@Model.ModifiedDate.ToString("yyyy-MM-dd HH:mm")</dd>
+                    </dl>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.Scope))
+            {
+                <hr />
+                <h6>Scope</h6>
+                <p>@Model.Scope</p>
+            }
+
+            <hr />
+            <h6>Permitted Activities</h6>
+            <div class="d-flex flex-wrap gap-2">
+                @if (Model.PermittedActivities.HasFlag(RE2.Shared.Constants.LicenceTypes.PermittedActivity.Possess))
+                {
+                    <span class="badge bg-primary">Possess</span>
+                }
+                @if (Model.PermittedActivities.HasFlag(RE2.Shared.Constants.LicenceTypes.PermittedActivity.Store))
+                {
+                    <span class="badge bg-primary">Store</span>
+                }
+                @if (Model.PermittedActivities.HasFlag(RE2.Shared.Constants.LicenceTypes.PermittedActivity.Distribute))
+                {
+                    <span class="badge bg-primary">Distribute</span>
+                }
+                @if (Model.PermittedActivities.HasFlag(RE2.Shared.Constants.LicenceTypes.PermittedActivity.Import))
+                {
+                    <span class="badge bg-primary">Import</span>
+                }
+                @if (Model.PermittedActivities.HasFlag(RE2.Shared.Constants.LicenceTypes.PermittedActivity.Export))
+                {
+                    <span class="badge bg-primary">Export</span>
+                }
+                @if (Model.PermittedActivities.HasFlag(RE2.Shared.Constants.LicenceTypes.PermittedActivity.Manufacture))
+                {
+                    <span class="badge bg-primary">Manufacture</span>
+                }
+                @if (Model.PermittedActivities.HasFlag(RE2.Shared.Constants.LicenceTypes.PermittedActivity.HandlePrecursors))
+                {
+                    <span class="badge bg-primary">Handle Precursors</span>
+                }
+                @if (Model.PermittedActivities == RE2.Shared.Constants.LicenceTypes.PermittedActivity.None)
+                {
+                    <span class="text-muted">None specified</span>
+                }
+            </div>
+        </div>
+        <div class="card-footer">
+            <a asp-action="Edit" asp-route-id="@Model.LicenceId" class="btn btn-primary">Edit</a>
+            <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+        </div>
+    </div>
+
+    @* T079f: Substance mappings partial view for FR-004 *@
+    @if (ViewBag.SubstanceMappings != null)
+    {
+        @await Html.PartialAsync("_SubstanceMappings", (IEnumerable<RE2.ComplianceCore.Models.LicenceSubstanceMapping>)ViewBag.SubstanceMappings)
+    }
+</div>

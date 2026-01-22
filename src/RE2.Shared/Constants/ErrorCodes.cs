@@ -54,6 +54,16 @@ public static class ErrorCodes
     #region Additional Licence Violations
 
     /// <summary>
+    /// Licence with the specified ID or number was not found.
+    /// </summary>
+    public const string LICENCE_NOT_FOUND = "LICENCE_NOT_FOUND";
+
+    /// <summary>
+    /// Licence type with the specified ID or name was not found.
+    /// </summary>
+    public const string LICENCE_TYPE_NOT_FOUND = "LICENCE_TYPE_NOT_FOUND";
+
+    /// <summary>
     /// Licence is revoked by the issuing authority.
     /// </summary>
     public const string LICENCE_REVOKED = "LICENCE_REVOKED";
@@ -62,6 +72,20 @@ public static class ErrorCodes
     /// Licence scope is insufficient for the requested activity.
     /// </summary>
     public const string LICENCE_SCOPE_INSUFFICIENT = "LICENCE_SCOPE_INSUFFICIENT";
+
+    #endregion
+
+    #region Substance Violation Codes
+
+    /// <summary>
+    /// Controlled substance with the specified ID or code was not found.
+    /// </summary>
+    public const string SUBSTANCE_NOT_FOUND = "SUBSTANCE_NOT_FOUND";
+
+    /// <summary>
+    /// Licence-substance mapping with the specified ID was not found.
+    /// </summary>
+    public const string MAPPING_NOT_FOUND = "MAPPING_NOT_FOUND";
 
     #endregion
 

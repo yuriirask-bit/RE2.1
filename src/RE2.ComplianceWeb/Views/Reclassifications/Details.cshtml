@@ -1,0 +1,267 @@
+@model RE2.ComplianceWeb.Controllers.ReclassificationDetailsViewModel
+@using RE2.Shared.Constants
+@{
+    ViewData["Title"] = "Reclassification Details";
+    var r = Model.Reclassification;
+}
+
+<div class="container">
+    <h1>Reclassification Details</h1>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Reclassification Information</h5>
+                    @{
+                        var statusClass = r.Status switch
+                        {
+                            RE2.ComplianceCore.Models.ReclassificationStatus.Pending => "bg-warning text-dark",
+                            RE2.ComplianceCore.Models.ReclassificationStatus.Processing => "bg-info",
+                            RE2.ComplianceCore.Models.ReclassificationStatus.Completed => "bg-success",
+                            RE2.ComplianceCore.Models.ReclassificationStatus.Cancelled => "bg-secondary",
+                            _ => "bg-light"
+                        };
+                    }
+                    <span class="badge @statusClass fs-6">@r.Status</span>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Substance</dt>
+                        <dd class="col-sm-8">@(r.Substance?.SubstanceName ?? "Unknown")</dd>
+
+                        <dt class="col-sm-4">Substance Code</dt>
+                        <dd class="col-sm-8">@(r.Substance?.InternalCode ?? "N/A")</dd>
+
+                        <dt class="col-sm-4">Classification Change</dt>
+                        <dd class="col-sm-8">
+                            <div class="d-flex align-items-center gap-2">
+                                <div>
+                                    @if (r.PreviousOpiumActList != SubstanceCategories.OpiumActList.None)
+                                    {
+                                        <span class="badge bg-secondary">@r.PreviousOpiumActList</span>
+                                    }
+                                    @if (r.PreviousPrecursorCategory != SubstanceCategories.PrecursorCategory.None)
+                                    {
+                                        <span class="badge bg-secondary">@r.PreviousPrecursorCategory</span>
+                                    }
+                                </div>
+                                <i class="bi bi-arrow-right"></i>
+                                <div>
+                                    @if (r.NewOpiumActList != SubstanceCategories.OpiumActList.None)
+                                    {
+                                        <span class="badge bg-warning text-dark">@r.NewOpiumActList</span>
+                                    }
+                                    @if (r.NewPrecursorCategory != SubstanceCategories.PrecursorCategory.None)
+                                    {
+                                        <span class="badge bg-warning text-dark">@r.NewPrecursorCategory</span>
+                                    }
+                                </div>
+                                @if (r.IsUpgrade())
+                                {
+                                    <span class="badge bg-danger">Upgrade (Stricter)</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">Downgrade</span>
+                                }
+                            </div>
+                        </dd>
+
+                        <dt class="col-sm-4">Effective Date</dt>
+                        <dd class="col-sm-8">
+                            @r.EffectiveDate.ToString("yyyy-MM-dd")
+                            @if (r.IsEffective())
+                            {
+                                <span class="badge bg-success">In Effect</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-info">Future</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-4">Regulatory Reference</dt>
+                        <dd class="col-sm-8">@r.RegulatoryReference</dd>
+
+                        <dt class="col-sm-4">Regulatory Authority</dt>
+                        <dd class="col-sm-8">@r.RegulatoryAuthority</dd>
+
+                        @if (!string.IsNullOrEmpty(r.Reason))
+                        {
+                            <dt class="col-sm-4">Reason</dt>
+                            <dd class="col-sm-8">@r.Reason</dd>
+                        }
+
+                        <dt class="col-sm-4">Created</dt>
+                        <dd class="col-sm-8">@r.CreatedDate.ToString("yyyy-MM-dd HH:mm")</dd>
+
+                        @if (r.ProcessedDate.HasValue)
+                        {
+                            <dt class="col-sm-4">Processed</dt>
+                            <dd class="col-sm-8">@r.ProcessedDate.Value.ToString("yyyy-MM-dd HH:mm")</dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+
+            @if (Model.ImpactAnalysis != null)
+            {
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Customer Impact Analysis</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center mb-4">
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h3 class="text-primary">@Model.ImpactAnalysis.TotalAffectedCustomers</h3>
+                                        <p class="mb-0 text-muted">Total Affected</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h3 class="text-success">@Model.ImpactAnalysis.CustomersWithSufficientLicences</h3>
+                                        <p class="mb-0 text-muted">Sufficient Licences</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h3 class="text-danger">@Model.ImpactAnalysis.CustomersFlaggedForReQualification</h3>
+                                        <p class="mb-0 text-muted">Require Action</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (Model.ImpactAnalysis.CustomerImpacts.Any())
+                        {
+                            <h6>Affected Customers</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Customer</th>
+                                        <th>Status</th>
+                                        <th>Licence Gap</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var impact in Model.ImpactAnalysis.CustomerImpacts)
+                                    {
+                                        <tr>
+                                            <td>@(impact.CustomerName ?? impact.CustomerId.ToString()[..8] + "...")</td>
+                                            <td>
+                                                @if (impact.RequiresReQualification)
+                                                {
+                                                    <span class="badge bg-danger">Requires Re-Qualification</span>
+                                                }
+                                                else if (impact.ReQualificationDate.HasValue)
+                                                {
+                                                    <span class="badge bg-success">Re-Qualified</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-success">Sufficient Licence</span>
+                                                }
+                                            </td>
+                                            <td class="text-muted small">@(impact.LicenceGapSummary ?? "-")</td>
+                                            <td>
+                                                @if (impact.RequiresReQualification)
+                                                {
+                                                    <form asp-action="ReQualifyCustomer" method="post" style="display:inline;">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="id" value="@r.ReclassificationId" />
+                                                        <input type="hidden" name="customerId" value="@impact.CustomerId" />
+                                                        <button type="submit" class="btn btn-sm btn-outline-success"
+                                                                onclick="return confirm('Mark this customer as re-qualified?');">
+                                                            <i class="bi bi-check"></i> Re-Qualify
+                                                        </button>
+                                                    </form>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                        else
+                        {
+                            <p class="text-muted">No customers are affected by this reclassification.</p>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">Actions</h6>
+                </div>
+                <div class="card-body d-grid gap-2">
+                    @if (r.Status == RE2.ComplianceCore.Models.ReclassificationStatus.Pending)
+                    {
+                        <a asp-action="Process" asp-route-id="@r.ReclassificationId" class="btn btn-success">
+                            <i class="bi bi-play-circle"></i> Process Reclassification
+                        </a>
+                    }
+
+                    @if (r.Status == RE2.ComplianceCore.Models.ReclassificationStatus.Completed)
+                    {
+                        <a asp-action="Notification" asp-route-id="@r.ReclassificationId" class="btn btn-info">
+                            <i class="bi bi-bell"></i> View Compliance Notification
+                        </a>
+                    }
+
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to List
+                    </a>
+                </div>
+            </div>
+
+            <div class="card bg-light">
+                <div class="card-header">
+                    <h6 class="mb-0">Summary</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small mb-2">
+                        <strong>Affected Customers:</strong> @r.AffectedCustomerCount
+                    </p>
+                    <p class="small mb-0">
+                        <strong>Flagged for Action:</strong>
+                        @if (r.FlaggedCustomerCount > 0)
+                        {
+                            <span class="text-danger">@r.FlaggedCustomerCount</span>
+                        }
+                        else
+                        {
+                            <span>0</span>
+                        }
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

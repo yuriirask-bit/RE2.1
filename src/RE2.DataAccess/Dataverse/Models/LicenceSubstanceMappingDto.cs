@@ -16,6 +16,8 @@ public class LicenceSubstanceMappingDto
     public decimal? phr_maxquantityperperiod { get; set; }
     public string? phr_periodtype { get; set; }
     public string? phr_restrictions { get; set; }
+    public DateTime phr_effectivedate { get; set; }
+    public DateTime? phr_expirydate { get; set; }
 
     public LicenceSubstanceMapping ToDomainModel()
     {
@@ -27,7 +29,9 @@ public class LicenceSubstanceMappingDto
             MaxQuantityPerTransaction = phr_maxquantitypertransaction,
             MaxQuantityPerPeriod = phr_maxquantityperperiod,
             PeriodType = phr_periodtype,
-            Restrictions = phr_restrictions
+            Restrictions = phr_restrictions,
+            EffectiveDate = DateOnly.FromDateTime(phr_effectivedate),
+            ExpiryDate = phr_expirydate.HasValue ? DateOnly.FromDateTime(phr_expirydate.Value) : null
         };
     }
 
@@ -41,7 +45,9 @@ public class LicenceSubstanceMappingDto
             phr_maxquantitypertransaction = model.MaxQuantityPerTransaction,
             phr_maxquantityperperiod = model.MaxQuantityPerPeriod,
             phr_periodtype = model.PeriodType,
-            phr_restrictions = model.Restrictions
+            phr_restrictions = model.Restrictions,
+            phr_effectivedate = model.EffectiveDate.ToDateTime(TimeOnly.MinValue),
+            phr_expirydate = model.ExpiryDate?.ToDateTime(TimeOnly.MinValue)
         };
     }
 }

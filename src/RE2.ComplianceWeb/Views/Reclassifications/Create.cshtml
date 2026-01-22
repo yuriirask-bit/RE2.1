@@ -1,0 +1,129 @@
+@model RE2.ComplianceWeb.Controllers.ReclassificationCreateViewModel
+@{
+    ViewData["Title"] = "Create Reclassification";
+}
+
+<div class="container">
+    <h1>Create Substance Reclassification</h1>
+    <p>Record a new substance reclassification per FR-066</p>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Reclassification Details</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="SubstanceId" class="form-label">Substance</label>
+                            <select asp-for="SubstanceId" asp-items="ViewBag.Substances" class="form-select">
+                                <option value="">-- Select Substance --</option>
+                            </select>
+                            <span asp-validation-for="SubstanceId" class="text-danger"></span>
+                        </div>
+
+                        <hr class="my-4"/>
+
+                        <h6 class="text-muted">Classification Change</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="NewOpiumActList" class="form-label">New Opium Act List</label>
+                                    <select asp-for="NewOpiumActList" asp-items="ViewBag.OpiumActLists" class="form-select">
+                                    </select>
+                                    <span asp-validation-for="NewOpiumActList" class="text-danger"></span>
+                                    <small class="form-text text-muted">List I = Hard drugs (strictest), List II = Therapeutic</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="NewPrecursorCategory" class="form-label">New Precursor Category</label>
+                                    <select asp-for="NewPrecursorCategory" asp-items="ViewBag.PrecursorCategories" class="form-select">
+                                    </select>
+                                    <span asp-validation-for="NewPrecursorCategory" class="text-danger"></span>
+                                    <small class="form-text text-muted">Category 1 = Strictest EU precursor controls</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4"/>
+
+                        <h6 class="text-muted">Regulatory Information</h6>
+                        <div class="mb-3">
+                            <label asp-for="EffectiveDate" class="form-label">Effective Date</label>
+                            <input asp-for="EffectiveDate" type="date" class="form-control" />
+                            <span asp-validation-for="EffectiveDate" class="text-danger"></span>
+                            <small class="form-text text-muted">Date when the new classification becomes effective</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="RegulatoryReference" class="form-label">Regulatory Reference</label>
+                            <input asp-for="RegulatoryReference" class="form-control" placeholder="e.g., Staatscourant 2026/123" />
+                            <span asp-validation-for="RegulatoryReference" class="text-danger"></span>
+                            <small class="form-text text-muted">Reference to the official gazette or regulation</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="RegulatoryAuthority" class="form-label">Regulatory Authority</label>
+                            <input asp-for="RegulatoryAuthority" class="form-control" placeholder="e.g., Ministry of Health, IGJ" />
+                            <span asp-validation-for="RegulatoryAuthority" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Reason" class="form-label">Reason (Optional)</label>
+                            <textarea asp-for="Reason" class="form-control" rows="3" placeholder="Additional context for this reclassification"></textarea>
+                            <span asp-validation-for="Reason" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Index" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Create Reclassification
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card bg-light">
+                <div class="card-header">
+                    <h6 class="mb-0">Information</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small">
+                        <strong>FR-066 Workflow:</strong>
+                    </p>
+                    <ol class="small">
+                        <li>Create reclassification record with new classification</li>
+                        <li>System identifies affected customers</li>
+                        <li>Process to update substance and flag customers</li>
+                        <li>Notify compliance team of customers requiring action</li>
+                    </ol>
+                    <hr/>
+                    <p class="small text-muted">
+                        <strong>Opium Act Lists:</strong><br/>
+                        - List I: Hard drugs (heroin, cocaine, MDMA)<br/>
+                        - List II: Therapeutic (cannabis, morphine)
+                    </p>
+                    <p class="small text-muted">
+                        <strong>Precursor Categories:</strong><br/>
+                        - Category 1: Strictest (ephedrine, acetic anhydride)<br/>
+                        - Category 2/3: Less strict controls
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

@@ -42,7 +42,7 @@ Project uses multi-project .NET solution structure per plan.md:
 - [X] T006 [P] Initialize RE2.ComplianceFunctions (Azure Functions .NET 8 Isolated) in src/RE2.ComplianceFunctions/
 - [X] T007 [P] Initialize RE2.Shared class library (.NET 8) in src/RE2.Shared/
 - [X] T008 [P] Initialize xUnit test projects in tests/ per plan.md structure
-- [ ] T009 Add NuGet packages to RE2.ComplianceCore (no external dependencies per library-first)
+- [X] T009 Add NuGet packages to RE2.ComplianceCore (no external dependencies per library-first) - N/A per library-first principle
 - [X] T010 [P] Add NuGet packages to RE2.DataAccess (Microsoft.PowerPlatform.Dataverse.Client, Azure.Identity, System.Net.Http.Json)
 - [X] T011 [P] Add NuGet packages to RE2.ComplianceApi (ASP.NET Core, Asp.Versioning.Mvc, Microsoft.Identity.Web, Microsoft.Extensions.Http.Resilience)
 - [X] T012 [P] Add NuGet packages to RE2.ComplianceWeb (ASP.NET Core MVC, Microsoft.Identity.Web)
@@ -140,53 +140,87 @@ Project uses multi-project .NET solution structure per plan.md:
 
 - [X] T053 [P] [US1] Unit tests for LicenceType model in tests/RE2.ComplianceCore.Tests/Models/LicenceTypeTests.cs
 - [X] T054 [P] [US1] Unit tests for ControlledSubstance model in tests/RE2.ComplianceCore.Tests/Models/ControlledSubstanceTests.cs
-- [ ] T055 [P] [US1] Unit tests for LicenceSubstanceMapping model in tests/RE2.ComplianceCore.Tests/Models/LicenceSubstanceMappingTests.cs
-- [ ] T056 [P] [US1] Unit tests for Licence model in tests/RE2.ComplianceCore.Tests/Models/LicenceTests.cs
-- [ ] T057 [US1] Contract tests for Dataverse LicenceType entity in tests/RE2.Contract.Tests/DataverseLicenceTypeContractTests.cs
-- [ ] T058 [US1] Contract tests for Dataverse ControlledSubstance entity in tests/RE2.Contract.Tests/DataverseControlledSubstanceContractTests.cs
-- [ ] T059 [US1] Integration tests for GET /api/v1/licences in tests/RE2.ComplianceApi.Tests/Controllers/V1/LicencesControllerTests.cs
+- [X] T055 [P] [US1] Unit tests for LicenceSubstanceMapping model in tests/RE2.ComplianceCore.Tests/Models/LicenceSubstanceMappingTests.cs
+- [X] T056 [P] [US1] Unit tests for Licence model in tests/RE2.ComplianceCore.Tests/Models/LicenceTests.cs
+- [X] T057 [US1] Contract tests for Dataverse LicenceType entity in tests/RE2.Contract.Tests/DataverseLicenceTypeContractTests.cs
+- [X] T058 [US1] Contract tests for Dataverse ControlledSubstance entity in tests/RE2.Contract.Tests/DataverseControlledSubstanceContractTests.cs
+- [X] T059 [US1] Integration tests for GET /api/v1/licences in tests/RE2.ComplianceApi.Tests/Controllers/V1/LicencesControllerTests.cs
 
 ### Implementation for User Story 1
 
-- [ ] T060 [P] [US1] Create LicenceType domain model in src/RE2.ComplianceCore/Models/LicenceType.cs per data-model.md entity 2
-- [ ] T061 [P] [US1] Create ControlledSubstance domain model in src/RE2.ComplianceCore/Models/ControlledSubstance.cs per data-model.md entity 3
-- [ ] T062 [P] [US1] Create LicenceSubstanceMapping domain model in src/RE2.ComplianceCore/Models/LicenceSubstanceMapping.cs per data-model.md entity 4
-- [ ] T063 [US1] Create Licence domain model in src/RE2.ComplianceCore/Models/Licence.cs per data-model.md entity 1 (depends on T060)
-- [ ] T064 [P] [US1] Create LicenceType DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/LicenceTypeDto.cs
-- [ ] T065 [P] [US1] Create ControlledSubstance DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/ControlledSubstanceDto.cs
-- [ ] T066 [P] [US1] Create LicenceSubstanceMapping DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/LicenceSubstanceMappingDto.cs
-- [ ] T067 [US1] Create Licence DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/LicenceDto.cs
-- [ ] T068 [US1] Create ILicenceRepository interface in src/RE2.ComplianceCore/Interfaces/ILicenceRepository.cs
-- [ ] T069 [US1] Implement DataverseLicenceRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseLicenceRepository.cs with CRUD operations
-- [ ] T070 [US1] Create ILicenceTypeRepository interface in src/RE2.ComplianceCore/Interfaces/ILicenceTypeRepository.cs
-- [ ] T071 [US1] Implement DataverseLicenceTypeRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseLicenceTypeRepository.cs
-- [ ] T072 [US1] Create IControlledSubstanceRepository interface in src/RE2.ComplianceCore/Interfaces/IControlledSubstanceRepository.cs
-- [ ] T073 [US1] Implement DataverseControlledSubstanceRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseControlledSubstanceRepository.cs
-- [ ] T074 [US1] Create LicenceService in src/RE2.ComplianceCore/Services/LicenceValidation/LicenceService.cs with business logic for licence management
-- [ ] T075 [US1] Create LicenceController v1 in src/RE2.ComplianceApi/Controllers/V1/LicencesController.cs with GET, POST, PUT, DELETE endpoints
-- [ ] T076 [US1] Create licence management UI in src/RE2.ComplianceWeb/Views/Licences/ (Index, Create, Edit, Details views)
-- [ ] T077 [US1] Create LicencesController for web UI in src/RE2.ComplianceWeb/Controllers/LicencesController.cs
-- [ ] T078 [US1] Add validation for licence type permitted activities mapping per data-model.md validation rules
-- [ ] T079 [US1] Add validation for substance-to-licence-type mappings per data-model.md validation rules
-- [ ] T080 [US1] Configure route authorization: only ComplianceManager role can create/modify licence types
+- [X] T060 [P] [US1] Create LicenceType domain model in src/RE2.ComplianceCore/Models/LicenceType.cs per data-model.md entity 2
+- [X] T061 [P] [US1] Create ControlledSubstance domain model in src/RE2.ComplianceCore/Models/ControlledSubstance.cs per data-model.md entity 3
+- [X] T062 [P] [US1] Create LicenceSubstanceMapping domain model in src/RE2.ComplianceCore/Models/LicenceSubstanceMapping.cs per data-model.md entity 4
+- [X] T063 [US1] Create Licence domain model in src/RE2.ComplianceCore/Models/Licence.cs per data-model.md entity 1 (depends on T060)
+- [X] T064 [P] [US1] Create LicenceType DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/LicenceTypeDto.cs
+- [X] T065 [P] [US1] Create ControlledSubstance DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/ControlledSubstanceDto.cs
+- [X] T066 [P] [US1] Create LicenceSubstanceMapping DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/LicenceSubstanceMappingDto.cs
+- [X] T067 [US1] Create Licence DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/LicenceDto.cs
+- [X] T068 [US1] Create ILicenceRepository interface in src/RE2.ComplianceCore/Interfaces/ILicenceRepository.cs
+- [X] T069 [US1] Implement DataverseLicenceRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseLicenceRepository.cs with CRUD operations
+- [X] T070 [US1] Create ILicenceTypeRepository interface in src/RE2.ComplianceCore/Interfaces/ILicenceTypeRepository.cs
+- [X] T071 [US1] Implement DataverseLicenceTypeRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseLicenceTypeRepository.cs
+
+### Licence Type Management (FR-001, FR-002)
+
+- [X] T071a [US1] Create LicenceTypesController v1 in src/RE2.ComplianceApi/Controllers/V1/LicenceTypesController.cs with GET, POST, PUT, DELETE endpoints per FR-001
+- [X] T071b [P] [US1] Create licence types web UI views in src/RE2.ComplianceWeb/Views/LicenceTypes/ (Index, Create, Edit, Details views) per FR-001
+- [X] T071c [US1] Create LicenceTypesController for web UI in src/RE2.ComplianceWeb/Controllers/LicenceTypesController.cs
+- [X] T071d [US1] Integration tests for LicenceTypesController API in tests/RE2.ComplianceApi.Tests/Controllers/V1/LicenceTypesControllerTests.cs
+- [X] T071e [US1] Seed default licence types in InMemoryLicenceTypeRepository covering all FR-001 categories (Opium Act exemption, WDA, GDP certificate, import/export permits, pharmacy licences, manufacturer licence, precursor registration)
+- [X] T071f [US1] Verify PermittedActivities flags support all FR-002 activities (possess, store, distribute, import, export, manufacture, handle precursors) with unit tests
+
+- [X] T072 [US1] Create IControlledSubstanceRepository interface in src/RE2.ComplianceCore/Interfaces/IControlledSubstanceRepository.cs
+- [X] T073 [US1] Implement DataverseControlledSubstanceRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseControlledSubstanceRepository.cs
+
+### Controlled Substance Master List Management (FR-003)
+
+- [X] T073a [US1] Create IControlledSubstanceService interface in src/RE2.ComplianceCore/Interfaces/IControlledSubstanceService.cs with CRUD and validation methods
+- [X] T073b [US1] Implement ControlledSubstanceService in src/RE2.ComplianceCore/Services/SubstanceManagement/ControlledSubstanceService.cs with validation logic (unique InternalCode, valid OpiumActList/PrecursorCategory combinations)
+- [X] T073c [US1] Create ControlledSubstancesController v1 in src/RE2.ComplianceApi/Controllers/V1/ControlledSubstancesController.cs with GET, POST, PUT, DELETE endpoints for substance master list management
+- [X] T073d [P] [US1] Create controlled substances web UI views in src/RE2.ComplianceWeb/Views/Substances/ (Index, Create, Edit, Details views) per FR-003
+- [X] T073e [US1] Create SubstancesController for web UI in src/RE2.ComplianceWeb/Controllers/SubstancesController.cs
+- [X] T073f [US1] Integration tests for ControlledSubstances API in tests/RE2.ComplianceApi.Tests/Controllers/V1/ControlledSubstancesControllerTests.cs
+- [X] T073g [US1] Unit tests for ControlledSubstanceService in tests/RE2.ComplianceCore.Tests/Services/ControlledSubstanceServiceTests.cs
+- [X] T073h [US1] Configure route authorization: only ComplianceManager role can create/modify controlled substances per FR-031
+
+- [X] T074 [US1] Create LicenceService in src/RE2.ComplianceCore/Services/LicenceValidation/LicenceService.cs with business logic for licence management
+- [X] T075 [US1] Create LicenceController v1 in src/RE2.ComplianceApi/Controllers/V1/LicencesController.cs with GET, POST, PUT, DELETE endpoints
+- [X] T076 [US1] Create licence management UI in src/RE2.ComplianceWeb/Views/Licences/ (Index, Create, Edit, Details views)
+- [X] T077 [US1] Create LicencesController for web UI in src/RE2.ComplianceWeb/Controllers/LicencesController.cs
+- [X] T078 [US1] Add validation for licence type permitted activities mapping per data-model.md validation rules
+- [X] T079 [US1] Add validation for substance-to-licence-type mappings per data-model.md validation rules
+- [X] T080 [US1] Configure route authorization: only ComplianceManager role can create/modify licence types
+
+### Licence-to-Substance Mappings (FR-004)
+
+- [X] T079a [US1] Create ILicenceSubstanceMappingRepository interface in src/RE2.ComplianceCore/Interfaces/ILicenceSubstanceMappingRepository.cs with CRUD and GetByLicenceId methods
+- [X] T079b [US1] Implement DataverseLicenceSubstanceMappingRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseLicenceSubstanceMappingRepository.cs
+- [X] T079c [US1] Create ILicenceSubstanceMappingService interface in src/RE2.ComplianceCore/Interfaces/ILicenceSubstanceMappingService.cs with validation logic
+- [X] T079d [US1] Implement LicenceSubstanceMappingService in src/RE2.ComplianceCore/Services/LicenceValidation/LicenceSubstanceMappingService.cs with mapping validation per data-model.md (ExpiryDate ≤ Licence.ExpiryDate)
+- [X] T079e [US1] Create LicenceSubstanceMappingsController v1 in src/RE2.ComplianceApi/Controllers/V1/LicenceSubstanceMappingsController.cs with GET, POST, PUT, DELETE endpoints per FR-004
+- [X] T079f [P] [US1] Create substance mappings web UI partial view in src/RE2.ComplianceWeb/Views/Licences/_SubstanceMappings.cshtml for managing mappings within licence details
+- [X] T079g [US1] Integration tests for LicenceSubstanceMappingsController API in tests/RE2.ComplianceApi.Tests/Controllers/V1/LicenceSubstanceMappingsControllerTests.cs
+- [X] T079h [US1] Unit tests for LicenceSubstanceMappingService in tests/RE2.ComplianceCore.Tests/Services/LicenceSubstanceMappingServiceTests.cs
+- [X] T079i [US1] Contract tests for Dataverse LicenceSubstanceMapping entity in tests/RE2.Contract.Tests/DataverseLicenceSubstanceMappingContractTests.cs
 
 ### Substance Reclassification Support (FR-066)
 
-- [ ] T080a [P] [US1] Create SubstanceReclassification domain model in src/RE2.ComplianceCore/Models/SubstanceReclassification.cs per FR-066
-- [ ] T080b [P] [US1] Create SubstanceReclassificationDto for Dataverse in src/RE2.DataAccess/Dataverse/Models/SubstanceReclassificationDto.cs
-- [ ] T080c [US1] Extend ControlledSubstance model with effective date tracking for classification changes
-- [ ] T080d [US1] Create ISubstanceReclassificationRepository interface in src/RE2.ComplianceCore/Interfaces/ISubstanceReclassificationRepository.cs
-- [ ] T080e [US1] Implement DataverseSubstanceReclassificationRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseSubstanceReclassificationRepository.cs
-- [ ] T080f [US1] Create SubstanceReclassificationService in src/RE2.ComplianceCore/Services/LicenceValidation/SubstanceReclassificationService.cs with customer impact analysis per FR-066
-- [ ] T080g [US1] Implement reclassification workflow: record new classification with effective date, identify affected customers, validate licence sufficiency
-- [ ] T080h [US1] Create SubstanceReclassificationController v1 in src/RE2.ComplianceApi/Controllers/V1/SubstanceReclassificationController.cs with POST /api/v1/substances/{id}/reclassify endpoint
-- [ ] T080i [US1] Create reclassification UI in src/RE2.ComplianceWeb/Views/Substances/Reclassify.cshtml with regulatory authority reference, effective date, affected customers preview
-- [ ] T080j [US1] Implement customer flagging logic per FR-066: set "Requires Re-Qualification" status for customers with insufficient licences
-- [ ] T080k [US1] Implement compliance team notification generation listing affected customers and required actions
-- [ ] T080l [US1] Extend TransactionComplianceService to prevent transactions with reclassified substances for flagged customers until licences updated per FR-066
-- [ ] T080m [US1] Add historical transaction validation support: maintain transaction compliance under classification at time of transaction per FR-066
-- [ ] T080n [P] [US1] Unit tests for SubstanceReclassificationService in tests/RE2.ComplianceCore.Tests/Services/SubstanceReclassificationServiceTests.cs
-- [ ] T080o [US1] Integration tests for reclassification API in tests/RE2.ComplianceApi.Tests/Controllers/V1/SubstanceReclassificationControllerTests.cs
+- [x] T080a [P] [US1] Create SubstanceReclassification domain model in src/RE2.ComplianceCore/Models/SubstanceReclassification.cs per FR-066
+- [x] T080b [P] [US1] Create SubstanceReclassificationDto for Dataverse in src/RE2.DataAccess/Dataverse/Models/SubstanceReclassificationDto.cs
+- [x] T080c [US1] Extend ControlledSubstance model with effective date tracking for classification changes
+- [x] T080d [US1] Create ISubstanceReclassificationRepository interface in src/RE2.ComplianceCore/Interfaces/ISubstanceReclassificationRepository.cs
+- [x] T080e [US1] Implement DataverseSubstanceReclassificationRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseSubstanceReclassificationRepository.cs
+- [x] T080f [US1] Create SubstanceReclassificationService in src/RE2.ComplianceCore/Services/LicenceValidation/SubstanceReclassificationService.cs with customer impact analysis per FR-066
+- [x] T080g [US1] Implement reclassification workflow: record new classification with effective date, identify affected customers, validate licence sufficiency
+- [x] T080h [US1] Create SubstanceReclassificationController v1 in src/RE2.ComplianceApi/Controllers/V1/SubstanceReclassificationController.cs with POST /api/v1/substances/{id}/reclassify endpoint
+- [x] T080i [US1] Create reclassification UI in src/RE2.ComplianceWeb/Views/Reclassifications/ with regulatory authority reference, effective date, affected customers preview
+- [x] T080j [US1] Implement customer flagging logic per FR-066: set "Requires Re-Qualification" status for customers with insufficient licences
+- [x] T080k [US1] Implement compliance team notification generation listing affected customers and required actions
+- [x] T080l [US1] Extend TransactionComplianceService to prevent transactions with reclassified substances for flagged customers until licences updated per FR-066
+- [x] T080m [US1] Add historical transaction validation support: maintain transaction compliance under classification at time of transaction per FR-066
+- [x] T080n [P] [US1] Unit tests for SubstanceReclassificationService in tests/RE2.ComplianceCore.Tests/Services/SubstanceReclassificationServiceTests.cs
+- [x] T080o [US1] Integration tests for reclassification API in tests/RE2.ComplianceApi.Tests/Controllers/V1/SubstanceReclassificationControllerTests.cs
 
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - compliance managers can manage licence types, controlled substances, and mappings via API and web UI
@@ -812,7 +846,7 @@ With 3+ developers:
 
 - **Phase 1 (Setup)**: 20 tasks
 - **Phase 2 (Foundational)**: 32 tasks (BLOCKING)
-- **Phase 3 (User Story 1 - P1)**: 28 tasks
+- **Phase 3 (User Story 1 - P1)**: 51 tasks (increased from 42: added T079a-T079i for FR-004)
 - **Phase 4 (User Story 2 - P1)**: 18 tasks
 - **Phase 5 (User Story 3 - P1)**: 23 tasks
 - **Phase 6 (User Story 4 - P2)**: 28 tasks
@@ -825,10 +859,10 @@ With 3+ developers:
 - **Phase 13 (User Story 11 - P2)**: 9 tasks
 - **Phase 14 (User Story 12 - P3)**: 23 tasks
 - **Phase 15 (Polish)**: 29 tasks (reduced from 32 due to duplicate removal)
-- **TOTAL**: 301 tasks (reduced from 304)
+- **TOTAL**: 324 tasks (increased from 315: added T079a-T079i for FR-004)
 
 
-**MVP Scope** (User Stories 1-3): 52 + 20 (Setup) + 32 (Foundation) = **104 tasks**
+**MVP Scope** (User Stories 1-3): 75 + 20 (Setup) + 32 (Foundation) = **127 tasks** (increased from 118: added T079a-T079i for FR-004)
 
 **Parallel Opportunities**:
 - Phase 1: 16 parallelizable tasks (80%)

@@ -22,6 +22,7 @@ Represents a legal authorization (permit, exemption, certificate) held by the co
 - `LicenceId` (Guid, PK) - Unique identifier
 - `LicenceNumber` (string, required, indexed) - Official licence/permit number from issuing authority
 - `LicenceTypeId` (Guid, FK → LicenceType, required) - Category of authorization
+- `LicenceType` (navigation property → LicenceType) - Related LicenceType entity providing `Name` and other type details
 - `HolderType` (enum: Company, Customer, required) - Who holds this licence
 - `HolderId` (Guid, FK → Company or Customer, required) - Reference to holder entity
 - `IssuingAuthority` (string, required) - Name of authority (e.g., "IGJ", "Farmatec", "CBG-MEB")
