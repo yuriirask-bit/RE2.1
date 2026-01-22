@@ -1,0 +1,229 @@
+@model RE2.ComplianceCore.Models.ControlledSubstance
+@using RE2.Shared.Constants
+@{
+    ViewData["Title"] = "Substance Details";
+}
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>@Model.SubstanceName</h1>
+            <p class="text-muted mb-0">Internal Code: <code>@Model.InternalCode</code></p>
+        </div>
+        <div>
+            @if (Model.IsActive)
+            {
+                <span class="badge bg-success fs-6">Active</span>
+            }
+            else
+            {
+                <span class="badge bg-secondary fs-6">Inactive</span>
+            }
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-shield-check"></i> Classification</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Opium Act List (Dutch Law)</h6>
+                            @if (Model.OpiumActList != SubstanceCategories.OpiumActList.None)
+                            {
+                                var opiumClass = Model.OpiumActList == SubstanceCategories.OpiumActList.ListI
+                                    ? "bg-danger" : "bg-warning text-dark";
+                                var opiumDescription = Model.OpiumActList == SubstanceCategories.OpiumActList.ListI
+                                    ? "Hard drugs - Strictest controls" : "Therapeutic substances";
+                                <p>
+                                    <span class="badge @opiumClass fs-6">@Model.OpiumActList</span>
+                                </p>
+                                <p class="text-muted small">@opiumDescription</p>
+                            }
+                            else
+                            {
+                                <p class="text-muted">Not classified under Opium Act</p>
+                            }
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">EU Precursor Category</h6>
+                            @if (Model.PrecursorCategory != SubstanceCategories.PrecursorCategory.None)
+                            {
+                                var precursorClass = Model.PrecursorCategory switch
+                                {
+                                    SubstanceCategories.PrecursorCategory.Category1 => "bg-danger",
+                                    SubstanceCategories.PrecursorCategory.Category2 => "bg-warning text-dark",
+                                    _ => "bg-info"
+                                };
+                                var precursorDescription = Model.PrecursorCategory switch
+                                {
+                                    SubstanceCategories.PrecursorCategory.Category1 => "Strictest controls - requires end-user declaration",
+                                    SubstanceCategories.PrecursorCategory.Category2 => "Moderate controls - registration required",
+                                    _ => "Less restrictive - basic record-keeping"
+                                };
+                                <p>
+                                    <span class="badge @precursorClass fs-6">@Model.PrecursorCategory</span>
+                                </p>
+                                <p class="text-muted small">@precursorDescription</p>
+                            }
+                            else
+                            {
+                                <p class="text-muted">Not classified as precursor</p>
+                            }
+                        </div>
+                    </div>
+
+                    @if (Model.ClassificationEffectiveDate.HasValue)
+                    {
+                        <hr />
+                        <div class="row">
+                            <div class="col">
+                                <h6 class="text-muted">Classification Effective Date</h6>
+                                <p>@Model.ClassificationEffectiveDate.Value.ToString("yyyy-MM-dd")</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Model.RegulatoryRestrictions))
+            {
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Regulatory Restrictions</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-0">@Model.RegulatoryRestrictions</p>
+                    </div>
+                </div>
+            }
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-link-45deg"></i> Associated Licences</h5>
+                </div>
+                <div class="card-body">
+                    @if (ViewBag.AssociatedLicences != null && ((IEnumerable<dynamic>)ViewBag.AssociatedLicences).Any())
+                    {
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Licence Number</th>
+                                    <th>Holder</th>
+                                    <th>Status</th>
+                                    <th>Expires</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var licence in ViewBag.AssociatedLicences)
+                                {
+                                    <tr>
+                                        <td>
+                                            <a asp-controller="Licences" asp-action="Details" asp-route-id="@licence.LicenceId">
+                                                @licence.LicenceNumber
+                                            </a>
+                                        </td>
+                                        <td>@licence.HolderName</td>
+                                        <td>
+                                            <span class="badge bg-@(licence.Status == "Active" ? "success" : "secondary")">
+                                                @licence.Status
+                                            </span>
+                                        </td>
+                                        <td>@licence.ExpiryDate?.ToString("yyyy-MM-dd")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">
+                            <i class="bi bi-info-circle"></i> No licences are currently associated with this substance.
+                        </p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card bg-light mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">Audit Information</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small mb-1"><strong>Substance ID:</strong></p>
+                    <p class="small"><code>@Model.SubstanceId</code></p>
+                    <p class="small mb-1"><strong>Created:</strong></p>
+                    <p class="small">@Model.CreatedDate.ToString("yyyy-MM-dd HH:mm")</p>
+                    <p class="small mb-1"><strong>Last Modified:</strong></p>
+                    <p class="small mb-0">@Model.ModifiedDate.ToString("yyyy-MM-dd HH:mm")</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a asp-action="Edit" asp-route-id="@Model.SubstanceId" class="btn btn-outline-primary">
+                            <i class="bi bi-pencil"></i> Edit Substance
+                        </a>
+
+                        @if (Model.IsActive)
+                        {
+                            <form asp-action="Deactivate" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@Model.SubstanceId" />
+                                <button type="submit" class="btn btn-outline-warning w-100"
+                                        onclick="return confirm('Are you sure you want to deactivate this substance? It will no longer be available for new licence mappings.');">
+                                    <i class="bi bi-pause-circle"></i> Deactivate
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <form asp-action="Reactivate" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@Model.SubstanceId" />
+                                <button type="submit" class="btn btn-outline-success w-100">
+                                    <i class="bi bi-play-circle"></i> Reactivate
+                                </button>
+                            </form>
+                        }
+
+                        <hr />
+
+                        <a asp-controller="Reclassifications" asp-action="Create" asp-route-substanceId="@Model.SubstanceId"
+                           class="btn btn-outline-info">
+                            <i class="bi bi-arrow-repeat"></i> Initiate Reclassification
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4 bg-light">
+                <div class="card-header">
+                    <h6 class="mb-0">Quick Reference</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small mb-2"><strong>Classification Changes:</strong></p>
+                    <p class="small text-muted">
+                        For significant classification changes (e.g., List II to List I),
+                        use the Reclassification workflow to properly track affected customers
+                        and ensure compliance with FR-066.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Substances List
+        </a>
+    </div>
+</div>

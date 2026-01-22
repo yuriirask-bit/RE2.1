@@ -225,4 +225,147 @@ public class LicenceTypeTests
         // Assert
         Assert.True(licenceType.IsActive);
     }
+
+    #region T071f: PermittedActivities Flags Verification Tests
+
+    /// <summary>
+    /// T071f: Verifies all FR-002 activities are available as flags.
+    /// FR-002 defines: possess, store, distribute, import, export, manufacture, handle precursors.
+    /// </summary>
+    [Theory]
+    [InlineData(LicenceTypes.PermittedActivity.Possess, "Possess")]
+    [InlineData(LicenceTypes.PermittedActivity.Store, "Store")]
+    [InlineData(LicenceTypes.PermittedActivity.Distribute, "Distribute")]
+    [InlineData(LicenceTypes.PermittedActivity.Import, "Import")]
+    [InlineData(LicenceTypes.PermittedActivity.Export, "Export")]
+    [InlineData(LicenceTypes.PermittedActivity.Manufacture, "Manufacture")]
+    [InlineData(LicenceTypes.PermittedActivity.HandlePrecursors, "HandlePrecursors")]
+    public void PermittedActivity_AllFR002ActivitiesAreDefined(LicenceTypes.PermittedActivity activity, string expectedName)
+    {
+        // Assert
+        Assert.NotEqual(LicenceTypes.PermittedActivity.None, activity);
+        Assert.Equal(expectedName, activity.ToString());
+    }
+
+    [Fact]
+    public void PermittedActivity_FlagsAreUniquePowersOfTwo()
+    {
+        // Verify each flag is a unique power of 2 (required for proper flags enum behavior)
+        var values = new[]
+        {
+            (int)LicenceTypes.PermittedActivity.Possess,
+            (int)LicenceTypes.PermittedActivity.Store,
+            (int)LicenceTypes.PermittedActivity.Distribute,
+            (int)LicenceTypes.PermittedActivity.Import,
+            (int)LicenceTypes.PermittedActivity.Export,
+            (int)LicenceTypes.PermittedActivity.Manufacture,
+            (int)LicenceTypes.PermittedActivity.HandlePrecursors
+        };
+
+        foreach (var value in values)
+        {
+            // Check power of 2: value & (value - 1) == 0 for power of 2
+            Assert.True((value & (value - 1)) == 0, $"Value {value} is not a power of 2");
+            Assert.True(value > 0, $"Value {value} should be positive");
+        }
+
+        // Check all values are unique
+        Assert.Equal(values.Length, values.Distinct().Count());
+    }
+
+    [Fact]
+    public void PermittedActivity_ManufactureLicence_SupportsManufactureActivity()
+    {
+        // Arrange - Manufacturing licence type
+        var licenceType = new LicenceType
+        {
+            LicenceTypeId = Guid.NewGuid(),
+            Name = "Manufacturing Licence",
+            IssuingAuthority = "IGJ",
+            PermittedActivities = LicenceTypes.PermittedActivity.Possess |
+                                  LicenceTypes.PermittedActivity.Store |
+                                  LicenceTypes.PermittedActivity.Manufacture
+        };
+
+        // Assert
+        Assert.True(licenceType.PermittedActivities.HasFlag(LicenceTypes.PermittedActivity.Manufacture));
+        Assert.False(licenceType.PermittedActivities.HasFlag(LicenceTypes.PermittedActivity.Import));
+        Assert.False(licenceType.PermittedActivities.HasFlag(LicenceTypes.PermittedActivity.Export));
+    }
+
+    [Fact]
+    public void PermittedActivity_PrecursorRegistration_SupportsHandlePrecursors()
+    {
+        // Arrange - Precursor registration per EU Regulation 273/2004
+        var licenceType = new LicenceType
+        {
+            LicenceTypeId = Guid.NewGuid(),
+            Name = "Precursor Registration",
+            IssuingAuthority = "Farmatec/CIBG",
+            PermittedActivities = LicenceTypes.PermittedActivity.Possess |
+                                  LicenceTypes.PermittedActivity.Store |
+                                  LicenceTypes.PermittedActivity.HandlePrecursors
+        };
+
+        // Assert
+        Assert.True(licenceType.PermittedActivities.HasFlag(LicenceTypes.PermittedActivity.HandlePrecursors));
+        Assert.False(licenceType.PermittedActivities.HasFlag(LicenceTypes.PermittedActivity.Distribute));
+    }
+
+    [Fact]
+    public void PermittedActivity_CanConvertToAndFromInteger()
+    {
+        // Arrange - Combined activities
+        var activities = LicenceTypes.PermittedActivity.Possess |
+                        LicenceTypes.PermittedActivity.Store |
+                        LicenceTypes.PermittedActivity.Distribute;
+
+        // Act - Convert to int (for API/database storage)
+        var intValue = (int)activities;
+
+        // Convert back to enum
+        var reconvertedActivities = (LicenceTypes.PermittedActivity)intValue;
+
+        // Assert
+        Assert.Equal(activities, reconvertedActivities);
+        Assert.True(reconvertedActivities.HasFlag(LicenceTypes.PermittedActivity.Possess));
+        Assert.True(reconvertedActivities.HasFlag(LicenceTypes.PermittedActivity.Store));
+        Assert.True(reconvertedActivities.HasFlag(LicenceTypes.PermittedActivity.Distribute));
+    }
+
+    [Fact]
+    public void PermittedActivity_AllFR002Activities_CanBeCombined()
+    {
+        // Arrange - All 7 FR-002 activities combined
+        var allActivities = LicenceTypes.PermittedActivity.Possess |
+                           LicenceTypes.PermittedActivity.Store |
+                           LicenceTypes.PermittedActivity.Distribute |
+                           LicenceTypes.PermittedActivity.Import |
+                           LicenceTypes.PermittedActivity.Export |
+                           LicenceTypes.PermittedActivity.Manufacture |
+                           LicenceTypes.PermittedActivity.HandlePrecursors;
+
+        // Act
+        var licenceType = new LicenceType
+        {
+            LicenceTypeId = Guid.NewGuid(),
+            Name = "Comprehensive Licence",
+            IssuingAuthority = "IGJ",
+            PermittedActivities = allActivities
+        };
+
+        // Assert - All 7 activities present
+        Assert.True(licenceType.PermittedActivities.HasFlag(LicenceTypes.PermittedActivity.Possess));
+        Assert.True(licenceType.PermittedActivities.HasFlag(LicenceTypes.PermittedActivity.Store));
+        Assert.True(licenceType.PermittedActivities.HasFlag(LicenceTypes.PermittedActivity.Distribute));
+        Assert.True(licenceType.PermittedActivities.HasFlag(LicenceTypes.PermittedActivity.Import));
+        Assert.True(licenceType.PermittedActivities.HasFlag(LicenceTypes.PermittedActivity.Export));
+        Assert.True(licenceType.PermittedActivities.HasFlag(LicenceTypes.PermittedActivity.Manufacture));
+        Assert.True(licenceType.PermittedActivities.HasFlag(LicenceTypes.PermittedActivity.HandlePrecursors));
+
+        // Validate the combined value (sum of all powers of 2 from 1 to 64)
+        Assert.Equal(127, (int)allActivities);
+    }
+
+    #endregion
 }

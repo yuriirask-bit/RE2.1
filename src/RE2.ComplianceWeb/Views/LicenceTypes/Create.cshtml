@@ -1,0 +1,116 @@
+@model RE2.ComplianceWeb.Controllers.LicenceTypeCreateViewModel
+@{
+    ViewData["Title"] = "Create Licence Type";
+}
+
+<div class="container">
+    <h1>Create Licence Type</h1>
+
+    <div asp-validation-summary="All" class="alert alert-danger" style="display:none;"></div>
+
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label asp-for="Name" class="form-label">Name *</label>
+                    <input asp-for="Name" class="form-control" required placeholder="e.g., Wholesale Licence (WDA)" />
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                    <small class="text-muted">Unique name for this licence type</small>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="IssuingAuthority" class="form-label">Issuing Authority *</label>
+                    <input asp-for="IssuingAuthority" class="form-control" required placeholder="e.g., IGJ, Farmatec, CBG-MEB" />
+                    <span asp-validation-for="IssuingAuthority" class="text-danger"></span>
+                    <small class="text-muted">Authority that issues this type of licence</small>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="TypicalValidityMonths" class="form-label">Typical Validity (Months)</label>
+                    <input asp-for="TypicalValidityMonths" type="number" class="form-control" min="1" placeholder="Leave empty for permanent licences" />
+                    <span asp-validation-for="TypicalValidityMonths" class="text-danger"></span>
+                    <small class="text-muted">Standard validity period in months (leave empty for permanent licences)</small>
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input asp-for="IsActive" class="form-check-input" type="checkbox" checked />
+                        <label asp-for="IsActive" class="form-check-label">Active</label>
+                    </div>
+                    <small class="text-muted">Inactive licence types cannot be assigned to new licences</small>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label asp-for="PermittedActivities" class="form-label">Permitted Activities *</label>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input activity-check" id="activityPossess" value="1" />
+                        <label class="form-check-label" for="activityPossess">Possess</label>
+                        <small class="text-muted d-block">Hold controlled substances in custody</small>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input activity-check" id="activityStore" value="2" />
+                        <label class="form-check-label" for="activityStore">Store</label>
+                        <small class="text-muted d-block">Store controlled substances in approved facilities</small>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input activity-check" id="activityDistribute" value="4" />
+                        <label class="form-check-label" for="activityDistribute">Distribute</label>
+                        <small class="text-muted d-block">Distribute controlled substances to authorized parties</small>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input activity-check" id="activityImport" value="8" />
+                        <label class="form-check-label" for="activityImport">Import</label>
+                        <small class="text-muted d-block">Import controlled substances from other countries</small>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input activity-check" id="activityExport" value="16" />
+                        <label class="form-check-label" for="activityExport">Export</label>
+                        <small class="text-muted d-block">Export controlled substances to other countries</small>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input activity-check" id="activityManufacture" value="32" />
+                        <label class="form-check-label" for="activityManufacture">Manufacture</label>
+                        <small class="text-muted d-block">Produce or compound controlled substances</small>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input activity-check" id="activityPrecursors" value="64" />
+                        <label class="form-check-label" for="activityPrecursors">Handle Precursors</label>
+                        <small class="text-muted d-block">Handle chemical precursors for controlled substance production</small>
+                    </div>
+                    <input type="hidden" asp-for="PermittedActivities" id="permittedActivitiesValue" />
+                    <span asp-validation-for="PermittedActivities" class="text-danger"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+            <button type="submit" class="btn btn-primary">Create Licence Type</button>
+            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Calculate permitted activities from checkboxes
+        document.querySelectorAll('.activity-check').forEach(checkbox => {
+            checkbox.addEventListener('change', updatePermittedActivities);
+        });
+
+        function updatePermittedActivities() {
+            let value = 0;
+            document.querySelectorAll('.activity-check:checked').forEach(checkbox => {
+                value += parseInt(checkbox.value);
+            });
+            document.getElementById('permittedActivitiesValue').value = value;
+        }
+
+        // Initialize on page load
+        updatePermittedActivities();
+    </script>
+}

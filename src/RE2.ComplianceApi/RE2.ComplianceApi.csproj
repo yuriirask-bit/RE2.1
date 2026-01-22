@@ -1,15 +1,24 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <ItemGroup>
-    <ProjectReference Include="..\RE2.ComplianceCore\RE2.ComplianceCore.csproj" />
-    <ProjectReference Include="..\RE2.DataAccess\RE2.DataAccess.csproj" />
-    <ProjectReference Include="..\RE2.Shared\RE2.Shared.csproj" />
-  </ItemGroup>
-
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Asp.Versioning.Mvc" Version="8.0.0" />
+    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.0.0" />
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Identity.Web" Version="2.16.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RE2.ComplianceCore\RE2.ComplianceCore.csproj" />
+    <ProjectReference Include="..\RE2.DataAccess\RE2.DataAccess.csproj" />
+    <ProjectReference Include="..\RE2.Shared\RE2.Shared.csproj" />
+  </ItemGroup>
 
 </Project>

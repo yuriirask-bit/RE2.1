@@ -1,0 +1,137 @@
+@model RE2.ComplianceCore.Models.LicenceType
+@{
+    ViewData["Title"] = "Licence Type Details";
+}
+
+<div class="container">
+    <h1>Licence Type Details</h1>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                @Model.Name
+                @if (Model.IsActive)
+                {
+                    <span class="badge bg-success float-end">Active</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary float-end">Inactive</span>
+                }
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <dl class="row">
+                        <dt class="col-sm-5">Licence Type ID</dt>
+                        <dd class="col-sm-7"><code>@Model.LicenceTypeId</code></dd>
+
+                        <dt class="col-sm-5">Name</dt>
+                        <dd class="col-sm-7">@Model.Name</dd>
+
+                        <dt class="col-sm-5">Issuing Authority</dt>
+                        <dd class="col-sm-7">@Model.IssuingAuthority</dd>
+
+                        <dt class="col-sm-5">Typical Validity</dt>
+                        <dd class="col-sm-7">
+                            @if (Model.TypicalValidityMonths.HasValue)
+                            {
+                                @Model.TypicalValidityMonths @:months
+                            }
+                            else
+                            {
+                                <span class="text-muted">Permanent (no expiry)</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-5">Status</dt>
+                        <dd class="col-sm-7">
+                            @if (Model.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactive</span>
+                            }
+                        </dd>
+                    </dl>
+                </div>
+                <div class="col-md-6">
+                    <h6>Permitted Activities</h6>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        @if (Model.PermittedActivities.HasFlag(RE2.Shared.Constants.LicenceTypes.PermittedActivity.Possess))
+                        {
+                            <span class="badge bg-primary">Possess</span>
+                        }
+                        @if (Model.PermittedActivities.HasFlag(RE2.Shared.Constants.LicenceTypes.PermittedActivity.Store))
+                        {
+                            <span class="badge bg-primary">Store</span>
+                        }
+                        @if (Model.PermittedActivities.HasFlag(RE2.Shared.Constants.LicenceTypes.PermittedActivity.Distribute))
+                        {
+                            <span class="badge bg-primary">Distribute</span>
+                        }
+                        @if (Model.PermittedActivities.HasFlag(RE2.Shared.Constants.LicenceTypes.PermittedActivity.Import))
+                        {
+                            <span class="badge bg-primary">Import</span>
+                        }
+                        @if (Model.PermittedActivities.HasFlag(RE2.Shared.Constants.LicenceTypes.PermittedActivity.Export))
+                        {
+                            <span class="badge bg-primary">Export</span>
+                        }
+                        @if (Model.PermittedActivities.HasFlag(RE2.Shared.Constants.LicenceTypes.PermittedActivity.Manufacture))
+                        {
+                            <span class="badge bg-primary">Manufacture</span>
+                        }
+                        @if (Model.PermittedActivities.HasFlag(RE2.Shared.Constants.LicenceTypes.PermittedActivity.HandlePrecursors))
+                        {
+                            <span class="badge bg-primary">Handle Precursors</span>
+                        }
+                        @if (Model.PermittedActivities == RE2.Shared.Constants.LicenceTypes.PermittedActivity.None)
+                        {
+                            <span class="text-muted">None specified</span>
+                        }
+                    </div>
+
+                    <h6>Activity Descriptions</h6>
+                    <ul class="list-unstyled small text-muted">
+                        @if (Model.PermittedActivities.HasFlag(RE2.Shared.Constants.LicenceTypes.PermittedActivity.Possess))
+                        {
+                            <li><strong>Possess:</strong> Hold controlled substances in custody</li>
+                        }
+                        @if (Model.PermittedActivities.HasFlag(RE2.Shared.Constants.LicenceTypes.PermittedActivity.Store))
+                        {
+                            <li><strong>Store:</strong> Store controlled substances in approved facilities</li>
+                        }
+                        @if (Model.PermittedActivities.HasFlag(RE2.Shared.Constants.LicenceTypes.PermittedActivity.Distribute))
+                        {
+                            <li><strong>Distribute:</strong> Distribute controlled substances to authorized parties</li>
+                        }
+                        @if (Model.PermittedActivities.HasFlag(RE2.Shared.Constants.LicenceTypes.PermittedActivity.Import))
+                        {
+                            <li><strong>Import:</strong> Import controlled substances from other countries</li>
+                        }
+                        @if (Model.PermittedActivities.HasFlag(RE2.Shared.Constants.LicenceTypes.PermittedActivity.Export))
+                        {
+                            <li><strong>Export:</strong> Export controlled substances to other countries</li>
+                        }
+                        @if (Model.PermittedActivities.HasFlag(RE2.Shared.Constants.LicenceTypes.PermittedActivity.Manufacture))
+                        {
+                            <li><strong>Manufacture:</strong> Produce or compound controlled substances</li>
+                        }
+                        @if (Model.PermittedActivities.HasFlag(RE2.Shared.Constants.LicenceTypes.PermittedActivity.HandlePrecursors))
+                        {
+                            <li><strong>Handle Precursors:</strong> Handle chemical precursors for controlled substance production</li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a asp-action="Edit" asp-route-id="@Model.LicenceTypeId" class="btn btn-primary">Edit</a>
+            <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+        </div>
+    </div>
+</div>

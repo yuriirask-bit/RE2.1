@@ -1,3 +1,4 @@
+@model RE2.ComplianceWeb.Controllers.LicenceCreateViewModel
 @{
     ViewData["Title"] = "Create Licence";
 }
@@ -5,43 +6,126 @@
 <div class="container">
     <h1>Create New Licence</h1>
 
-    <form method="post" action="/Licences/Create">
-        <div class="mb-3">
-            <label for="licenceNumber" class="form-label">Licence Number</label>
-            <input type="text" class="form-control" id="licenceNumber" name="licenceNumber" required>
-        </div>
+    <div asp-validation-summary="All" class="alert alert-danger" style="display:none;"></div>
 
-        <div class="mb-3">
-            <label for="licenceType" class="form-label">Licence Type</label>
-            <select class="form-select" id="licenceType" name="licenceType" required>
-                <option value="">Select type...</option>
-                <option value="WholesaleLicence">Wholesale Licence</option>
-                <option value="OpiumActExemption">Opium Act Exemption</option>
-                <option value="ImportPermit">Import Permit</option>
-                <option value="ExportPermit">Export Permit</option>
-            </select>
-        </div>
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
 
-        <div class="mb-3">
-            <label for="issueDate" class="form-label">Issue Date</label>
-            <input type="date" class="form-control" id="issueDate" name="issueDate" required>
-        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label asp-for="LicenceNumber" class="form-label">Licence Number *</label>
+                    <input asp-for="LicenceNumber" class="form-control" required />
+                    <span asp-validation-for="LicenceNumber" class="text-danger"></span>
+                </div>
 
-        <div class="mb-3">
-            <label for="expiryDate" class="form-label">Expiry Date</label>
-            <input type="date" class="form-control" id="expiryDate" name="expiryDate" required>
-        </div>
+                <div class="mb-3">
+                    <label asp-for="LicenceTypeId" class="form-label">Licence Type *</label>
+                    <select asp-for="LicenceTypeId" class="form-select" asp-items="@ViewBag.LicenceTypes" required>
+                        <option value="">Select type...</option>
+                    </select>
+                    <span asp-validation-for="LicenceTypeId" class="text-danger"></span>
+                </div>
 
-        <div class="mb-3">
-            <label for="scope" class="form-label">Scope</label>
-            <textarea class="form-control" id="scope" name="scope" rows="3"></textarea>
+                <div class="mb-3">
+                    <label asp-for="HolderType" class="form-label">Holder Type *</label>
+                    <select asp-for="HolderType" class="form-select" required>
+                        <option value="Company">Company</option>
+                        <option value="Customer">Customer</option>
+                    </select>
+                    <span asp-validation-for="HolderType" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="HolderId" class="form-label">Holder ID *</label>
+                    <input asp-for="HolderId" class="form-control" required />
+                    <span asp-validation-for="HolderId" class="text-danger"></span>
+                    <small class="text-muted">Enter the GUID of the company or customer.</small>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label asp-for="IssuingAuthority" class="form-label">Issuing Authority *</label>
+                    <input asp-for="IssuingAuthority" class="form-control" required />
+                    <span asp-validation-for="IssuingAuthority" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="IssueDate" class="form-label">Issue Date *</label>
+                    <input asp-for="IssueDate" type="date" class="form-control" required />
+                    <span asp-validation-for="IssueDate" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="ExpiryDate" class="form-label">Expiry Date</label>
+                    <input asp-for="ExpiryDate" type="date" class="form-control" />
+                    <span asp-validation-for="ExpiryDate" class="text-danger"></span>
+                    <small class="text-muted">Leave empty for licences without expiry.</small>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Scope" class="form-label">Scope</label>
+                    <textarea asp-for="Scope" class="form-control" rows="3"></textarea>
+                    <span asp-validation-for="Scope" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="PermittedActivities" class="form-label">Permitted Activities</label>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input activity-check" id="activityPossess" value="1" />
+                        <label class="form-check-label" for="activityPossess">Possess</label>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input activity-check" id="activityStore" value="2" />
+                        <label class="form-check-label" for="activityStore">Store</label>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input activity-check" id="activityDistribute" value="4" />
+                        <label class="form-check-label" for="activityDistribute">Distribute</label>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input activity-check" id="activityImport" value="8" />
+                        <label class="form-check-label" for="activityImport">Import</label>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input activity-check" id="activityExport" value="16" />
+                        <label class="form-check-label" for="activityExport">Export</label>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input activity-check" id="activityManufacture" value="32" />
+                        <label class="form-check-label" for="activityManufacture">Manufacture</label>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input activity-check" id="activityPrecursors" value="64" />
+                        <label class="form-check-label" for="activityPrecursors">Handle Precursors</label>
+                    </div>
+                    <input type="hidden" asp-for="PermittedActivities" id="permittedActivitiesValue" />
+                </div>
+            </div>
         </div>
 
         <div class="d-grid gap-2 d-md-flex justify-content-md-start">
             <button type="submit" class="btn btn-primary">Create Licence</button>
-            <a href="/Licences" class="btn btn-secondary">Cancel</a>
+            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
         </div>
     </form>
-
-    <p class="mt-3 text-muted"><em>Form submission to be implemented (T076)</em></p>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Calculate permitted activities from checkboxes
+        document.querySelectorAll('.activity-check').forEach(checkbox => {
+            checkbox.addEventListener('change', updatePermittedActivities);
+        });
+
+        function updatePermittedActivities() {
+            let value = 0;
+            document.querySelectorAll('.activity-check:checked').forEach(checkbox => {
+                value += parseInt(checkbox.value);
+            });
+            document.getElementById('permittedActivitiesValue').value = value;
+        }
+    </script>
+}

@@ -1,87 +1,127 @@
 using Asp.Versioning;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Identity.Web;
 using Microsoft.OpenApi.Models;
+using RE2.ComplianceApi.Authentication;
 using RE2.ComplianceApi.Middleware;
 using RE2.DataAccess.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// T021-T023: Configure Azure AD authentication with multiple schemes (internal and external users)
-// Per research.md section 6: Stateless JWT authentication with Azure AD + Azure AD B2C
+// Check if we're using in-memory mode (local development without Azure AD)
+var useInMemory = builder.Configuration.GetValue<bool>("UseInMemoryRepositories");
 
-// Scheme 1: Azure AD for internal users (employees)
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddMicrosoftIdentityWebApi(
-        options =>
-        {
-            builder.Configuration.Bind("AzureAd", options);
-            options.TokenValidationParameters.ValidAudiences = new[]
-            {
-                builder.Configuration["AzureAd:ClientId"]!,
-                $"api://{builder.Configuration["AzureAd:ClientId"]}"
-            };
-            options.TokenValidationParameters.NameClaimType = "name";
-            options.TokenValidationParameters.RoleClaimType = "roles";
-        },
-        options =>
-        {
-            builder.Configuration.Bind("AzureAd", options);
-        },
-        jwtBearerScheme: "AzureAd");
-
-// Scheme 2: Azure AD B2C for external users (customers, contractors)
-builder.Services.AddAuthentication()
-    .AddMicrosoftIdentityWebApi(
-        options =>
-        {
-            builder.Configuration.Bind("AzureAdB2C", options);
-            options.TokenValidationParameters.NameClaimType = "name";
-            options.TokenValidationParameters.ValidIssuers = new[]
-            {
-                $"https://{builder.Configuration["AzureAdB2C:Domain"]}/{builder.Configuration["AzureAdB2C:TenantId"]}/v2.0/"
-            };
-        },
-        options =>
-        {
-            builder.Configuration.Bind("AzureAdB2C", options);
-        },
-        jwtBearerScheme: "AzureAdB2C");
-
-// T024: Configure authorization policies
-builder.Services.AddAuthorization(options =>
+if (useInMemory && builder.Environment.IsDevelopment())
 {
-    // Policy for internal users only (employees via Azure AD)
-    options.AddPolicy("InternalUsers", policy =>
-        policy.RequireAuthenticatedUser()
-              .AddAuthenticationSchemes("AzureAd"));
+    // Development mode: Use auto-authenticating handler (no Azure AD required)
+    builder.Services.AddAuthentication(DevelopmentAuthHandler.SchemeName)
+        .AddScheme<AuthenticationSchemeOptions, DevelopmentAuthHandler>(
+            DevelopmentAuthHandler.SchemeName, _ => { });
 
-    // Policy for external users only (customers via Azure AD B2C)
-    options.AddPolicy("ExternalUsers", policy =>
-        policy.RequireAuthenticatedUser()
-              .AddAuthenticationSchemes("AzureAdB2C"));
+    // Simple authorization that accepts the development scheme
+    builder.Services.AddAuthorization(options =>
+    {
+        options.AddPolicy("InternalUsers", policy =>
+            policy.RequireAuthenticatedUser());
+        options.AddPolicy("ExternalUsers", policy =>
+            policy.RequireAuthenticatedUser());
+        options.AddPolicy("AnyUser", policy =>
+            policy.RequireAuthenticatedUser());
+        options.AddPolicy("ComplianceManager", policy =>
+            policy.RequireRole("ComplianceManager"));
+        options.AddPolicy("QAUser", policy =>
+            policy.RequireRole("QAUser", "ComplianceManager"));
+        options.AddPolicy("SalesAdmin", policy =>
+            policy.RequireRole("SalesAdmin", "ComplianceManager"));
+    });
+}
+else
+{
+    // T021-T023: Configure Azure AD authentication with multiple schemes (internal and external users)
+    // Per research.md section 6: Stateless JWT authentication with Azure AD + Azure AD B2C
 
-    // Policy for any authenticated user (internal or external)
-    options.AddPolicy("AnyUser", policy =>
-        policy.RequireAuthenticatedUser()
-              .AddAuthenticationSchemes("AzureAd", "AzureAdB2C"));
+    // Scheme 1: Azure AD for internal users (employees)
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddMicrosoftIdentityWebApi(
+            options =>
+            {
+                builder.Configuration.Bind("AzureAd", options);
+                options.TokenValidationParameters.ValidAudiences = new[]
+                {
+                    builder.Configuration["AzureAd:ClientId"]!,
+                    $"api://{builder.Configuration["AzureAd:ClientId"]}"
+                };
+                options.TokenValidationParameters.NameClaimType = "name";
+                options.TokenValidationParameters.RoleClaimType = "roles";
+            },
+            options =>
+            {
+                builder.Configuration.Bind("AzureAd", options);
+            },
+            jwtBearerScheme: "AzureAd");
 
-    // Role-based policies (per data-model.md entity 28 User roles)
-    options.AddPolicy("ComplianceManager", policy =>
-        policy.RequireRole("ComplianceManager")
-              .AddAuthenticationSchemes("AzureAd")); // Only internal users
+    // Scheme 2: Azure AD B2C for external users (customers, contractors)
+    builder.Services.AddAuthentication()
+        .AddMicrosoftIdentityWebApi(
+            options =>
+            {
+                builder.Configuration.Bind("AzureAdB2C", options);
+                options.TokenValidationParameters.NameClaimType = "name";
+                options.TokenValidationParameters.ValidIssuers = new[]
+                {
+                    $"https://{builder.Configuration["AzureAdB2C:Domain"]}/{builder.Configuration["AzureAdB2C:TenantId"]}/v2.0/"
+                };
+            },
+            options =>
+            {
+                builder.Configuration.Bind("AzureAdB2C", options);
+            },
+            jwtBearerScheme: "AzureAdB2C");
 
-    options.AddPolicy("QAUser", policy =>
-        policy.RequireRole("QAUser", "ComplianceManager")
-              .AddAuthenticationSchemes("AzureAd"));
+    // T024: Configure authorization policies
+    builder.Services.AddAuthorization(options =>
+    {
+        // Policy for internal users only (employees via Azure AD)
+        options.AddPolicy("InternalUsers", policy =>
+            policy.RequireAuthenticatedUser()
+                  .AddAuthenticationSchemes("AzureAd"));
 
-    options.AddPolicy("SalesAdmin", policy =>
-        policy.RequireRole("SalesAdmin", "ComplianceManager")
-              .AddAuthenticationSchemes("AzureAd"));
-});
+        // Policy for external users only (customers via Azure AD B2C)
+        options.AddPolicy("ExternalUsers", policy =>
+            policy.RequireAuthenticatedUser()
+                  .AddAuthenticationSchemes("AzureAdB2C"));
 
-// T038: Register external system integration services (Dataverse, D365 F&O, Blob Storage)
-builder.Services.AddExternalSystemIntegration(builder.Configuration);
+        // Policy for any authenticated user (internal or external)
+        options.AddPolicy("AnyUser", policy =>
+            policy.RequireAuthenticatedUser()
+                  .AddAuthenticationSchemes("AzureAd", "AzureAdB2C"));
+
+        // Role-based policies (per data-model.md entity 28 User roles)
+        options.AddPolicy("ComplianceManager", policy =>
+            policy.RequireRole("ComplianceManager")
+                  .AddAuthenticationSchemes("AzureAd")); // Only internal users
+
+        options.AddPolicy("QAUser", policy =>
+            policy.RequireRole("QAUser", "ComplianceManager")
+                  .AddAuthenticationSchemes("AzureAd"));
+
+        options.AddPolicy("SalesAdmin", policy =>
+            policy.RequireRole("SalesAdmin", "ComplianceManager")
+                  .AddAuthenticationSchemes("AzureAd"));
+    });
+}
+
+// T038: Register data services (uses in-memory for local dev, Dataverse for production)
+// Set "UseInMemoryRepositories": true in appsettings.Development.json to test locally
+builder.Services.AddComplianceDataServices(builder.Configuration);
+
+// Only add D365 F&O and Blob Storage when not using in-memory mode
+if (!builder.Configuration.GetValue<bool>("UseInMemoryRepositories"))
+{
+    builder.Services.AddD365FOServices(builder.Configuration);
+    builder.Services.AddBlobStorageServices(builder.Configuration);
+}
 
 // T041: Configure API versioning per research.md section 5 (URL path versioning)
 builder.Services.AddApiVersioning(options =>

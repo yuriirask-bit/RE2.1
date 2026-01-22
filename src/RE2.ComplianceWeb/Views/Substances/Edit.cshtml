@@ -1,0 +1,139 @@
+@model RE2.ComplianceWeb.Controllers.SubstanceEditViewModel
+@using RE2.Shared.Constants
+@{
+    ViewData["Title"] = "Edit Substance";
+}
+
+<div class="container">
+    <h1>Edit Controlled Substance</h1>
+    <p class="text-muted">Modify substance details in the master list</p>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Substance Details</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="SubstanceId" />
+                        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="SubstanceName" class="form-label">Substance Name <span class="text-danger">*</span></label>
+                                <input asp-for="SubstanceName" class="form-control" />
+                                <span asp-validation-for="SubstanceName" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="InternalCode" class="form-label">Internal Code <span class="text-danger">*</span></label>
+                                <input asp-for="InternalCode" class="form-control" />
+                                <span asp-validation-for="InternalCode" class="text-danger"></span>
+                                <small class="form-text text-muted">Must be unique across all substances</small>
+                            </div>
+                        </div>
+
+                        <hr class="my-4"/>
+
+                        <h6 class="text-muted">Classification</h6>
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <strong>Note:</strong> For significant classification changes (e.g., List II to List I),
+                            use the <a asp-controller="Reclassifications" asp-action="Create">Reclassification Workflow</a>
+                            to properly track affected customers per FR-066.
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="OpiumActList" class="form-label">Opium Act List</label>
+                                <select asp-for="OpiumActList" class="form-select">
+                                    <option value="@SubstanceCategories.OpiumActList.None">None (Not Opium Act controlled)</option>
+                                    <option value="@SubstanceCategories.OpiumActList.ListI">List I - Hard Drugs (Strictest)</option>
+                                    <option value="@SubstanceCategories.OpiumActList.ListII">List II - Therapeutic Substances</option>
+                                </select>
+                                <span asp-validation-for="OpiumActList" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="PrecursorCategory" class="form-label">Precursor Category</label>
+                                <select asp-for="PrecursorCategory" class="form-select">
+                                    <option value="@SubstanceCategories.PrecursorCategory.None">None (Not a precursor)</option>
+                                    <option value="@SubstanceCategories.PrecursorCategory.Category1">Category 1 - Strictest</option>
+                                    <option value="@SubstanceCategories.PrecursorCategory.Category2">Category 2</option>
+                                    <option value="@SubstanceCategories.PrecursorCategory.Category3">Category 3</option>
+                                </select>
+                                <span asp-validation-for="PrecursorCategory" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ClassificationEffectiveDate" class="form-label">Classification Effective Date</label>
+                            <input asp-for="ClassificationEffectiveDate" type="date" class="form-control" />
+                            <span asp-validation-for="ClassificationEffectiveDate" class="text-danger"></span>
+                        </div>
+
+                        <hr class="my-4"/>
+
+                        <div class="mb-3">
+                            <label asp-for="RegulatoryRestrictions" class="form-label">Regulatory Restrictions</label>
+                            <textarea asp-for="RegulatoryRestrictions" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="RegulatoryRestrictions" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+                                <label asp-for="IsActive" class="form-check-label">Active</label>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Index" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card bg-light mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">Audit Information</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small mb-1"><strong>Created:</strong></p>
+                    <p class="small">@Model.CreatedDate.ToString("yyyy-MM-dd HH:mm")</p>
+                    <p class="small mb-1"><strong>Last Modified:</strong></p>
+                    <p class="small mb-0">@Model.ModifiedDate.ToString("yyyy-MM-dd HH:mm")</p>
+                </div>
+            </div>
+
+            <div class="card bg-light">
+                <div class="card-header">
+                    <h6 class="mb-0">Classification Guide</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small"><strong>Opium Act Lists (Dutch):</strong></p>
+                    <ul class="small">
+                        <li><strong>List I:</strong> Hard drugs</li>
+                        <li><strong>List II:</strong> Therapeutic</li>
+                    </ul>
+                    <p class="small"><strong>EU Precursor Categories:</strong></p>
+                    <ul class="small mb-0">
+                        <li><strong>Category 1:</strong> Strictest</li>
+                        <li><strong>Category 2-3:</strong> Less strict</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

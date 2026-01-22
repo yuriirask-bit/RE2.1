@@ -1,0 +1,194 @@
+@model RE2.ComplianceWeb.Controllers.ReclassificationProcessViewModel
+@using RE2.Shared.Constants
+@{
+    ViewData["Title"] = "Process Reclassification";
+    var r = Model.Reclassification;
+    var analysis = Model.ImpactAnalysis;
+}
+
+<div class="container">
+    <h1>Process Reclassification</h1>
+    <p class="text-muted">Review impact analysis and confirm processing</p>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Confirm Reclassification Processing</h5>
+                </div>
+                <div class="card-body">
+                    <p>You are about to process the following reclassification:</p>
+
+                    <dl class="row">
+                        <dt class="col-sm-4">Substance</dt>
+                        <dd class="col-sm-8"><strong>@(r.Substance?.SubstanceName ?? "Unknown")</strong></dd>
+
+                        <dt class="col-sm-4">Classification Change</dt>
+                        <dd class="col-sm-8">
+                            <div class="d-flex align-items-center gap-2">
+                                <div>
+                                    @if (r.PreviousOpiumActList != SubstanceCategories.OpiumActList.None)
+                                    {
+                                        <span class="badge bg-secondary">@r.PreviousOpiumActList</span>
+                                    }
+                                    @if (r.PreviousPrecursorCategory != SubstanceCategories.PrecursorCategory.None)
+                                    {
+                                        <span class="badge bg-secondary">@r.PreviousPrecursorCategory</span>
+                                    }
+                                </div>
+                                <i class="bi bi-arrow-right"></i>
+                                <div>
+                                    @if (r.NewOpiumActList != SubstanceCategories.OpiumActList.None)
+                                    {
+                                        <span class="badge bg-warning text-dark">@r.NewOpiumActList</span>
+                                    }
+                                    @if (r.NewPrecursorCategory != SubstanceCategories.PrecursorCategory.None)
+                                    {
+                                        <span class="badge bg-warning text-dark">@r.NewPrecursorCategory</span>
+                                    }
+                                </div>
+                            </div>
+                        </dd>
+
+                        <dt class="col-sm-4">Effective Date</dt>
+                        <dd class="col-sm-8">@r.EffectiveDate.ToString("yyyy-MM-dd")</dd>
+
+                        <dt class="col-sm-4">Regulatory Reference</dt>
+                        <dd class="col-sm-8">@r.RegulatoryReference</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Impact Analysis Preview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center mb-4">
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h3 class="text-primary">@analysis.TotalAffectedCustomers</h3>
+                                    <p class="mb-0 text-muted">Total Affected</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h3 class="text-success">@analysis.CustomersWithSufficientLicences</h3>
+                                    <p class="mb-0 text-muted">Have Sufficient Licences</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h3 class="text-danger">@analysis.CustomersFlaggedForReQualification</h3>
+                                    <p class="mb-0 text-muted">Will Be Flagged</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (analysis.CustomersFlaggedForReQualification > 0)
+                    {
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <strong>Warning:</strong> @analysis.CustomersFlaggedForReQualification customer(s) will be blocked from
+                            transactions involving this substance until their licences are updated.
+                        </div>
+                    }
+
+                    @if (analysis.CustomerImpacts.Any())
+                    {
+                        <h6>Customer Impact Details</h6>
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Licence Status</th>
+                                    <th>Gap Summary</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var impact in analysis.CustomerImpacts)
+                                {
+                                    <tr class="@(impact.RequiresReQualification ? "table-warning" : "")">
+                                        <td>@(impact.CustomerName ?? impact.CustomerId.ToString()[..8] + "...")</td>
+                                        <td>
+                                            @if (impact.HasSufficientLicence)
+                                            {
+                                                <span class="badge bg-success">Sufficient</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">Insufficient</span>
+                                            }
+                                        </td>
+                                        <td class="small text-muted">@(impact.LicenceGapSummary ?? "No gaps identified")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No customers will be affected by this reclassification.</p>
+                    }
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <p class="mb-3">
+                        <strong>Processing this reclassification will:</strong>
+                    </p>
+                    <ul>
+                        <li>Update the substance classification to the new values</li>
+                        <li>Create customer impact records for affected customers</li>
+                        <li>Flag customers with insufficient licences for re-qualification</li>
+                        <li>Block flagged customers from transactions until re-qualified</li>
+                    </ul>
+
+                    <div class="d-flex justify-content-between">
+                        <a asp-action="Details" asp-route-id="@r.ReclassificationId" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                        <form asp-action="ProcessConfirm" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@r.ReclassificationId" />
+                            <button type="submit" class="btn btn-success btn-lg"
+                                    onclick="return confirm('Are you sure you want to process this reclassification? This action cannot be undone.');">
+                                <i class="bi bi-check-circle"></i> Confirm and Process
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card bg-light">
+                <div class="card-header">
+                    <h6 class="mb-0">Processing Information</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small">
+                        <strong>FR-066 Compliance:</strong>
+                    </p>
+                    <ul class="small">
+                        <li>Customers with insufficient licences will be blocked</li>
+                        <li>Compliance team will be notified</li>
+                        <li>Historical classification is preserved for auditing</li>
+                    </ul>
+                    <hr/>
+                    <p class="small text-muted mb-0">
+                        After processing, customers can be re-qualified once they
+                        have obtained the necessary licence updates.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

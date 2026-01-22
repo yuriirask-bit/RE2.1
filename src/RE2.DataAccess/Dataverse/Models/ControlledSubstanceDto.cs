@@ -18,6 +18,21 @@ public class ControlledSubstanceDto
     public string? phr_regulatoryrestrictions { get; set; }
     public bool phr_isactive { get; set; }
 
+    /// <summary>
+    /// T080c: When current classification became effective.
+    /// </summary>
+    public DateTime? phr_classificationeffectivedate { get; set; }
+
+    /// <summary>
+    /// Record creation timestamp.
+    /// </summary>
+    public DateTime phr_createdon { get; set; }
+
+    /// <summary>
+    /// Last modification timestamp.
+    /// </summary>
+    public DateTime phr_modifiedon { get; set; }
+
     public ControlledSubstance ToDomainModel()
     {
         return new ControlledSubstance
@@ -28,7 +43,12 @@ public class ControlledSubstanceDto
             PrecursorCategory = (SubstanceCategories.PrecursorCategory)(phr_precursorcategory ?? 0),
             InternalCode = phr_internalcode ?? string.Empty,
             RegulatoryRestrictions = phr_regulatoryrestrictions,
-            IsActive = phr_isactive
+            IsActive = phr_isactive,
+            ClassificationEffectiveDate = phr_classificationeffectivedate.HasValue
+                ? DateOnly.FromDateTime(phr_classificationeffectivedate.Value)
+                : null,
+            CreatedDate = phr_createdon,
+            ModifiedDate = phr_modifiedon
         };
     }
 
@@ -42,7 +62,10 @@ public class ControlledSubstanceDto
             phr_precursorcategory = (int)model.PrecursorCategory,
             phr_internalcode = model.InternalCode,
             phr_regulatoryrestrictions = model.RegulatoryRestrictions,
-            phr_isactive = model.IsActive
+            phr_isactive = model.IsActive,
+            phr_classificationeffectivedate = model.ClassificationEffectiveDate?.ToDateTime(TimeOnly.MinValue),
+            phr_createdon = model.CreatedDate,
+            phr_modifiedon = model.ModifiedDate
         };
     }
 }
