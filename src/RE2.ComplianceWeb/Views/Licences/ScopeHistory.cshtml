@@ -1,0 +1,235 @@
+@model IEnumerable<RE2.ComplianceCore.Models.LicenceScopeChange>
+@{
+    ViewData["Title"] = "Scope Change History";
+    var licenceId = (Guid)ViewBag.LicenceId;
+    var licenceNumber = (string)ViewBag.LicenceNumber;
+}
+
+<div class="container">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Licences</a></li>
+            <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@licenceId">@licenceNumber</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Scope History</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Scope Change History</h1>
+            <p class="text-muted mb-0">Track all scope modifications for licence <strong>@licenceNumber</strong> per FR-010.</p>
+        </div>
+        <a asp-action="RecordScopeChange" asp-route-id="@licenceId" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Record Scope Change
+        </a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+            <h5>No Scope Changes Recorded</h5>
+            <p class="mb-0">This licence has no recorded scope changes. Use the "Record Scope Change" button to document any modifications to the licence scope, covered substances, or permitted activities.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Change Timeline</h5>
+                    <span class="badge bg-secondary">@Model.Count() changes recorded</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    @foreach (var change in Model.OrderByDescending(c => c.EffectiveDate).ThenByDescending(c => c.RecordedDate))
+                    {
+                        var changeTypeClass = change.ChangeType switch
+                        {
+                            RE2.ComplianceCore.Models.ScopeChangeType.SubstancesAdded => "bg-success",
+                            RE2.ComplianceCore.Models.ScopeChangeType.SubstancesRemoved => "bg-danger",
+                            RE2.ComplianceCore.Models.ScopeChangeType.ActivitiesAdded => "bg-primary",
+                            RE2.ComplianceCore.Models.ScopeChangeType.ActivitiesRemoved => "bg-warning text-dark",
+                            RE2.ComplianceCore.Models.ScopeChangeType.GeographicChange => "bg-info",
+                            RE2.ComplianceCore.Models.ScopeChangeType.ConditionsModified => "bg-secondary",
+                            _ => "bg-secondary"
+                        };
+
+                        var changeTypeIcon = change.ChangeType switch
+                        {
+                            RE2.ComplianceCore.Models.ScopeChangeType.SubstancesAdded => "bi-plus-circle-fill",
+                            RE2.ComplianceCore.Models.ScopeChangeType.SubstancesRemoved => "bi-dash-circle-fill",
+                            RE2.ComplianceCore.Models.ScopeChangeType.ActivitiesAdded => "bi-check-circle-fill",
+                            RE2.ComplianceCore.Models.ScopeChangeType.ActivitiesRemoved => "bi-x-circle-fill",
+                            RE2.ComplianceCore.Models.ScopeChangeType.GeographicChange => "bi-arrows-expand",
+                            RE2.ComplianceCore.Models.ScopeChangeType.ConditionsModified => "bi-sliders",
+                            _ => "bi-circle-fill"
+                        };
+
+                        <div class="timeline-item mb-4">
+                            <div class="row">
+                                <div class="col-md-2 text-md-end">
+                                    <div class="fw-bold">@change.EffectiveDate.ToString("yyyy-MM-dd")</div>
+                                    <small class="text-muted">Effective Date</small>
+                                </div>
+                                <div class="col-md-1 text-center">
+                                    <div class="timeline-marker @changeTypeClass rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                        <i class="bi @changeTypeIcon text-white"></i>
+                                    </div>
+                                    <div class="timeline-line"></div>
+                                </div>
+                                <div class="col-md-9">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <span class="badge @changeTypeClass">@change.ChangeType</span>
+                                                <small class="text-muted">
+                                                    Recorded: @change.RecordedDate.ToString("yyyy-MM-dd HH:mm")
+                                                </small>
+                                            </div>
+
+                                            <p class="mb-2">@change.ChangeDescription</p>
+
+                                            @if (!string.IsNullOrEmpty(change.SubstancesAdded))
+                                            {
+                                                <div class="mb-2">
+                                                    <span class="text-success"><i class="bi bi-plus-circle me-1"></i>Substances Added:</span>
+                                                    <span class="ms-2">@change.SubstancesAdded</span>
+                                                </div>
+                                            }
+
+                                            @if (!string.IsNullOrEmpty(change.SubstancesRemoved))
+                                            {
+                                                <div class="mb-2">
+                                                    <span class="text-danger"><i class="bi bi-dash-circle me-1"></i>Substances Removed:</span>
+                                                    <span class="ms-2">@change.SubstancesRemoved</span>
+                                                </div>
+                                            }
+
+                                            @if (!string.IsNullOrEmpty(change.ActivitiesAdded))
+                                            {
+                                                <div class="mb-2">
+                                                    <span class="text-primary"><i class="bi bi-check-circle me-1"></i>Activities Added:</span>
+                                                    <span class="ms-2">@change.ActivitiesAdded</span>
+                                                </div>
+                                            }
+
+                                            @if (!string.IsNullOrEmpty(change.ActivitiesRemoved))
+                                            {
+                                                <div class="mb-2">
+                                                    <span class="text-warning"><i class="bi bi-x-circle me-1"></i>Activities Removed:</span>
+                                                    <span class="ms-2">@change.ActivitiesRemoved</span>
+                                                </div>
+                                            }
+
+                                            <hr />
+
+                                            <div class="row small text-muted">
+                                                <div class="col-md-6">
+                                                    <i class="bi bi-person me-1"></i>Recorded by: @(change.RecorderName ?? "Unknown")
+                                                </div>
+                                                <div class="col-md-6 text-md-end">
+                                                    @if (change.SupportingDocumentId.HasValue)
+                                                    {
+                                                        <a asp-action="DownloadDocument" asp-route-id="@licenceId" asp-route-documentId="@change.SupportingDocumentId" class="text-decoration-none">
+                                                            <i class="bi bi-paperclip me-1"></i>Supporting Document
+                                                        </a>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span><i class="bi bi-file-earmark me-1"></i>No document attached</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Scope Change Types</h6>
+                </div>
+                <div class="card-body small">
+                    <dl>
+                        <dt><span class="badge bg-success">Substance Added</span></dt>
+                        <dd>New controlled substances added to the licence coverage.</dd>
+
+                        <dt><span class="badge bg-danger">Substance Removed</span></dt>
+                        <dd>Controlled substances removed from the licence coverage.</dd>
+
+                        <dt><span class="badge bg-primary">Activity Added</span></dt>
+                        <dd>New permitted activities (e.g., import, export) added.</dd>
+
+                        <dt><span class="badge bg-warning text-dark">Activity Removed</span></dt>
+                        <dd>Permitted activities revoked or removed.</dd>
+
+                        <dt><span class="badge bg-info">Scope Expanded</span></dt>
+                        <dd>General expansion of licence scope (geographic, volume, etc.).</dd>
+
+                        <dt><span class="badge bg-secondary">Scope Reduced</span></dt>
+                        <dd>General reduction in licence scope or restrictions added.</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Compliance Notes</h6>
+                </div>
+                <div class="card-body small">
+                    <div class="alert alert-info mb-3">
+                        <strong>FR-010 Compliance:</strong> All scope changes must be recorded with effective dates to maintain accurate historical records for audit purposes.
+                    </div>
+                    <ul>
+                        <li>Record scope changes as soon as they are communicated by the authority</li>
+                        <li>Always include supporting documentation when available</li>
+                        <li>Effective date should match the authority's notification</li>
+                        <li>Transactions are validated against the scope effective at transaction time</li>
+                        <li>Scope changes cannot be deleted - only corrective entries can be added</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a asp-action="Details" asp-route-id="@licenceId" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Licence Details
+        </a>
+    </div>
+</div>
+
+<style>
+    .timeline-marker {
+        position: relative;
+        z-index: 1;
+    }
+
+    .timeline-line {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 2px;
+        height: calc(100% - 32px);
+        background-color: #dee2e6;
+        margin-top: 4px;
+    }
+
+    .timeline-item:last-child .timeline-line {
+        display: none;
+    }
+
+    .timeline-item .col-md-1 {
+        position: relative;
+    }
+</style>

@@ -99,6 +99,17 @@ Project uses multi-project .NET solution structure per plan.md:
 - [X] T046 Configure Application Insights telemetry in RE2.ComplianceApi and RE2.ComplianceFunctions
 - [X] T047 Create standardized error response DTOs in src/RE2.Shared/Models/ per transaction-validation-api.yaml ErrorResponse schema
 
+### Integration System Foundation (FR-061, data-model.md entity 27)
+
+- [X] T047a [P] Create IntegrationSystem domain model in src/RE2.ComplianceCore/Models/IntegrationSystem.cs per data-model.md entity 27
+- [X] T047b [P] Create IntegrationSystem DTO for Dataverse in src/RE2.DataAccess/D365FinanceOperations/Models/IntegrationSystemDto.cs
+- [X] T047c Create IIntegrationSystemRepository interface in src/RE2.ComplianceCore/Interfaces/IIntegrationSystemRepository.cs
+- [X] T047d Implement DataverseIntegrationSystemRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseIntegrationSystemRepository.cs
+- [X] T047e Create IntegrationSystemsController v1 in src/RE2.ComplianceApi/Controllers/V1/IntegrationSystemsController.cs for managing API client registrations per data-model.md entity 27
+- [X] T047f Configure authorization: only SystemAdmin role can manage integration system registrations
+
+**Note**: T256e (extend TransactionValidationController to record calling system identity) remains in Phase 6 User Story 4 as it depends on TransactionValidationController implementation.
+
 ### Shared Domain Foundation
 
 - [X] T048 [P] Create ErrorCodes constants in src/RE2.Shared/Constants/ErrorCodes.cs per FR-064 (LICENCE_EXPIRED, LICENCE_MISSING, etc.)
@@ -139,7 +150,7 @@ Project uses multi-project .NET solution structure per plan.md:
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
 - [X] T053 [P] [US1] Unit tests for LicenceType model in tests/RE2.ComplianceCore.Tests/Models/LicenceTypeTests.cs
-- [X] T054 [P] [US1] Unit tests for ControlledSubstance model in tests/RE2.ComplianceCore.Tests/Models/ControlledSubstanceTests.cs
+- [X] T054 [P] [US1] Unit tests for ControlledSubstance model in tests/RE2.ComplianceCore.Tests/Models/ControlledSubstanceTests.cs including validation rule: at least one of OpiumActList or PrecursorCategory must be specified (not both None) per data-model.md entity 3
 - [X] T055 [P] [US1] Unit tests for LicenceSubstanceMapping model in tests/RE2.ComplianceCore.Tests/Models/LicenceSubstanceMappingTests.cs
 - [X] T056 [P] [US1] Unit tests for Licence model in tests/RE2.ComplianceCore.Tests/Models/LicenceTests.cs
 - [X] T057 [US1] Contract tests for Dataverse LicenceType entity in tests/RE2.Contract.Tests/DataverseLicenceTypeContractTests.cs
@@ -235,18 +246,18 @@ Project uses multi-project .NET solution structure per plan.md:
 
 ### Tests for User Story 2 (TDD - Write First)
 
-- [ ] T081 [P] [US2] Unit tests for Customer model in tests/RE2.ComplianceCore.Tests/Models/CustomerTests.cs
-- [ ] T082 [P] [US2] Unit tests for QualificationReview model in tests/RE2.ComplianceCore.Tests/Models/QualificationReviewTests.cs
-- [ ] T083 [US2] Contract tests for Dataverse Customer entity in tests/RE2.Contract.Tests/DataverseCustomerContractTests.cs
-- [ ] T084 [US2] Integration tests for GET /api/v1/customers/{id}/compliance-status in tests/RE2.ComplianceApi.Tests/Controllers/V1/CustomersControllerTests.cs per transaction-validation-api.yaml
+- [X] T081 [P] [US2] Unit tests for Customer model in tests/RE2.ComplianceCore.Tests/Models/CustomerTests.cs
+- [X] T082 [P] [US2] Unit tests for QualificationReview model in tests/RE2.ComplianceCore.Tests/Models/QualificationReviewTests.cs
+- [X] T083 [US2] Contract tests for Dataverse Customer entity in tests/RE2.Contract.Tests/DataverseCustomerContractTests.cs
+- [X] T084 [US2] Integration tests for GET /api/v1/customers/{id}/compliance-status in tests/RE2.ComplianceApi.Tests/Controllers/V1/CustomersControllerTests.cs per transaction-validation-api.yaml
 
 ### Implementation for User Story 2
 
-- [ ] T085 [P] [US2] Create Customer domain model in src/RE2.ComplianceCore/Models/Customer.cs per data-model.md entity 5
-- [ ] T086 [P] [US2] Create QualificationReview domain model in src/RE2.ComplianceCore/Models/QualificationReview.cs per data-model.md entity 29
-- [ ] T087 [P] [US2] Create Customer DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/CustomerDto.cs
-- [ ] T088 [US2] Create ICustomerRepository interface in src/RE2.ComplianceCore/Interfaces/ICustomerRepository.cs
-- [ ] T089 [US2] Implement DataverseCustomerRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseCustomerRepository.cs
+- [X] T085 [P] [US2] Create Customer domain model in src/RE2.ComplianceCore/Models/Customer.cs per data-model.md entity 5
+- [X] T086 [P] [US2] Create QualificationReview domain model in src/RE2.ComplianceCore/Models/QualificationReview.cs per data-model.md entity 29
+- [X] T087 [P] [US2] Create Customer DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/CustomerDto.cs
+- [X] T088 [US2] Create ICustomerRepository interface in src/RE2.ComplianceCore/Interfaces/ICustomerRepository.cs
+- [X] T089 [US2] Implement DataverseCustomerRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseCustomerRepository.cs
 - [X] T090 [US2] Create CustomerService in src/RE2.ComplianceCore/Services/CustomerQualification/CustomerService.cs with qualification logic
 - [X] T091 [US2] Create CustomersController v1 in src/RE2.ComplianceApi/Controllers/V1/CustomersController.cs with customer compliance status endpoint per transaction-validation-api.yaml
 - [X] T092 [US2] Create customer management UI in src/RE2.ComplianceWeb/Views/Customers/ (Index, Create, Edit, Details views)
@@ -270,36 +281,36 @@ Project uses multi-project .NET solution structure per plan.md:
 ### Tests for User Story 3 (TDD - Write First)
 
 - [X] T099 [P] [US3] Unit tests for LicenceDocument model in tests/RE2.ComplianceCore.Tests/Models/LicenceDocumentTests.cs
-- [ ] T100 [P] [US3] Unit tests for LicenceVerification model in tests/RE2.ComplianceCore.Tests/Models/LicenceVerificationTests.cs
-- [ ] T101 [P] [US3] Unit tests for LicenceScopeChange model in tests/RE2.ComplianceCore.Tests/Models/LicenceScopeChangeTests.cs
-- [ ] T102 [US3] Integration tests for document upload in tests/RE2.ComplianceApi.Tests/Controllers/V1/LicencesControllerDocumentTests.cs
-- [ ] T103 [US3] Integration tests for Azure Blob Storage in tests/RE2.DataAccess.Tests/BlobStorage/DocumentStorageClientTests.cs
+- [X] T100 [P] [US3] Unit tests for LicenceVerification model in tests/RE2.ComplianceCore.Tests/Models/LicenceVerificationTests.cs
+- [X] T101 [P] [US3] Unit tests for LicenceScopeChange model in tests/RE2.ComplianceCore.Tests/Models/LicenceScopeChangeTests.cs
+- [X] T102 [US3] Integration tests for document upload in tests/RE2.ComplianceApi.Tests/Controllers/V1/LicencesControllerDocumentTests.cs
+- [X] T103 [US3] Integration tests for Azure Blob Storage in tests/RE2.DataAccess.Tests/BlobStorage/DocumentStorageClientTests.cs
 
 ### Implementation for User Story 3
 
-- [ ] T104 [P] [US3] Create LicenceDocument domain model in src/RE2.ComplianceCore/Models/LicenceDocument.cs per data-model.md entity 12
-- [ ] T105 [P] [US3] Create LicenceVerification domain model in src/RE2.ComplianceCore/Models/LicenceVerification.cs per data-model.md entity 13 with properties: verificationMethod (enum: AuthorityWebsite, EmailConfirmation, FarmatecDatabase, PhysicalDocumentReview), verificationDate, verifierName, outcome, notes
-- [ ] T106 [P] [US3] Create LicenceScopeChange domain model in src/RE2.ComplianceCore/Models/LicenceScopeChange.cs per data-model.md entity 14
-- [ ] T107 [P] [US3] Create Alert domain model in src/RE2.ComplianceCore/Models/Alert.cs per data-model.md entity 11
-- [ ] T108 [P] [US3] Create LicenceDocument DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/LicenceDocumentDto.cs
-- [ ] T108a [P] [US3] Create LicenceVerification DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/LicenceVerificationDto.cs
-- [ ] T108b [US3] Extend ILicenceRepository interface with GetVerificationHistory(licenceId) method
-- [ ] T108c [US3] Implement verification history queries in DataverseLicenceRepository
+- [X] T104 [P] [US3] Create LicenceDocument domain model in src/RE2.ComplianceCore/Models/LicenceDocument.cs per data-model.md entity 12
+- [X] T105 [P] [US3] Create LicenceVerification domain model in src/RE2.ComplianceCore/Models/LicenceVerification.cs per data-model.md entity 13 with properties: verificationMethod (enum: AuthorityWebsite, EmailConfirmation, FarmatecDatabase, PhysicalDocumentReview), verificationDate, verifierName, outcome, notes
+- [X] T106 [P] [US3] Create LicenceScopeChange domain model in src/RE2.ComplianceCore/Models/LicenceScopeChange.cs per data-model.md entity 14
+- [X] T107 [P] [US3] Create Alert domain model in src/RE2.ComplianceCore/Models/Alert.cs per data-model.md entity 11
+- [X] T108 [P] [US3] Create LicenceDocument DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/LicenceDocumentDto.cs
+- [X] T108a [P] [US3] Create LicenceVerification DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/LicenceVerificationDto.cs
+- [X] T108b [US3] Extend ILicenceRepository interface with GetVerificationHistory(licenceId) method
+- [X] T108c [US3] Implement verification history queries in DataverseLicenceRepository
 
-- [ ] T109 [P] [US3] Create Alert DTO for D365 F&O in src/RE2.DataAccess/D365FinanceOperations/Models/AlertDto.cs
-- [ ] T110 [US3] Extend ILicenceRepository with document upload methods
-- [ ] T111 [US3] Implement document upload in DataverseLicenceRepository using IDocumentStorage
-- [ ] T112 [US3] Extend LicenceService with verification recording methods (FR-009: method, date, verifier)
-- [ ] T113 [US3] Extend LicenceService with scope change recording methods (FR-010: effective dates)
-- [ ] T114 [US3] Extend LicencesController v1 API with POST /api/v1/licences/{id}/documents endpoint
-- [ ] T115 [US3] Extend LicencesController v1 API with POST /api/v1/licences/{id}/verifications endpoint
-- [ ] T116 [US3] Extend LicencesController v1 API with POST /api/v1/licences/{id}/scope-changes endpoint
-- [ ] T117 [US3] Add file upload UI in src/RE2.ComplianceWeb/Views/Licences/UploadDocument.cshtml
-- [ ] T118 [US3] Add verification recording UI in src/RE2.ComplianceWeb/Views/Licences/RecordVerification.cshtml
-- [ ] T119 [US3] Add scope change history UI in src/RE2.ComplianceWeb/Views/Licences/ScopeHistory.cshtml
-- [ ] T120 [US3] Create unified AlertGenerationService in src/RE2.ComplianceCore/Services/AlertGeneration/AlertGenerationService.cs supporting multiple entity types (Licence, GdpCredential, Customer re-verification)
-- [ ] T121 [US3] Create LicenceExpiryMonitor Azure Function in src/RE2.ComplianceFunctions/LicenceExpiryMonitor.cs (timer trigger, daily at 2 AM) using AlertGenerationService for 90/60/30 day warnings per FR-007
-- [ ] T122 [US3] Add alert display dashboard in src/RE2.ComplianceWeb/Views/Dashboard/Index.cshtml
+- [X] T109 [P] [US3] Create Alert DTO for D365 F&O in src/RE2.DataAccess/D365FinanceOperations/Models/AlertDto.cs
+- [X] T110 [US3] Extend ILicenceRepository with document upload methods
+- [X] T111 [US3] Implement document upload in DataverseLicenceRepository using IDocumentStorage
+- [X] T112 [US3] Extend LicenceService with verification recording methods (FR-009: method, date, verifier)
+- [X] T113 [US3] Extend LicenceService with scope change recording methods (FR-010: effective dates)
+- [X] T114 [US3] Extend LicencesController v1 API with POST /api/v1/licences/{id}/documents endpoint
+- [X] T115 [US3] Extend LicencesController v1 API with POST /api/v1/licences/{id}/verifications endpoint
+- [X] T116 [US3] Extend LicencesController v1 API with POST /api/v1/licences/{id}/scope-changes endpoint
+- [X] T117 [US3] Add file upload UI in src/RE2.ComplianceWeb/Views/Licences/UploadDocument.cshtml
+- [X] T118 [US3] Add verification recording UI in src/RE2.ComplianceWeb/Views/Licences/RecordVerification.cshtml
+- [X] T119 [US3] Add scope change history UI in src/RE2.ComplianceWeb/Views/Licences/ScopeHistory.cshtml
+- [X] T120 [US3] Create unified AlertGenerationService in src/RE2.ComplianceCore/Services/AlertGeneration/AlertGenerationService.cs supporting multiple entity types (Licence, GdpCredential, Customer re-verification)
+- [X] T121 [US3] Create LicenceExpiryMonitor Azure Function in src/RE2.ComplianceFunctions/LicenceExpiryMonitor.cs (timer trigger, daily at 2 AM) using AlertGenerationService for 90/60/30 day warnings per FR-007
+- [X] T122 [US3] Add alert display dashboard in src/RE2.ComplianceWeb/Views/Dashboard/Index.cshtml
 
 **Checkpoint**: At this point, User Stories 1-3 are complete - full licence lifecycle management with documents, verification, and expiry monitoring
 
@@ -356,6 +367,7 @@ Project uses multi-project .NET solution structure per plan.md:
 - [ ] T148 [US4] Implement POST /api/v1/transactions/{transactionId}/override endpoint per transaction-validation-api.yaml (FR-019a)
 - [ ] T149 [US4] Configure authorization: implement role-based override approval per FR-019a with appsettings.json configuration (OverrideApprovalRoles array), validate approver in configured roles, enforce justification field requirements
 - [ ] T149a [US4] Add appsettings.json configuration section for override approval roles with default ["ComplianceManager"] and role precedence documentation (any configured role can approve)
+- [ ] T149b [US4] Extend TransactionValidationController to record calling system identity (IntegrationSystem ID from T047a-T047e) in transaction audit per FR-061
 
 **Checkpoint**: At this point, User Stories 1-4 are complete - real-time transaction validation API operational, blocking non-compliant orders
 
@@ -603,14 +615,6 @@ Project uses multi-project .NET solution structure per plan.md:
 - [ ] T255 [P] [US12] Create TrainingRecord domain model in src/RE2.ComplianceCore/Models/TrainingRecord.cs per data-model.md entity 25
 - [ ] T256 [P] [US12] Create GdpChangeRecord domain model in src/RE2.ComplianceCore/Models/GdpChangeRecord.cs per data-model.md entity 26
 
-- [ ] T256a [P] [US4] Create IntegrationSystem domain model in src/RE2.ComplianceCore/Models/IntegrationSystem.cs per data-model.md entity 27
-- [ ] T256b [P] [US4] Create IntegrationSystem DTO for D365 F&O in src/RE2.DataAccess/D365FinanceOperations/Models/IntegrationSystemDto.cs
-- [ ] T256c [US4] Create IIntegrationSystemRepository interface in src/RE2.ComplianceCore/Interfaces/IIntegrationSystemRepository.cs
-- [ ] T256d [US4] Implement D365FoIntegrationSystemRepository in src/RE2.DataAccess/D365FinanceOperations/Repositories/D365FoIntegrationSystemRepository.cs
-- [ ] T256e [US4] Extend TransactionValidationController to record calling system identity (IntegrationSystem ID) in transaction audit per FR-061
-- [ ] T256f [US4] Create IntegrationSystemsController v1 in src/RE2.ComplianceApi/Controllers/V1/IntegrationSystemsController.cs for managing API client registrations per data-model.md entity 27
-
-
 - [ ] T257 [P] [US12] Create GdpSop DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/GdpSopDto.cs
 - [ ] T258 [US12] Create IGdpSopRepository interface in src/RE2.ComplianceCore/Interfaces/IGdpSopRepository.cs
 - [ ] T259 [US12] Implement DataverseGdpSopRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseGdpSopRepository.cs
@@ -673,6 +677,7 @@ Project uses multi-project .NET solution structure per plan.md:
 - [ ] T300b Create version migration guide template in docs/api/version-migration/ with breaking changes, upgrade path, code examples per FR-062
 
 - [ ] T301 Configure Azure Monitor alerts for critical path availability (transaction validation, customer lookup), response time thresholds (3s for validation per SC-005), health check failures, and document recovery playbooks targeting MTTR <30 min per SC-031
+- [ ] T301a Configure Azure Monitor metrics and alerts for resource utilization (CPU, memory, App Service plan capacity) per FR-056; set warning thresholds at 70% and critical at 85% with auto-scaling rules for App Service
 
 
 ---
@@ -845,11 +850,11 @@ With 3+ developers:
 ## Task Count Summary
 
 - **Phase 1 (Setup)**: 20 tasks
-- **Phase 2 (Foundational)**: 32 tasks (BLOCKING)
-- **Phase 3 (User Story 1 - P1)**: 51 tasks (increased from 42: added T079a-T079i for FR-004)
+- **Phase 2 (Foundational)**: 38 tasks (BLOCKING) - increased: added T047a-T047f for IntegrationSystem foundation
+- **Phase 3 (User Story 1 - P1)**: 51 tasks
 - **Phase 4 (User Story 2 - P1)**: 18 tasks
 - **Phase 5 (User Story 3 - P1)**: 23 tasks
-- **Phase 6 (User Story 4 - P2)**: 28 tasks
+- **Phase 6 (User Story 4 - P2)**: 29 tasks - increased: added T149b for FR-061 integration audit
 - **Phase 7 (User Story 5 - P2)**: 20 tasks
 - **Phase 8 (User Story 6 - P3)**: 11 tasks
 - **Phase 9 (User Story 7 - P1)**: 15 tasks
@@ -857,12 +862,11 @@ With 3+ developers:
 - **Phase 11 (User Story 9 - P2)**: 18 tasks
 - **Phase 12 (User Story 10 - P2)**: 9 tasks
 - **Phase 13 (User Story 11 - P2)**: 9 tasks
-- **Phase 14 (User Story 12 - P3)**: 23 tasks
-- **Phase 15 (Polish)**: 29 tasks (reduced from 32 due to duplicate removal)
-- **TOTAL**: 324 tasks (increased from 315: added T079a-T079i for FR-004)
+- **Phase 14 (User Story 12 - P3)**: 17 tasks - reduced: moved IntegrationSystem tasks to Phase 2
+- **Phase 15 (Polish)**: 30 tasks - increased: added T301a for FR-056 resource monitoring
+- **TOTAL**: 326 tasks
 
-
-**MVP Scope** (User Stories 1-3): 75 + 20 (Setup) + 32 (Foundation) = **127 tasks** (increased from 118: added T079a-T079i for FR-004)
+**MVP Scope** (User Stories 1-3): 75 + 20 (Setup) + 38 (Foundation) = **133 tasks**
 
 **Parallel Opportunities**:
 - Phase 1: 16 parallelizable tasks (80%)
