@@ -1,0 +1,145 @@
+@model RE2.ComplianceWeb.Controllers.UploadDocumentViewModel
+@{
+    ViewData["Title"] = "Upload Document";
+}
+
+<div class="container">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Licences</a></li>
+            <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@Model.LicenceId">@Model.LicenceNumber</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Upload Document</li>
+        </ol>
+    </nav>
+
+    <h1>Upload Document</h1>
+    <p class="text-muted">Upload supporting documentation for licence <strong>@Model.LicenceNumber</strong></p>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Document Upload</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="UploadDocument" asp-route-id="@Model.LicenceId" method="post" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="DocumentType" class="form-label">Document Type <span class="text-danger">*</span></label>
+                            <select asp-for="DocumentType" class="form-select" asp-items="@ViewBag.DocumentTypes">
+                                <option value="">-- Select Document Type --</option>
+                            </select>
+                            <span asp-validation-for="DocumentType" class="text-danger"></span>
+                            <div class="form-text">Select the type of document you are uploading.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="File" class="form-label">Document File <span class="text-danger">*</span></label>
+                            <input asp-for="File" type="file" class="form-control" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.tiff" />
+                            <span asp-validation-for="File" class="text-danger"></span>
+                            <div class="form-text">
+                                Allowed file types: PDF, DOC, DOCX, JPG, JPEG, PNG, TIFF. Maximum file size: 10 MB.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label">Description</label>
+                            <textarea asp-for="Description" class="form-control" rows="3" placeholder="Optional description of the document..."></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+
+                        <hr />
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Details" asp-route-id="@Model.LicenceId" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-upload"></i> Upload Document
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Document Guidelines</h6>
+                </div>
+                <div class="card-body">
+                    <h6>Accepted Documents</h6>
+                    <ul class="small">
+                        <li><strong>Certificate</strong> - Official licence certificates issued by authorities (IGJ, NVWA)</li>
+                        <li><strong>Letter</strong> - Correspondence from regulatory bodies or customers</li>
+                        <li><strong>Inspection Report</strong> - Reports from regulatory inspections</li>
+                        <li><strong>Other</strong> - Supporting documentation not covered above</li>
+                    </ul>
+
+                    <hr />
+
+                    <h6>File Requirements</h6>
+                    <ul class="small">
+                        <li>Maximum file size: 10 MB</li>
+                        <li>Supported formats: PDF (preferred), Word documents, images</li>
+                        <li>Ensure documents are legible and complete</li>
+                        <li>Scanned documents should be at least 300 DPI</li>
+                    </ul>
+
+                    <hr />
+
+                    <h6>Best Practices</h6>
+                    <ul class="small">
+                        <li>Use descriptive file names</li>
+                        <li>Include all pages of multi-page documents</li>
+                        <li>Ensure expiry dates are visible on certificates</li>
+                        <li>Verify document authenticity before uploading</li>
+                    </ul>
+                </div>
+            </div>
+
+            @if (ViewBag.ExistingDocuments != null && ((IEnumerable<RE2.ComplianceCore.Models.LicenceDocument>)ViewBag.ExistingDocuments).Any())
+            {
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">Existing Documents</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            @foreach (var doc in (IEnumerable<RE2.ComplianceCore.Models.LicenceDocument>)ViewBag.ExistingDocuments)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
+                                        <span class="small">@doc.FileName</span>
+                                    </div>
+                                    <span class="badge bg-secondary">@doc.DocumentType</span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // File size validation (10 MB limit)
+        document.querySelector('input[type="file"]').addEventListener('change', function(e) {
+            const maxSize = 10 * 1024 * 1024; // 10 MB
+            const file = e.target.files[0];
+
+            if (file && file.size > maxSize) {
+                alert('File size exceeds 10 MB limit. Please select a smaller file.');
+                e.target.value = '';
+            }
+        });
+    </script>
+}

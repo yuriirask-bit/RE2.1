@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using RE2.ComplianceCore.Interfaces;
@@ -259,6 +260,283 @@ public class LicencesController : Controller
         ViewBag.DaysAhead = daysAhead;
         return View(licences);
     }
+
+    #region Document Management (T117)
+
+    /// <summary>
+    /// Displays the document upload form.
+    /// T117: File upload UI per FR-008.
+    /// </summary>
+    [Authorize(Policy = "ComplianceManager")]
+    public async Task<IActionResult> UploadDocument(Guid id, CancellationToken cancellationToken = default)
+    {
+        var licence = await _licenceService.GetByIdAsync(id, cancellationToken);
+        if (licence == null)
+        {
+            return NotFound();
+        }
+
+        var documents = await _licenceService.GetDocumentsAsync(id, cancellationToken);
+        ViewBag.ExistingDocuments = documents;
+        ViewBag.DocumentTypes = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(
+            Enum.GetValues<RE2.ComplianceCore.Models.DocumentType>()
+                .Select(t => new { Value = (int)t, Text = t.ToString() }),
+            "Value", "Text");
+
+        return View(new UploadDocumentViewModel
+        {
+            LicenceId = id,
+            LicenceNumber = licence.LicenceNumber
+        });
+    }
+
+    /// <summary>
+    /// Handles document upload form submission.
+    /// T117: File upload processing per FR-008.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = "ComplianceManager")]
+    public async Task<IActionResult> UploadDocument(Guid id, UploadDocumentViewModel model, CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid || model.File == null)
+        {
+            var licence = await _licenceService.GetByIdAsync(id, cancellationToken);
+            model.LicenceNumber = licence?.LicenceNumber ?? "Unknown";
+            ViewBag.DocumentTypes = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(
+                Enum.GetValues<RE2.ComplianceCore.Models.DocumentType>()
+                    .Select(t => new { Value = (int)t, Text = t.ToString() }),
+                "Value", "Text");
+            return View(model);
+        }
+
+        var userId = User.FindFirst("sub")?.Value ?? Guid.Empty.ToString();
+        var document = new RE2.ComplianceCore.Models.LicenceDocument
+        {
+            DocumentId = Guid.NewGuid(),
+            LicenceId = id,
+            DocumentType = (RE2.ComplianceCore.Models.DocumentType)model.DocumentType,
+            FileName = model.File.FileName,
+            ContentType = model.File.ContentType,
+            FileSizeBytes = model.File.Length,
+            UploadedBy = Guid.TryParse(userId, out var uid) ? uid : Guid.Empty
+        };
+
+        using var stream = model.File.OpenReadStream();
+        var (docId, result) = await _licenceService.UploadDocumentAsync(id, document, stream, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var violation in result.Violations)
+            {
+                ModelState.AddModelError(string.Empty, violation.Message);
+            }
+            ViewBag.DocumentTypes = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(
+                Enum.GetValues<RE2.ComplianceCore.Models.DocumentType>()
+                    .Select(t => new { Value = (int)t, Text = t.ToString() }),
+                "Value", "Text");
+            return View(model);
+        }
+
+        TempData["SuccessMessage"] = $"Document '{document.FileName}' uploaded successfully.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    #endregion
+
+    #region Verification Recording (T118)
+
+    /// <summary>
+    /// Displays the verification recording form.
+    /// T118: Verification recording UI per FR-009.
+    /// </summary>
+    [Authorize(Policy = "ComplianceManager")]
+    public async Task<IActionResult> RecordVerification(Guid id, CancellationToken cancellationToken = default)
+    {
+        var licence = await _licenceService.GetByIdAsync(id, cancellationToken);
+        if (licence == null)
+        {
+            return NotFound();
+        }
+
+        var verifications = await _licenceService.GetVerificationHistoryAsync(id, cancellationToken);
+        ViewBag.RecentVerifications = verifications.Take(5);
+        ViewBag.VerificationMethods = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(
+            Enum.GetValues<RE2.ComplianceCore.Models.VerificationMethod>()
+                .Select(m => new { Value = (int)m, Text = m.ToString() }),
+            "Value", "Text");
+        ViewBag.Outcomes = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(
+            Enum.GetValues<RE2.ComplianceCore.Models.VerificationOutcome>()
+                .Select(o => new { Value = (int)o, Text = o.ToString() }),
+            "Value", "Text");
+
+        return View(new RecordVerificationViewModel
+        {
+            LicenceId = id,
+            LicenceNumber = licence.LicenceNumber,
+            VerificationDate = DateTime.Today
+        });
+    }
+
+    /// <summary>
+    /// Handles verification recording form submission.
+    /// T118: Verification recording per FR-009.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = "ComplianceManager")]
+    public async Task<IActionResult> RecordVerification(Guid id, RecordVerificationViewModel model, CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            var licence = await _licenceService.GetByIdAsync(id, cancellationToken);
+            model.LicenceNumber = licence?.LicenceNumber ?? "Unknown";
+            ViewBag.VerificationMethods = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(
+                Enum.GetValues<RE2.ComplianceCore.Models.VerificationMethod>()
+                    .Select(m => new { Value = (int)m, Text = m.ToString() }),
+                "Value", "Text");
+            ViewBag.Outcomes = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(
+                Enum.GetValues<RE2.ComplianceCore.Models.VerificationOutcome>()
+                    .Select(o => new { Value = (int)o, Text = o.ToString() }),
+                "Value", "Text");
+            return View(model);
+        }
+
+        var userId = User.FindFirst("sub")?.Value ?? Guid.Empty.ToString();
+        var verification = new RE2.ComplianceCore.Models.LicenceVerification
+        {
+            VerificationId = Guid.NewGuid(),
+            LicenceId = id,
+            VerificationMethod = (RE2.ComplianceCore.Models.VerificationMethod)model.VerificationMethod,
+            VerificationDate = DateOnly.FromDateTime(model.VerificationDate),
+            VerifiedBy = Guid.TryParse(userId, out var uid) ? uid : Guid.Empty,
+            VerifierName = model.VerifierName,
+            Outcome = (RE2.ComplianceCore.Models.VerificationOutcome)model.Outcome,
+            Notes = model.Notes,
+            AuthorityReferenceNumber = model.AuthorityReferenceNumber
+        };
+
+        var (verificationId, result) = await _licenceService.RecordVerificationAsync(verification, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var violation in result.Violations)
+            {
+                ModelState.AddModelError(string.Empty, violation.Message);
+            }
+            return View(model);
+        }
+
+        TempData["SuccessMessage"] = "Verification recorded successfully.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    #endregion
+
+    #region Scope Change History (T119)
+
+    /// <summary>
+    /// Displays scope change history for a licence.
+    /// T119: Scope change history UI per FR-010.
+    /// </summary>
+    public async Task<IActionResult> ScopeHistory(Guid id, CancellationToken cancellationToken = default)
+    {
+        var licence = await _licenceService.GetByIdAsync(id, cancellationToken);
+        if (licence == null)
+        {
+            return NotFound();
+        }
+
+        var scopeChanges = await _licenceService.GetScopeChangesAsync(id, cancellationToken);
+
+        ViewBag.LicenceId = id;
+        ViewBag.LicenceNumber = licence.LicenceNumber;
+
+        return View(scopeChanges);
+    }
+
+    /// <summary>
+    /// Displays the record scope change form.
+    /// T119: Scope change recording UI per FR-010.
+    /// </summary>
+    [Authorize(Policy = "ComplianceManager")]
+    public async Task<IActionResult> RecordScopeChange(Guid id, CancellationToken cancellationToken = default)
+    {
+        var licence = await _licenceService.GetByIdAsync(id, cancellationToken);
+        if (licence == null)
+        {
+            return NotFound();
+        }
+
+        ViewBag.ChangeTypes = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(
+            Enum.GetValues<RE2.ComplianceCore.Models.ScopeChangeType>()
+                .Select(t => new { Value = (int)t, Text = t.ToString() }),
+            "Value", "Text");
+
+        return View(new RecordScopeChangeViewModel
+        {
+            LicenceId = id,
+            LicenceNumber = licence.LicenceNumber,
+            EffectiveDate = DateTime.Today
+        });
+    }
+
+    /// <summary>
+    /// Handles scope change recording form submission.
+    /// T119: Scope change recording per FR-010.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = "ComplianceManager")]
+    public async Task<IActionResult> RecordScopeChange(Guid id, RecordScopeChangeViewModel model, CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            var licence = await _licenceService.GetByIdAsync(id, cancellationToken);
+            model.LicenceNumber = licence?.LicenceNumber ?? "Unknown";
+            ViewBag.ChangeTypes = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(
+                Enum.GetValues<RE2.ComplianceCore.Models.ScopeChangeType>()
+                    .Select(t => new { Value = (int)t, Text = t.ToString() }),
+                "Value", "Text");
+            return View(model);
+        }
+
+        var userId = User.FindFirst("sub")?.Value ?? Guid.Empty.ToString();
+        var scopeChange = new RE2.ComplianceCore.Models.LicenceScopeChange
+        {
+            ChangeId = Guid.NewGuid(),
+            LicenceId = id,
+            EffectiveDate = DateOnly.FromDateTime(model.EffectiveDate),
+            ChangeDescription = model.ChangeDescription,
+            ChangeType = (RE2.ComplianceCore.Models.ScopeChangeType)model.ChangeType,
+            RecordedBy = Guid.TryParse(userId, out var uid) ? uid : Guid.Empty,
+            RecorderName = model.RecorderName ?? User.Identity?.Name,
+            SubstancesAdded = model.SubstancesAdded,
+            SubstancesRemoved = model.SubstancesRemoved,
+            ActivitiesAdded = model.ActivitiesAdded,
+            ActivitiesRemoved = model.ActivitiesRemoved
+        };
+
+        var (changeId, result) = await _licenceService.RecordScopeChangeAsync(scopeChange, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var violation in result.Violations)
+            {
+                ModelState.AddModelError(string.Empty, violation.Message);
+            }
+            ViewBag.ChangeTypes = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(
+                Enum.GetValues<RE2.ComplianceCore.Models.ScopeChangeType>()
+                    .Select(t => new { Value = (int)t, Text = t.ToString() }),
+                "Value", "Text");
+            return View(model);
+        }
+
+        TempData["SuccessMessage"] = "Scope change recorded successfully.";
+        return RedirectToAction(nameof(ScopeHistory), new { id });
+    }
+
+    #endregion
 }
 
 #region View Models
@@ -295,6 +573,53 @@ public class LicenceEditViewModel
     public string Status { get; set; } = "Valid";
     public string? Scope { get; set; }
     public int PermittedActivities { get; set; }
+}
+
+/// <summary>
+/// View model for uploading a document to a licence.
+/// T117: Document upload per FR-008.
+/// </summary>
+public class UploadDocumentViewModel
+{
+    public Guid LicenceId { get; set; }
+    public string LicenceNumber { get; set; } = string.Empty;
+    public int DocumentType { get; set; }
+    public IFormFile? File { get; set; }
+    public string? Description { get; set; }
+}
+
+/// <summary>
+/// View model for recording a licence verification.
+/// T118: Verification recording per FR-009.
+/// </summary>
+public class RecordVerificationViewModel
+{
+    public Guid LicenceId { get; set; }
+    public string LicenceNumber { get; set; } = string.Empty;
+    public int VerificationMethod { get; set; }
+    public DateTime VerificationDate { get; set; } = DateTime.Today;
+    public int Outcome { get; set; }
+    public string VerifierName { get; set; } = string.Empty;
+    public string? AuthorityReferenceNumber { get; set; }
+    public string? Notes { get; set; }
+}
+
+/// <summary>
+/// View model for recording a scope change.
+/// T119: Scope change recording per FR-010.
+/// </summary>
+public class RecordScopeChangeViewModel
+{
+    public Guid LicenceId { get; set; }
+    public string LicenceNumber { get; set; } = string.Empty;
+    public int ChangeType { get; set; }
+    public DateTime EffectiveDate { get; set; } = DateTime.Today;
+    public string ChangeDescription { get; set; } = string.Empty;
+    public string? RecorderName { get; set; }
+    public string? SubstancesAdded { get; set; }
+    public string? SubstancesRemoved { get; set; }
+    public string? ActivitiesAdded { get; set; }
+    public string? ActivitiesRemoved { get; set; }
 }
 
 #endregion

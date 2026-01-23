@@ -1,0 +1,188 @@
+@model RE2.ComplianceWeb.Controllers.RecordScopeChangeViewModel
+@{
+    ViewData["Title"] = "Record Scope Change";
+}
+
+<div class="container">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Licences</a></li>
+            <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@Model.LicenceId">@Model.LicenceNumber</a></li>
+            <li class="breadcrumb-item"><a asp-action="ScopeHistory" asp-route-id="@Model.LicenceId">Scope History</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Record Change</li>
+        </ol>
+    </nav>
+
+    <h1>Record Scope Change</h1>
+    <p class="text-muted">Document a scope modification for licence <strong>@Model.LicenceNumber</strong> per FR-010.</p>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Scope Change Details</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="RecordScopeChange" asp-route-id="@Model.LicenceId" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ChangeType" class="form-label">Change Type <span class="text-danger">*</span></label>
+                                <select asp-for="ChangeType" class="form-select" asp-items="@ViewBag.ChangeTypes">
+                                    <option value="">-- Select Change Type --</option>
+                                </select>
+                                <span asp-validation-for="ChangeType" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="EffectiveDate" class="form-label">Effective Date <span class="text-danger">*</span></label>
+                                <input asp-for="EffectiveDate" type="date" class="form-control" />
+                                <span asp-validation-for="EffectiveDate" class="text-danger"></span>
+                                <div class="form-text">Date when the scope change takes effect (as per authority notification).</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ChangeDescription" class="form-label">Change Description <span class="text-danger">*</span></label>
+                            <textarea asp-for="ChangeDescription" class="form-control" rows="3" placeholder="Describe the scope change in detail..."></textarea>
+                            <span asp-validation-for="ChangeDescription" class="text-danger"></span>
+                            <div class="form-text">Provide a clear description of the scope modification.</div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="SubstancesAdded" class="form-label">Substances Added</label>
+                                <textarea asp-for="SubstancesAdded" class="form-control" rows="2" placeholder="e.g., Substance A, Substance B"></textarea>
+                                <span asp-validation-for="SubstancesAdded" class="text-danger"></span>
+                                <div class="form-text">Comma-separated list of substances added to coverage.</div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="SubstancesRemoved" class="form-label">Substances Removed</label>
+                                <textarea asp-for="SubstancesRemoved" class="form-control" rows="2" placeholder="e.g., Substance C"></textarea>
+                                <span asp-validation-for="SubstancesRemoved" class="text-danger"></span>
+                                <div class="form-text">Comma-separated list of substances removed from coverage.</div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ActivitiesAdded" class="form-label">Activities Added</label>
+                                <textarea asp-for="ActivitiesAdded" class="form-control" rows="2" placeholder="e.g., Import, Export"></textarea>
+                                <span asp-validation-for="ActivitiesAdded" class="text-danger"></span>
+                                <div class="form-text">Comma-separated list of permitted activities added.</div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ActivitiesRemoved" class="form-label">Activities Removed</label>
+                                <textarea asp-for="ActivitiesRemoved" class="form-control" rows="2" placeholder="e.g., Manufacturing"></textarea>
+                                <span asp-validation-for="ActivitiesRemoved" class="text-danger"></span>
+                                <div class="form-text">Comma-separated list of permitted activities removed.</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="RecorderName" class="form-label">Recorder Name</label>
+                            <input asp-for="RecorderName" class="form-control" placeholder="Your name" value="@User.Identity?.Name" />
+                            <span asp-validation-for="RecorderName" class="text-danger"></span>
+                            <div class="form-text">Name of the person recording this change.</div>
+                        </div>
+
+                        <hr />
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="ScopeHistory" asp-route-id="@Model.LicenceId" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Record Scope Change
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Change Type Reference</h6>
+                </div>
+                <div class="card-body small">
+                    <dl>
+                        <dt><span class="badge bg-success">Substance Added</span></dt>
+                        <dd>New controlled substances added to licence coverage.</dd>
+
+                        <dt><span class="badge bg-danger">Substance Removed</span></dt>
+                        <dd>Controlled substances removed from coverage.</dd>
+
+                        <dt><span class="badge bg-primary">Activity Added</span></dt>
+                        <dd>New permitted activities authorized.</dd>
+
+                        <dt><span class="badge bg-warning text-dark">Activity Removed</span></dt>
+                        <dd>Previously permitted activities revoked.</dd>
+
+                        <dt><span class="badge bg-info">Scope Expanded</span></dt>
+                        <dd>General expansion (geographic, volume, etc.).</dd>
+
+                        <dt><span class="badge bg-secondary">Scope Reduced</span></dt>
+                        <dd>General restrictions or limitations added.</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">Recording Guidelines</h6>
+                </div>
+                <div class="card-body small">
+                    <div class="alert alert-warning mb-3">
+                        <strong>Important:</strong> Scope changes are permanent audit records and cannot be deleted after submission.
+                    </div>
+                    <ul>
+                        <li>Record changes as soon as the authority notification is received</li>
+                        <li>Use the effective date from the official authority communication</li>
+                        <li>Be specific about which substances or activities are affected</li>
+                        <li>Attach supporting documentation when available</li>
+                        <li>Review all details before submitting</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Show/hide substance and activity fields based on change type
+        document.querySelector('#ChangeType').addEventListener('change', function() {
+            const substanceFields = document.querySelectorAll('#SubstancesAdded, #SubstancesRemoved').forEach(el => {
+                el.closest('.mb-3').style.display = '';
+            });
+            const activityFields = document.querySelectorAll('#ActivitiesAdded, #ActivitiesRemoved').forEach(el => {
+                el.closest('.mb-3').style.display = '';
+            });
+
+            // Optionally highlight relevant fields based on change type
+            const changeType = parseInt(this.value);
+            switch (changeType) {
+                case 0: // SubstanceAdded
+                    document.querySelector('#SubstancesAdded').focus();
+                    break;
+                case 1: // SubstanceRemoved
+                    document.querySelector('#SubstancesRemoved').focus();
+                    break;
+                case 2: // ActivityAdded
+                    document.querySelector('#ActivitiesAdded').focus();
+                    break;
+                case 3: // ActivityRemoved
+                    document.querySelector('#ActivitiesRemoved').focus();
+                    break;
+            }
+        });
+    </script>
+}

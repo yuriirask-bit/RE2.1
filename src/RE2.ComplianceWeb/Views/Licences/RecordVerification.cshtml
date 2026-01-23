@@ -1,0 +1,198 @@
+@model RE2.ComplianceWeb.Controllers.RecordVerificationViewModel
+@{
+    ViewData["Title"] = "Record Verification";
+}
+
+<div class="container">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Licences</a></li>
+            <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@Model.LicenceId">@Model.LicenceNumber</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Record Verification</li>
+        </ol>
+    </nav>
+
+    <h1>Record Licence Verification</h1>
+    <p class="text-muted">Document verification activities for licence <strong>@Model.LicenceNumber</strong> per FR-009.</p>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Verification Details</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="RecordVerification" asp-route-id="@Model.LicenceId" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="VerificationMethod" class="form-label">Verification Method <span class="text-danger">*</span></label>
+                                <select asp-for="VerificationMethod" class="form-select" asp-items="@ViewBag.VerificationMethods">
+                                    <option value="">-- Select Method --</option>
+                                </select>
+                                <span asp-validation-for="VerificationMethod" class="text-danger"></span>
+                                <div class="form-text">How was the licence verified?</div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="VerificationDate" class="form-label">Verification Date <span class="text-danger">*</span></label>
+                                <input asp-for="VerificationDate" type="date" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                                <span asp-validation-for="VerificationDate" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Outcome" class="form-label">Verification Outcome <span class="text-danger">*</span></label>
+                                <select asp-for="Outcome" class="form-select" asp-items="@ViewBag.Outcomes">
+                                    <option value="">-- Select Outcome --</option>
+                                </select>
+                                <span asp-validation-for="Outcome" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="AuthorityReferenceNumber" class="form-label">Authority Reference Number</label>
+                                <input asp-for="AuthorityReferenceNumber" class="form-control" placeholder="e.g., IGJ-2024-12345" />
+                                <span asp-validation-for="AuthorityReferenceNumber" class="text-danger"></span>
+                                <div class="form-text">Reference number from the issuing authority (if available).</div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="VerifierName" class="form-label">Verifier Name <span class="text-danger">*</span></label>
+                                <input asp-for="VerifierName" class="form-control" placeholder="Enter your name" />
+                                <span asp-validation-for="VerifierName" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Verifier ID</label>
+                                <input type="text" class="form-control" value="@User.Identity?.Name" disabled />
+                                <div class="form-text">Automatically captured from your login.</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Notes" class="form-label">Verification Notes</label>
+                            <textarea asp-for="Notes" class="form-control" rows="4" placeholder="Enter details about the verification process, any observations, or follow-up actions required..."></textarea>
+                            <span asp-validation-for="Notes" class="text-danger"></span>
+                            <div class="form-text">Document any relevant observations or details about the verification.</div>
+                        </div>
+
+                        <hr />
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Details" asp-route-id="@Model.LicenceId" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Record Verification
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Verification Methods</h6>
+                </div>
+                <div class="card-body">
+                    <dl class="small">
+                        <dt>Authority Website</dt>
+                        <dd class="text-muted">Verification via official regulatory authority database (e.g., IGJ, NVWA registers).</dd>
+
+                        <dt>Email Confirmation</dt>
+                        <dd class="text-muted">Written confirmation received from the issuing authority via email.</dd>
+
+                        <dt>Farmatec Database</dt>
+                        <dd class="text-muted">Verification through the Farmatec pharmaceutical database system.</dd>
+
+                        <dt>Physical Document Review</dt>
+                        <dd class="text-muted">Manual review of original or certified copy documents.</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">Verification Guidelines</h6>
+                </div>
+                <div class="card-body small">
+                    <ul>
+                        <li>Always verify licences before onboarding new customers</li>
+                        <li>Re-verify licences at least annually or when concerns arise</li>
+                        <li>Document the specific source used for verification</li>
+                        <li>Record any discrepancies or concerns in the notes</li>
+                        <li>If verification fails, escalate to compliance management</li>
+                    </ul>
+
+                    <div class="alert alert-info mt-3">
+                        <strong>Audit Trail:</strong> All verification records are permanently stored and cannot be deleted. This ensures full traceability for regulatory inspections.
+                    </div>
+                </div>
+            </div>
+
+            @if (ViewBag.RecentVerifications != null && ((IEnumerable<RE2.ComplianceCore.Models.LicenceVerification>)ViewBag.RecentVerifications).Any())
+            {
+                <div class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Recent Verifications</h6>
+                        <a asp-action="VerificationHistory" asp-route-id="@Model.LicenceId" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            @foreach (var verification in ((IEnumerable<RE2.ComplianceCore.Models.LicenceVerification>)ViewBag.RecentVerifications).Take(3))
+                            {
+                                var outcomeClass = verification.Outcome switch
+                                {
+                                    RE2.ComplianceCore.Models.VerificationOutcome.Valid => "bg-success",
+                                    RE2.ComplianceCore.Models.VerificationOutcome.Invalid => "bg-danger",
+                                    RE2.ComplianceCore.Models.VerificationOutcome.Inconclusive => "bg-warning text-dark",
+                                    RE2.ComplianceCore.Models.VerificationOutcome.Pending => "bg-info",
+                                    _ => "bg-secondary"
+                                };
+                                <li class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <span class="fw-bold">@verification.VerificationDate.ToString("yyyy-MM-dd")</span>
+                                            <br />
+                                            <small class="text-muted">@verification.VerificationMethod by @verification.VerifierName</small>
+                                        </div>
+                                        <span class="badge @outcomeClass">@verification.Outcome</span>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Auto-fill today's date if not set
+        document.addEventListener('DOMContentLoaded', function() {
+            const dateInput = document.querySelector('input[type="date"]');
+            if (!dateInput.value) {
+                dateInput.value = new Date().toISOString().split('T')[0];
+            }
+        });
+
+        // Show/hide authority reference based on verification method
+        document.querySelector('#VerificationMethod').addEventListener('change', function() {
+            const refField = document.querySelector('#AuthorityReferenceNumber');
+            if (this.value === '1' || this.value === '3') { // AuthorityWebsite or FarmatecDatabase
+                refField.closest('.mb-3').classList.remove('d-none');
+            }
+        });
+    </script>
+}
