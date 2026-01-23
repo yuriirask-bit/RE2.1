@@ -131,6 +131,11 @@ public static class ErrorCodes
     public const string VALIDATION_ERROR = "VALIDATION_ERROR";
 
     /// <summary>
+    /// Validation produced warnings (non-blocking) but data is acceptable.
+    /// </summary>
+    public const string VALIDATION_WARNING = "VALIDATION_WARNING";
+
+    /// <summary>
     /// Requested resource was not found.
     /// </summary>
     public const string NOT_FOUND = "NOT_FOUND";

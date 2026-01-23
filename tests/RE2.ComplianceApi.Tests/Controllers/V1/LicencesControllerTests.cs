@@ -18,15 +18,20 @@ namespace RE2.ComplianceApi.Tests.Controllers.V1;
 public class LicencesControllerTests
 {
     private readonly Mock<ILicenceService> _mockLicenceService;
+    private readonly Mock<IDocumentStorage> _mockDocumentStorage;
     private readonly Mock<ILogger<LicencesController>> _mockLogger;
     private readonly LicencesController _controller;
 
     public LicencesControllerTests()
     {
         _mockLicenceService = new Mock<ILicenceService>();
+        _mockDocumentStorage = new Mock<IDocumentStorage>();
         _mockLogger = new Mock<ILogger<LicencesController>>();
 
-        _controller = new LicencesController(_mockLicenceService.Object, _mockLogger.Object);
+        _controller = new LicencesController(
+            _mockLicenceService.Object,
+            _mockDocumentStorage.Object,
+            _mockLogger.Object);
         _controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()

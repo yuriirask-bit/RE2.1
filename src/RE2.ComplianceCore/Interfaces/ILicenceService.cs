@@ -65,4 +65,78 @@ public interface ILicenceService
         string holderType,
         LicenceTypes.PermittedActivity requiredActivity,
         CancellationToken cancellationToken = default);
+
+    #region Document Operations (T112)
+
+    /// <summary>
+    /// Gets all documents for a licence.
+    /// T112: Document retrieval for licence evidence management per FR-008.
+    /// </summary>
+    Task<IEnumerable<LicenceDocument>> GetDocumentsAsync(Guid licenceId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a document by ID.
+    /// T112: Document retrieval for download.
+    /// </summary>
+    Task<LicenceDocument?> GetDocumentByIdAsync(Guid documentId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Uploads a document for a licence.
+    /// T112: Document upload with blob storage integration per FR-008.
+    /// </summary>
+    Task<(Guid? Id, ValidationResult Result)> UploadDocumentAsync(
+        Guid licenceId,
+        LicenceDocument document,
+        Stream content,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a document from a licence.
+    /// T112: Document removal including blob storage cleanup.
+    /// </summary>
+    Task<ValidationResult> DeleteDocumentAsync(Guid documentId, CancellationToken cancellationToken = default);
+
+    #endregion
+
+    #region Verification Operations (T112)
+
+    /// <summary>
+    /// Gets verification history for a licence.
+    /// T112: Verification audit trail per FR-009.
+    /// </summary>
+    Task<IEnumerable<LicenceVerification>> GetVerificationHistoryAsync(Guid licenceId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the most recent verification for a licence.
+    /// T112: Quick access to current verification status.
+    /// </summary>
+    Task<LicenceVerification?> GetLatestVerificationAsync(Guid licenceId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Records a verification for a licence.
+    /// T112: Verification recording per FR-009 (method, date, verifier, outcome).
+    /// </summary>
+    Task<(Guid? Id, ValidationResult Result)> RecordVerificationAsync(
+        LicenceVerification verification,
+        CancellationToken cancellationToken = default);
+
+    #endregion
+
+    #region Scope Change Operations (T113)
+
+    /// <summary>
+    /// Gets scope change history for a licence.
+    /// T113: Scope change audit trail per FR-010.
+    /// </summary>
+    Task<IEnumerable<LicenceScopeChange>> GetScopeChangesAsync(Guid licenceId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Records a scope change for a licence.
+    /// T113: Scope change recording per FR-010 with effective dates.
+    /// </summary>
+    Task<(Guid? Id, ValidationResult Result)> RecordScopeChangeAsync(
+        LicenceScopeChange scopeChange,
+        CancellationToken cancellationToken = default);
+
+    #endregion
 }

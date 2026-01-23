@@ -57,6 +57,13 @@ public static class UserRoles
     public const string AUDITOR = "Auditor";
 
     /// <summary>
+    /// System Administrator role.
+    /// T047f: Can manage integration system registrations per data-model.md entity 27.
+    /// Highest privilege level for system configuration.
+    /// </summary>
+    public const string SYSTEM_ADMIN = "SystemAdmin";
+
+    /// <summary>
     /// Gets all role names as an array (for display and configuration).
     /// </summary>
     public static string[] AllRoles => new[]
@@ -67,7 +74,8 @@ public static class UserRoles
         TRAINING_COORDINATOR,
         WAREHOUSE_MANAGER,
         ORDER_ENTRY,
-        AUDITOR
+        AUDITOR,
+        SYSTEM_ADMIN
     };
 
     /// <summary>
@@ -78,6 +86,15 @@ public static class UserRoles
         COMPLIANCE_MANAGER,
         QA_USER,
         SALES_ADMIN
+    };
+
+    /// <summary>
+    /// Gets roles that can manage system configuration.
+    /// Per T047f: Only SystemAdmin can manage integration system registrations.
+    /// </summary>
+    public static string[] SystemConfigurationRoles => new[]
+    {
+        SYSTEM_ADMIN
     };
 
     /// <summary>
