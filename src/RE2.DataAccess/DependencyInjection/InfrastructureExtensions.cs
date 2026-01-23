@@ -4,6 +4,7 @@ using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
 using Polly;
 using RE2.ComplianceCore.Interfaces;
+using RE2.ComplianceCore.Services.AlertGeneration;
 using RE2.ComplianceCore.Services.LicenceValidation;
 using RE2.ComplianceCore.Services.SubstanceManagement;
 using RE2.DataAccess.BlobStorage;
@@ -178,6 +179,8 @@ public static class InfrastructureExtensions
         var licenceRepo = new InMemoryLicenceRepository();
         var reclassificationRepo = new InMemorySubstanceReclassificationRepository();
         var mappingRepo = new InMemoryLicenceSubstanceMappingRepository();
+        var alertRepo = new InMemoryAlertRepository();
+        var customerRepo = new InMemoryCustomerRepository();
 
         // Seed test data if requested
         if (seedData)
@@ -191,6 +194,8 @@ public static class InfrastructureExtensions
         services.AddSingleton<ILicenceRepository>(licenceRepo);
         services.AddSingleton<ISubstanceReclassificationRepository>(reclassificationRepo);
         services.AddSingleton<ILicenceSubstanceMappingRepository>(mappingRepo);
+        services.AddSingleton<IAlertRepository>(alertRepo);
+        services.AddSingleton<ICustomerRepository>(customerRepo);
 
         // Register in-memory document storage for local development
         services.AddSingleton<IDocumentStorage, InMemoryDocumentStorage>();
@@ -200,6 +205,9 @@ public static class InfrastructureExtensions
         services.AddScoped<ISubstanceReclassificationService, SubstanceReclassificationService>();
         services.AddScoped<IControlledSubstanceService, ControlledSubstanceService>();
         services.AddScoped<ILicenceSubstanceMappingService, LicenceSubstanceMappingService>();
+
+        // Register alert generation service for compliance monitoring
+        services.AddScoped<AlertGenerationService>();
 
         return services;
     }
