@@ -8,23 +8,29 @@ namespace RE2.ComplianceCore.Services.LicenceValidation;
 /// <summary>
 /// Service for licence management business logic.
 /// T074: Business logic for licence management including validation, expiry checking, and CRUD operations.
+/// T112-T113: Extended with document, verification, and scope change operations for US3.
 /// </summary>
 public class LicenceService : ILicenceService
 {
     private readonly ILicenceRepository _licenceRepository;
     private readonly ILicenceTypeRepository _licenceTypeRepository;
     private readonly IControlledSubstanceRepository _substanceRepository;
+    private readonly IDocumentStorage _documentStorage;
     private readonly ILogger<LicenceService> _logger;
+
+    private const string DocumentContainerName = "licence-documents";
 
     public LicenceService(
         ILicenceRepository licenceRepository,
         ILicenceTypeRepository licenceTypeRepository,
         IControlledSubstanceRepository substanceRepository,
+        IDocumentStorage documentStorage,
         ILogger<LicenceService> logger)
     {
         _licenceRepository = licenceRepository;
         _licenceTypeRepository = licenceTypeRepository;
         _substanceRepository = substanceRepository;
+        _documentStorage = documentStorage;
         _logger = logger;
     }
 
@@ -341,4 +347,262 @@ public class LicenceService : ILicenceService
 
         return ValidationResult.Success();
     }
+
+    #region Document Operations (T112)
+
+    /// <summary>
+    /// Gets all documents for a licence.
+    /// </summary>
+    public async Task<IEnumerable<LicenceDocument>> GetDocumentsAsync(Guid licenceId, CancellationToken cancellationToken = default)
+    {
+        return await _licenceRepository.GetDocumentsAsync(licenceId, cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets a document by ID.
+    /// </summary>
+    public async Task<LicenceDocument?> GetDocumentByIdAsync(Guid documentId, CancellationToken cancellationToken = default)
+    {
+        return await _licenceRepository.GetDocumentByIdAsync(documentId, cancellationToken);
+    }
+
+    /// <summary>
+    /// Uploads a document for a licence.
+    /// T112: Document upload with blob storage integration per FR-008.
+    /// </summary>
+    public async Task<(Guid? Id, ValidationResult Result)> UploadDocumentAsync(
+        Guid licenceId,
+        LicenceDocument document,
+        Stream content,
+        CancellationToken cancellationToken = default)
+    {
+        // Verify licence exists
+        var licence = await _licenceRepository.GetByIdAsync(licenceId, cancellationToken);
+        if (licence == null)
+        {
+            return (null, ValidationResult.Failure(new[]
+            {
+                new ValidationViolation
+                {
+                    ErrorCode = ErrorCodes.LICENCE_NOT_FOUND,
+                    Message = $"Licence with ID '{licenceId}' not found"
+                }
+            }));
+        }
+
+        // Validate document
+        var validationResult = document.Validate();
+        if (!validationResult.IsValid)
+        {
+            return (null, validationResult);
+        }
+
+        // Generate blob name: licenceid/documentid/filename
+        var blobName = $"{licenceId}/{document.DocumentId}/{document.FileName}";
+
+        try
+        {
+            // Upload to blob storage
+            var metadata = new Dictionary<string, string>
+            {
+                { "licenceId", licenceId.ToString() },
+                { "documentType", document.DocumentType.ToString() },
+                { "uploadedBy", document.UploadedBy.ToString() }
+            };
+
+            var blobUri = await _documentStorage.UploadDocumentAsync(
+                DocumentContainerName,
+                blobName,
+                content,
+                document.ContentType ?? "application/octet-stream",
+                metadata,
+                cancellationToken);
+
+            // Update document with blob URL
+            document.LicenceId = licenceId;
+            document.BlobStorageUrl = blobUri.ToString();
+            document.UploadedDate = DateTime.UtcNow;
+
+            // Save document metadata to repository
+            var id = await _licenceRepository.AddDocumentAsync(document, cancellationToken);
+            _logger.LogInformation("Uploaded document {DocumentId} for licence {LicenceId}", id, licenceId);
+
+            return (id, ValidationResult.Success());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading document for licence {LicenceId}", licenceId);
+            return (null, ValidationResult.Failure(new[]
+            {
+                new ValidationViolation
+                {
+                    ErrorCode = ErrorCodes.INTERNAL_ERROR,
+                    Message = "Failed to upload document"
+                }
+            }));
+        }
+    }
+
+    /// <summary>
+    /// Deletes a document from a licence.
+    /// T112: Document removal including blob storage cleanup.
+    /// </summary>
+    public async Task<ValidationResult> DeleteDocumentAsync(Guid documentId, CancellationToken cancellationToken = default)
+    {
+        // Get document to find blob URL
+        var document = await _licenceRepository.GetDocumentByIdAsync(documentId, cancellationToken);
+        if (document == null)
+        {
+            return ValidationResult.Failure(new[]
+            {
+                new ValidationViolation
+                {
+                    ErrorCode = ErrorCodes.NOT_FOUND,
+                    Message = $"Document with ID '{documentId}' not found"
+                }
+            });
+        }
+
+        try
+        {
+            // Delete from blob storage
+            if (!string.IsNullOrEmpty(document.BlobStorageUrl))
+            {
+                var blobName = $"{document.LicenceId}/{document.DocumentId}/{document.FileName}";
+                await _documentStorage.DeleteDocumentAsync(DocumentContainerName, blobName, cancellationToken);
+            }
+
+            // Delete metadata from repository
+            await _licenceRepository.DeleteDocumentAsync(documentId, cancellationToken);
+            _logger.LogInformation("Deleted document {DocumentId} from licence {LicenceId}", documentId, document.LicenceId);
+
+            return ValidationResult.Success();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting document {DocumentId}", documentId);
+            return ValidationResult.Failure(new[]
+            {
+                new ValidationViolation
+                {
+                    ErrorCode = ErrorCodes.INTERNAL_ERROR,
+                    Message = "Failed to delete document"
+                }
+            });
+        }
+    }
+
+    #endregion
+
+    #region Verification Operations (T112)
+
+    /// <summary>
+    /// Gets verification history for a licence.
+    /// </summary>
+    public async Task<IEnumerable<LicenceVerification>> GetVerificationHistoryAsync(Guid licenceId, CancellationToken cancellationToken = default)
+    {
+        return await _licenceRepository.GetVerificationHistoryAsync(licenceId, cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets the most recent verification for a licence.
+    /// </summary>
+    public async Task<LicenceVerification?> GetLatestVerificationAsync(Guid licenceId, CancellationToken cancellationToken = default)
+    {
+        return await _licenceRepository.GetLatestVerificationAsync(licenceId, cancellationToken);
+    }
+
+    /// <summary>
+    /// Records a verification for a licence.
+    /// T112: Verification recording per FR-009 (method, date, verifier, outcome).
+    /// </summary>
+    public async Task<(Guid? Id, ValidationResult Result)> RecordVerificationAsync(
+        LicenceVerification verification,
+        CancellationToken cancellationToken = default)
+    {
+        // Verify licence exists
+        var licence = await _licenceRepository.GetByIdAsync(verification.LicenceId, cancellationToken);
+        if (licence == null)
+        {
+            return (null, ValidationResult.Failure(new[]
+            {
+                new ValidationViolation
+                {
+                    ErrorCode = ErrorCodes.LICENCE_NOT_FOUND,
+                    Message = $"Licence with ID '{verification.LicenceId}' not found"
+                }
+            }));
+        }
+
+        // Validate verification
+        var validationResult = verification.Validate();
+        if (!validationResult.IsValid)
+        {
+            return (null, validationResult);
+        }
+
+        // Set created date
+        verification.CreatedDate = DateTime.UtcNow;
+
+        // Save verification
+        var id = await _licenceRepository.AddVerificationAsync(verification, cancellationToken);
+        _logger.LogInformation("Recorded verification {VerificationId} for licence {LicenceId} with outcome {Outcome}",
+            id, verification.LicenceId, verification.Outcome);
+
+        return (id, ValidationResult.Success());
+    }
+
+    #endregion
+
+    #region Scope Change Operations (T113)
+
+    /// <summary>
+    /// Gets scope change history for a licence.
+    /// </summary>
+    public async Task<IEnumerable<LicenceScopeChange>> GetScopeChangesAsync(Guid licenceId, CancellationToken cancellationToken = default)
+    {
+        return await _licenceRepository.GetScopeChangesAsync(licenceId, cancellationToken);
+    }
+
+    /// <summary>
+    /// Records a scope change for a licence.
+    /// T113: Scope change recording per FR-010 with effective dates.
+    /// </summary>
+    public async Task<(Guid? Id, ValidationResult Result)> RecordScopeChangeAsync(
+        LicenceScopeChange scopeChange,
+        CancellationToken cancellationToken = default)
+    {
+        // Verify licence exists
+        var licence = await _licenceRepository.GetByIdAsync(scopeChange.LicenceId, cancellationToken);
+        if (licence == null)
+        {
+            return (null, ValidationResult.Failure(new[]
+            {
+                new ValidationViolation
+                {
+                    ErrorCode = ErrorCodes.LICENCE_NOT_FOUND,
+                    Message = $"Licence with ID '{scopeChange.LicenceId}' not found"
+                }
+            }));
+        }
+
+        // Validate scope change
+        var validationResult = scopeChange.Validate();
+        if (!validationResult.IsValid)
+        {
+            return (null, validationResult);
+        }
+
+        // Set recorded date
+        scopeChange.RecordedDate = DateTime.UtcNow;
+
+        // Save scope change
+        var id = await _licenceRepository.AddScopeChangeAsync(scopeChange, cancellationToken);
+        _logger.LogInformation("Recorded scope change {ChangeId} for licence {LicenceId} with type {ChangeType}",
+            id, scopeChange.LicenceId, scopeChange.ChangeType);
+
+        return (id, ValidationResult.Success());
+    }
+
+    #endregion
 }

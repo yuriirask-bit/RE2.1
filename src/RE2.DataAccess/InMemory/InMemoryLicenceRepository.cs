@@ -6,10 +6,14 @@ namespace RE2.DataAccess.InMemory;
 
 /// <summary>
 /// In-memory implementation of ILicenceRepository for local development and testing.
+/// Extended with document, verification, and scope change operations for US3.
 /// </summary>
 public class InMemoryLicenceRepository : ILicenceRepository
 {
     private readonly ConcurrentDictionary<Guid, Licence> _licences = new();
+    private readonly ConcurrentDictionary<Guid, LicenceDocument> _documents = new();
+    private readonly ConcurrentDictionary<Guid, LicenceVerification> _verifications = new();
+    private readonly ConcurrentDictionary<Guid, LicenceScopeChange> _scopeChanges = new();
 
     public Task<Licence?> GetByIdAsync(Guid licenceId, CancellationToken cancellationToken = default)
     {
@@ -86,6 +90,96 @@ public class InMemoryLicenceRepository : ILicenceRepository
             .ToList();
         return Task.FromResult<IEnumerable<Licence>>(licences);
     }
+
+    #region Document Operations
+
+    public Task<IEnumerable<LicenceDocument>> GetDocumentsAsync(Guid licenceId, CancellationToken cancellationToken = default)
+    {
+        var documents = _documents.Values
+            .Where(d => d.LicenceId == licenceId)
+            .OrderByDescending(d => d.UploadedDate)
+            .ToList();
+        return Task.FromResult<IEnumerable<LicenceDocument>>(documents);
+    }
+
+    public Task<LicenceDocument?> GetDocumentByIdAsync(Guid documentId, CancellationToken cancellationToken = default)
+    {
+        _documents.TryGetValue(documentId, out var document);
+        return Task.FromResult(document);
+    }
+
+    public Task<Guid> AddDocumentAsync(LicenceDocument document, CancellationToken cancellationToken = default)
+    {
+        if (document.DocumentId == Guid.Empty)
+        {
+            document.DocumentId = Guid.NewGuid();
+        }
+        _documents.TryAdd(document.DocumentId, document);
+        return Task.FromResult(document.DocumentId);
+    }
+
+    public Task DeleteDocumentAsync(Guid documentId, CancellationToken cancellationToken = default)
+    {
+        _documents.TryRemove(documentId, out _);
+        return Task.CompletedTask;
+    }
+
+    #endregion
+
+    #region Verification Operations
+
+    public Task<IEnumerable<LicenceVerification>> GetVerificationHistoryAsync(Guid licenceId, CancellationToken cancellationToken = default)
+    {
+        var verifications = _verifications.Values
+            .Where(v => v.LicenceId == licenceId)
+            .OrderByDescending(v => v.VerificationDate)
+            .ToList();
+        return Task.FromResult<IEnumerable<LicenceVerification>>(verifications);
+    }
+
+    public Task<LicenceVerification?> GetLatestVerificationAsync(Guid licenceId, CancellationToken cancellationToken = default)
+    {
+        var verification = _verifications.Values
+            .Where(v => v.LicenceId == licenceId)
+            .OrderByDescending(v => v.VerificationDate)
+            .FirstOrDefault();
+        return Task.FromResult(verification);
+    }
+
+    public Task<Guid> AddVerificationAsync(LicenceVerification verification, CancellationToken cancellationToken = default)
+    {
+        if (verification.VerificationId == Guid.Empty)
+        {
+            verification.VerificationId = Guid.NewGuid();
+        }
+        _verifications.TryAdd(verification.VerificationId, verification);
+        return Task.FromResult(verification.VerificationId);
+    }
+
+    #endregion
+
+    #region Scope Change Operations
+
+    public Task<IEnumerable<LicenceScopeChange>> GetScopeChangesAsync(Guid licenceId, CancellationToken cancellationToken = default)
+    {
+        var scopeChanges = _scopeChanges.Values
+            .Where(s => s.LicenceId == licenceId)
+            .OrderByDescending(s => s.EffectiveDate)
+            .ToList();
+        return Task.FromResult<IEnumerable<LicenceScopeChange>>(scopeChanges);
+    }
+
+    public Task<Guid> AddScopeChangeAsync(LicenceScopeChange scopeChange, CancellationToken cancellationToken = default)
+    {
+        if (scopeChange.ChangeId == Guid.Empty)
+        {
+            scopeChange.ChangeId = Guid.NewGuid();
+        }
+        _scopeChanges.TryAdd(scopeChange.ChangeId, scopeChange);
+        return Task.FromResult(scopeChange.ChangeId);
+    }
+
+    #endregion
 
     /// <summary>
     /// Seeds initial data for testing. Called by InMemorySeedData.

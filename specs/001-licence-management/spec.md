@@ -417,13 +417,11 @@ Note: Complete catalog in data-model.md (see data-model.md for authoritative ent
 
 **Licence Management:**
 - **SC-001**: Compliance officers can record a complete new licence (all required fields, activity mappings, substance mappings, and documentation) in under 5 minutes
+- **SC-004**: System identifies 100% of licence expiries at least 60 days in advance with zero missed alerts
 
 **Customer Onboarding:**
 - **SC-002**: Sales administrators can complete customer onboarding qualification review (profile creation, licence recording, document attachment, verification recording) in under 15 minutes per customer
 - **SC-003**: Time to verify a customer's licence via authority website and record verification is under 3 minutes
-
-**Licence Management:**
-- **SC-004**: System identifies 100% of licence expiries at least 60 days in advance with zero missed alerts
 
 **Transaction Compliance:**
 - **SC-005**: Pre-transaction compliance checks (licence validation, substance authorization, permit verification) complete in under 3 seconds at p95 (95th percentile), under 1 second at p50 (median), allowing seamless order processing
@@ -437,35 +435,31 @@ Note: Complete catalog in data-model.md (see data-model.md for authoritative ent
 - **SC-011**: 100% of trading relationships have complete, auditable qualification records including initial verification date, verifier name, method used, and ongoing monitoring history
 - **SC-011a**: System detects 100% of concurrent modification conflicts with zero silent data overwrites; users can resolve conflicts within 30 seconds using the conflict resolution interface
 
-**GDP:**
+**GDP Compliance:**
 - **SC-012**: QA users can record a complete GDP site (location, WDA coverage, permitted activities, inspection history) in under 5 minutes
 - **SC-013**: Operations users attempting to assign non-GDP-compliant sites or providers are blocked 100% of the time with clear explanation
 - **SC-014**: Logistics planners can identify GDP-approved transport providers for a given shipment (including temperature-controlled requirements) in under 1 minute
 - **SC-015**: Time to prepare for a GDP inspection (gathering site records, inspection history, CAPA status, training records, SOP index) reduced by 75% compared to manual processes
-
-**GDP:**
 - **SC-016**: GDP Responsible Persons can complete initial qualification of a supplier or service provider (recording GDP credentials, EudraGMDP verification, audit review, approval decision) in under 20 minutes
 - **SC-017**: System generates re-qualification reminders for 100% of partners due for review at least 90 days before review due date with zero missed reviews
 - **SC-018**: Partner GDP status verification via EudraGMDP and recording takes under 3 minutes per partner
-
-**GDP:**
 - **SC-019**: QA users can record a complete inspection (authority, site, findings, classifications) and create linked CAPAs (descriptions, owners, due dates) in under 15 minutes
 - **SC-020**: QA managers can view current CAPA status (open, overdue, by site, by priority) via dashboard in under 30 seconds to support resource allocation decisions
 - **SC-021**: Overdue CAPAs are highlighted to management within 24 hours of due date passing with zero missed escalations
 
-**NFR:**
+**GDP Documentation & Training:**
 - **SC-022**: Training coordinators can record training completion for distribution staff (staff name, curriculum, date, assessment result) in under 2 minutes per record
 - **SC-023**: Changes impacting GDP (new site, new 3PL, new product type) are captured with risk assessment and approval workflow, with 100% requiring designated approver authorization before implementation
 - **SC-024**: SOP index is complete and current, with links to all applicable sites and activities, enabling inspectors to confirm procedure coverage in under 5 minutes
 
-**NFR:**
+**Usability:**
 - **SC-025**: User satisfaction rating of at least 4.0/5.0 for ease of use in recording licences, managing customers, and generating reports
 - **SC-026**: 95% of users successfully complete their primary tasks (record licence, qualify customer, approve order, generate report) on first attempt without support intervention
 - **SC-027**: Regulatory inspection findings related to licence management or GDP compliance documentation deficiencies reduced by 90% within 12 months of implementation
 
-**NFR:**
-- **SC-028**: System achieves 99.5% or higher uptime measured monthly (maximum 4 hours downtime per month including planned maintenance)
-- **SC-029**: Planned maintenance windows account for less than 2 hours per month and are scheduled during off-peak hours with at least 48 hours advance notice
+**Availability & Reliability:**
+- **SC-028**: System achieves 99.5% or higher uptime measured 24/7 monthly (maximum 4 hours combined planned and unplanned downtime per month); critical compliance functions (transaction validation, licence lookups) prioritized per FR-054 during degraded states
+- **SC-029**: Planned maintenance windows account for less than 2 hours per month and are scheduled during off-peak hours (per Assumption 21: evenings 19:00-23:00, nights 23:00-07:00, weekends CET) with at least 48 hours advance notice
 - **SC-030**: Mean time to recovery (MTTR) from unplanned outages is under 30 minutes for critical compliance functions (transaction validation, licence lookups)
 - **SC-031**: System maintains transaction validation response times under 3 seconds even during peak load periods and partial component failures
 
@@ -478,7 +472,7 @@ Note: Complete catalog in data-model.md (see data-model.md for authoritative ent
 - **SC-037**: API versioning changes do not break existing integrations; backward compatibility maintained for minimum 6 months allowing gradual migration
 - **SC-038**: Compliance officers can generate historical validation report showing all transactions potentially affected by licence data correction (where licence effective dates overlap transaction dates) within 5 minutes, with report indicating whether each transaction would have been compliant under corrected licence data, enabling manual impact assessment per Assumption 18
 
-**NFR:**
+**Security:**
 - **SC-039**: Zero critical or high-severity vulnerabilities detected in OWASP Top 10 security scans before production deployment
 - **SC-040**: 100% of API endpoints pass input validation testing against OWASP injection attack patterns (SQL injection, XSS, command injection)
 - **SC-041**: Automated security scanning (SAST with SonarQube or Checkmarx, DAST with OWASP ZAP) integrated in CI pipeline and executed on every commit
