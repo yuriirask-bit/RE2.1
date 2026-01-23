@@ -192,6 +192,9 @@ public static class InfrastructureExtensions
         services.AddSingleton<ISubstanceReclassificationRepository>(reclassificationRepo);
         services.AddSingleton<ILicenceSubstanceMappingRepository>(mappingRepo);
 
+        // Register in-memory document storage for local development
+        services.AddSingleton<IDocumentStorage, InMemoryDocumentStorage>();
+
         // Register business services (same as Dataverse setup)
         services.AddScoped<ILicenceService, LicenceService>();
         services.AddScoped<ISubstanceReclassificationService, SubstanceReclassificationService>();
