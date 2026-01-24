@@ -266,6 +266,8 @@ Project uses multi-project .NET solution structure per plan.md:
 - [X] T095 [US2] Implement customer approval status validation per data-model.md validation rules (FR-016: prevent approval if required licences missing)
 - [X] T096 [US2] Implement suspension logic per data-model.md (isSuspended blocks all transactions regardless of approval status)
 - [X] T097 [US2] Add re-verification due date tracking and alert generation per FR-017
+- [X] T097a [US2] Create PendingReVerification action in CustomersController web UI for dashboard integration per FR-017
+- [X] T097b [US2] Create ReVerificationDue.cshtml view with filtering by days ahead, urgency indicators, and action buttons
 - [X] T098 [US2] Configure route authorization: SalesAdmin and ComplianceManager can create/modify customers
 
 **Checkpoint**: At this point, User Stories 1 AND 2 work independently - sales can onboard customers, record licences, and see compliance status

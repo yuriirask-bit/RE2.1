@@ -321,6 +321,15 @@ public class CustomersController : Controller
         return View(customers);
     }
 
+    /// <summary>
+    /// Alias for ReVerificationDue - linked from dashboard.
+    /// T097a: Pending re-verification page accessible from dashboard.
+    /// </summary>
+    public Task<IActionResult> PendingReVerification(int daysAhead = 30, CancellationToken cancellationToken = default)
+    {
+        return ReVerificationDue(daysAhead, cancellationToken);
+    }
+
     #region Helper Methods
 
     private static SelectList GetApprovalStatusSelectList(string? selectedValue = null)
