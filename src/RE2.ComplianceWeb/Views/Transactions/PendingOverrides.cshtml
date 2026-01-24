@@ -1,0 +1,83 @@
+@model IEnumerable<RE2.ComplianceCore.Models.Transaction>
+@using RE2.Shared.Constants
+@{
+    ViewData["Title"] = "Pending Override Approvals";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Pending Override Approvals</h1>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Transactions
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> No transactions pending override approval.
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i>
+        <strong>@Model.Count() transaction(s)</strong> require override approval.
+    </div>
+
+    <div class="row">
+        @foreach (var transaction in Model)
+        {
+            <div class="col-md-6 mb-4">
+                <div class="card border-warning h-100">
+                    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">@transaction.ExternalId</h6>
+                        <span class="badge bg-danger">@transaction.Violations.Count violations</span>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-3">
+                            <dt class="col-5">Customer</dt>
+                            <dd class="col-7">@transaction.CustomerName</dd>
+
+                            <dt class="col-5">Date</dt>
+                            <dd class="col-7">@transaction.TransactionDate.ToString("yyyy-MM-dd")</dd>
+
+                            <dt class="col-5">Quantity</dt>
+                            <dd class="col-7">@transaction.TotalQuantity.ToString("N2") g</dd>
+
+                            <dt class="col-5">Validated</dt>
+                            <dd class="col-7">@transaction.ValidationDate?.ToString("yyyy-MM-dd HH:mm")</dd>
+                        </dl>
+
+                        <h6>Violations:</h6>
+                        <ul class="list-unstyled mb-3">
+                            @foreach (var violation in transaction.Violations.Take(3))
+                            {
+                                <li class="small text-danger">
+                                    <i class="bi bi-x-circle"></i> @violation.Message
+                                </li>
+                            }
+                            @if (transaction.Violations.Count > 3)
+                            {
+                                <li class="small text-muted">
+                                    ... and @(transaction.Violations.Count - 3) more
+                                </li>
+                            }
+                        </ul>
+
+                        <a asp-action="Details" asp-route-id="@transaction.Id" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-eye"></i> Review & Decide
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

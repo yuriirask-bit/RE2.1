@@ -1,0 +1,340 @@
+@model RE2.ComplianceCore.Models.Transaction
+@using RE2.Shared.Constants
+@{
+    ViewData["Title"] = $"Transaction - {Model.ExternalId}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Transaction Details</h1>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to List
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="row">
+    <!-- Transaction Info -->
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Transaction Information</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">External ID</dt>
+                    <dd class="col-sm-8">@Model.ExternalId</dd>
+
+                    <dt class="col-sm-4">Type</dt>
+                    <dd class="col-sm-8">@Model.TransactionType</dd>
+
+                    <dt class="col-sm-4">Direction</dt>
+                    <dd class="col-sm-8">@Model.Direction</dd>
+
+                    <dt class="col-sm-4">Customer</dt>
+                    <dd class="col-sm-8">@Model.CustomerName (@Model.CustomerId)</dd>
+
+                    <dt class="col-sm-4">Date</dt>
+                    <dd class="col-sm-8">@Model.TransactionDate.ToString("yyyy-MM-dd HH:mm")</dd>
+
+                    <dt class="col-sm-4">Origin</dt>
+                    <dd class="col-sm-8">@Model.OriginCountry</dd>
+
+                    @if (!string.IsNullOrEmpty(Model.DestinationCountry))
+                    {
+                        <dt class="col-sm-4">Destination</dt>
+                        <dd class="col-sm-8">@Model.DestinationCountry</dd>
+                    }
+
+                    <dt class="col-sm-4">Total Quantity</dt>
+                    <dd class="col-sm-8">@Model.TotalQuantity.ToString("N2") g</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <!-- Validation Status -->
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Validation Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    @switch (Model.ValidationStatus)
+                    {
+                        case TransactionTypes.ValidationStatus.Passed:
+                            <span class="badge bg-success fs-5">Passed</span>
+                            break;
+                        case TransactionTypes.ValidationStatus.Failed:
+                            <span class="badge bg-danger fs-5">Failed</span>
+                            break;
+                        case TransactionTypes.ValidationStatus.ApprovedWithOverride:
+                            <span class="badge bg-info fs-5">Approved with Override</span>
+                            break;
+                        case TransactionTypes.ValidationStatus.RejectedOverride:
+                            <span class="badge bg-secondary fs-5">Rejected</span>
+                            break;
+                        default:
+                            <span class="badge bg-warning fs-5">Pending</span>
+                            break;
+                    }
+                </div>
+
+                @if (Model.ValidationDate.HasValue)
+                {
+                    <p class="text-muted mb-2">
+                        <small>Validated: @Model.ValidationDate.Value.ToString("yyyy-MM-dd HH:mm:ss")</small>
+                    </p>
+                }
+
+                @if (Model.OverrideStatus != TransactionTypes.OverrideStatus.None)
+                {
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Override Status</dt>
+                        <dd class="col-sm-7">@Model.OverrideStatus</dd>
+
+                        @if (!string.IsNullOrEmpty(Model.OverrideDecisionBy))
+                        {
+                            <dt class="col-sm-5">Decision By</dt>
+                            <dd class="col-sm-7">@Model.OverrideDecisionBy</dd>
+                        }
+
+                        @if (Model.OverrideDecisionDate.HasValue)
+                        {
+                            <dt class="col-sm-5">Decision Date</dt>
+                            <dd class="col-sm-7">@Model.OverrideDecisionDate.Value.ToString("yyyy-MM-dd HH:mm")</dd>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.OverrideJustification))
+                        {
+                            <dt class="col-sm-5">Justification</dt>
+                            <dd class="col-sm-7">@Model.OverrideJustification</dd>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.OverrideRejectionReason))
+                        {
+                            <dt class="col-sm-5">Rejection Reason</dt>
+                            <dd class="col-sm-7">@Model.OverrideRejectionReason</dd>
+                        }
+                    </dl>
+                }
+            </div>
+        </div>
+
+        <!-- Override Actions -->
+        @if (Model.RequiresOverride && Model.OverrideStatus == TransactionTypes.OverrideStatus.Pending)
+        {
+            <div class="card mb-4 border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">Override Required</h5>
+                </div>
+                <div class="card-body">
+                    <p>This transaction failed validation but can be overridden by a Compliance Manager.</p>
+
+                    <form asp-action="ApproveOverride" asp-route-id="@Model.Id" method="post" class="mb-3">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label class="form-label">Justification *</label>
+                            <textarea name="justification" class="form-control" rows="2" required
+                                      placeholder="Enter justification for approving this override..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle"></i> Approve Override
+                        </button>
+                    </form>
+
+                    <hr />
+
+                    <form asp-action="RejectOverride" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label class="form-label">Rejection Reason *</label>
+                            <textarea name="reason" class="form-control" rows="2" required
+                                      placeholder="Enter reason for rejecting this override..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-x-circle"></i> Reject Override
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Line Items -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Line Items</h5>
+    </div>
+    <div class="card-body">
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Line</th>
+                    <th>Substance</th>
+                    <th>Product</th>
+                    <th>Quantity</th>
+                    <th>Coverage</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var line in Model.Lines.OrderBy(l => l.LineNumber))
+                {
+                    <tr class="@(line.IsValid ? "" : "table-danger")">
+                        <td>@line.LineNumber</td>
+                        <td>
+                            <strong>@line.SubstanceName</strong>
+                            <br /><small class="text-muted">@line.SubstanceCode</small>
+                        </td>
+                        <td>@line.ProductCode</td>
+                        <td>@line.BaseUnitQuantity.ToString("N2") @line.BaseUnit</td>
+                        <td>
+                            @if (line.HasLicenceCoverage)
+                            {
+                                <span class="text-success">
+                                    <i class="bi bi-check-circle"></i> @line.CoveringLicenceNumber
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-danger">
+                                    <i class="bi bi-x-circle"></i> No coverage
+                                </span>
+                            }
+                        </td>
+                        <td>
+                            @if (line.IsValid)
+                            {
+                                <span class="badge bg-success">Valid</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger" title="@line.ValidationError">@line.ErrorCode</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Violations -->
+@if (Model.Violations.Any())
+{
+    <div class="card mb-4">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">Violations (@Model.Violations.Count)</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Message</th>
+                        <th>Severity</th>
+                        <th>Line</th>
+                        <th>Override</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var violation in Model.Violations)
+                    {
+                        <tr>
+                            <td><code>@violation.ErrorCode</code></td>
+                            <td>@violation.Message</td>
+                            <td>
+                                @switch (violation.Severity)
+                                {
+                                    case RE2.ComplianceCore.Models.ViolationSeverity.Critical:
+                                        <span class="badge bg-danger">Critical</span>
+                                        break;
+                                    case RE2.ComplianceCore.Models.ViolationSeverity.Warning:
+                                        <span class="badge bg-warning text-dark">Warning</span>
+                                        break;
+                                    default:
+                                        <span class="badge bg-info">Info</span>
+                                        break;
+                                }
+                            </td>
+                            <td>@violation.LineNumber</td>
+                            <td>
+                                @if (violation.CanOverride)
+                                {
+                                    <span class="badge bg-success">Yes</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">No</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<!-- Licence Usages -->
+@if (Model.LicenceUsages.Any())
+{
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Licence Coverage</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Licence</th>
+                        <th>Type</th>
+                        <th>Lines Covered</th>
+                        <th>Quantity</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var usage in Model.LicenceUsages)
+                    {
+                        <tr>
+                            <td>@usage.LicenceNumber</td>
+                            <td>@usage.LicenceTypeName</td>
+                            <td>@string.Join(", ", usage.CoveredLineNumbers)</td>
+                            <td>@usage.CoveredQuantity.ToString("N2") @usage.CoveredQuantityUnit</td>
+                            <td>
+                                @if (usage.WasExpiringSoon)
+                                {
+                                    <span class="badge bg-warning text-dark" title="Expires in @usage.DaysUntilExpiry days">
+                                        <i class="bi bi-exclamation-triangle"></i> Expiring Soon
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">@usage.LicenceStatus</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

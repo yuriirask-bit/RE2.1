@@ -1,0 +1,135 @@
+@model IEnumerable<RE2.ComplianceCore.Models.Transaction>
+@using RE2.Shared.Constants
+@{
+    ViewData["Title"] = "Transactions";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Transactions</h1>
+    <div>
+        @if (ViewBag.PendingOverrideCount > 0)
+        {
+            <a asp-action="PendingOverrides" class="btn btn-warning me-2">
+                <i class="bi bi-exclamation-triangle"></i> Pending Overrides
+                <span class="badge bg-danger">@ViewBag.PendingOverrideCount</span>
+            </a>
+        }
+        <a asp-action="Validate" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Validate Transaction
+        </a>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["WarningMessage"] != null)
+{
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        @TempData["WarningMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form asp-action="Index" method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select asp-items="ViewBag.ValidationStatuses" class="form-select" name="status">
+                    <option value="">All Statuses</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">From Date</label>
+                <input type="date" name="fromDate" class="form-control" value="@(ViewBag.FromDateFilter?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">To Date</label>
+                <input type="date" name="toDate" class="form-control" value="@(ViewBag.ToDateFilter?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-secondary me-2">
+                    <i class="bi bi-funnel"></i> Filter
+                </button>
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i> Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Transactions Table -->
+<div class="card">
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>External ID</th>
+                    <th>Customer</th>
+                    <th>Type</th>
+                    <th>Date</th>
+                    <th>Quantity</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var transaction in Model)
+                {
+                    <tr>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@transaction.Id">@transaction.ExternalId</a>
+                        </td>
+                        <td>@transaction.CustomerName</td>
+                        <td>@transaction.TransactionType</td>
+                        <td>@transaction.TransactionDate.ToString("yyyy-MM-dd")</td>
+                        <td>@transaction.TotalQuantity.ToString("N2") g</td>
+                        <td>
+                            @switch (transaction.ValidationStatus)
+                            {
+                                case TransactionTypes.ValidationStatus.Passed:
+                                    <span class="badge bg-success">Passed</span>
+                                    break;
+                                case TransactionTypes.ValidationStatus.Failed:
+                                    <span class="badge bg-danger">Failed</span>
+                                    if (transaction.RequiresOverride)
+                                    {
+                                        <span class="badge bg-warning text-dark">Needs Override</span>
+                                    }
+                                    break;
+                                case TransactionTypes.ValidationStatus.ApprovedWithOverride:
+                                    <span class="badge bg-info">Approved (Override)</span>
+                                    break;
+                                case TransactionTypes.ValidationStatus.RejectedOverride:
+                                    <span class="badge bg-secondary">Rejected</span>
+                                    break;
+                                default:
+                                    <span class="badge bg-secondary">Pending</span>
+                                    break;
+                            }
+                        </td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@transaction.Id" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">No transactions found.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

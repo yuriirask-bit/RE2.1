@@ -1,8 +1,335 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@model RE2.ComplianceWeb.Controllers.DashboardViewModel
+@{
+    ViewData["Title"] = "Compliance Dashboard";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Compliance Dashboard</h1>
+            <p class="text-muted mb-0">Overview of licence management, alerts, and compliance status</p>
+        </div>
+        <div>
+            <span class="text-muted me-2">Last updated:</span>
+            <span class="badge bg-secondary">@DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm") UTC</span>
+        </div>
+    </div>
+
+    <!-- T122: Alert Summary Cards -->
+    <div class="row mb-4">
+        <!-- Critical Alerts -->
+        <div class="col-md-3">
+            <div class="card border-danger h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-subtitle mb-2 text-muted">Critical Alerts</h6>
+                            <p class="card-text display-4 text-danger mb-0">@(Model?.AlertSummary?.CriticalCount ?? 0)</p>
+                        </div>
+                        <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 2rem;"></i>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Requires immediate attention</p>
+                </div>
+                <div class="card-footer bg-transparent border-danger">
+                    <a asp-controller="Alerts" asp-action="Index" asp-route-severity="Critical" class="btn btn-sm btn-outline-danger w-100">
+                        View Critical Alerts
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expiring Licences -->
+        <div class="col-md-3">
+            <div class="card border-warning h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-subtitle mb-2 text-muted">Expiring Licences</h6>
+                            <p class="card-text display-4 text-warning mb-0">@(Model?.AlertSummary?.LicenceExpiringCount ?? 0)</p>
+                        </div>
+                        <i class="bi bi-calendar-x text-warning" style="font-size: 2rem;"></i>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Within next 90 days</p>
+                </div>
+                <div class="card-footer bg-transparent border-warning">
+                    <a asp-controller="Licences" asp-action="Expiring" class="btn btn-sm btn-outline-warning w-100">
+                        View Expiring
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Re-verification Due -->
+        <div class="col-md-3">
+            <div class="card border-info h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-subtitle mb-2 text-muted">Re-verification Due</h6>
+                            <p class="card-text display-4 text-info mb-0">@(Model?.AlertSummary?.ReVerificationCount ?? 0)</p>
+                        </div>
+                        <i class="bi bi-person-check text-info" style="font-size: 2rem;"></i>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Customers pending review</p>
+                </div>
+                <div class="card-footer bg-transparent border-info">
+                    <a asp-controller="Customers" asp-action="PendingReVerification" class="btn btn-sm btn-outline-info w-100">
+                        View Pending
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Unacknowledged -->
+        <div class="col-md-3">
+            <div class="card border-secondary h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-subtitle mb-2 text-muted">Total Open Alerts</h6>
+                            <p class="card-text display-4 mb-0">@(Model?.AlertSummary?.TotalUnacknowledged ?? 0)</p>
+                        </div>
+                        <i class="bi bi-bell text-secondary" style="font-size: 2rem;"></i>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Unacknowledged alerts</p>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a asp-controller="Alerts" asp-action="Index" class="btn btn-sm btn-outline-secondary w-100">
+                        View All Alerts
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Recent Alerts Panel -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-bell-fill me-2"></i>Recent Alerts</h5>
+                    <div>
+                        @if ((Model?.AlertSummary?.OverdueCount ?? 0) > 0)
+                        {
+                            <span class="badge bg-danger me-2">@Model!.AlertSummary!.OverdueCount overdue</span>
+                        }
+                        <a asp-controller="Alerts" asp-action="Index" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model?.AlertSummary?.RecentAlerts != null && Model.AlertSummary.RecentAlerts.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Severity</th>
+                                        <th>Type</th>
+                                        <th>Message</th>
+                                        <th>Generated</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var alert in Model.AlertSummary.RecentAlerts)
+                                    {
+                                        var severityClass = alert.Severity switch
+                                        {
+                                            RE2.ComplianceCore.Models.AlertSeverity.Critical => "bg-danger",
+                                            RE2.ComplianceCore.Models.AlertSeverity.Warning => "bg-warning text-dark",
+                                            RE2.ComplianceCore.Models.AlertSeverity.Info => "bg-info",
+                                            _ => "bg-secondary"
+                                        };
+
+                                        var typeIcon = alert.AlertType switch
+                                        {
+                                            RE2.ComplianceCore.Models.AlertType.LicenceExpiring => "bi-calendar-x",
+                                            RE2.ComplianceCore.Models.AlertType.LicenceExpired => "bi-x-circle",
+                                            RE2.ComplianceCore.Models.AlertType.ReVerificationDue => "bi-person-check",
+                                            RE2.ComplianceCore.Models.AlertType.MissingDocumentation => "bi-file-earmark-x",
+                                            _ => "bi-bell"
+                                        };
+
+                                        <tr>
+                                            <td>
+                                                <span class="badge @severityClass">@alert.Severity</span>
+                                            </td>
+                                            <td>
+                                                <i class="bi @typeIcon me-1"></i>
+                                                @alert.AlertType
+                                            </td>
+                                            <td>
+                                                <span title="@alert.Details">@alert.Message</span>
+                                            </td>
+                                            <td>
+                                                <span class="text-muted">@alert.GeneratedDate.ToString("yyyy-MM-dd HH:mm")</span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a asp-controller="Alerts" asp-action="Details" asp-route-id="@alert.AlertId" class="btn btn-outline-secondary" title="View Details">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                    <form asp-controller="Alerts" asp-action="Acknowledge" asp-route-id="@alert.AlertId" method="post" style="display:inline;">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn btn-outline-success" title="Acknowledge">
+                                                            <i class="bi bi-check-lg"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="p-4 text-center text-muted">
+                            <i class="bi bi-check-circle" style="font-size: 3rem;"></i>
+                            <p class="mt-2 mb-0">No active alerts. All compliance items are current.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Alert Summary by Type -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart-fill me-2"></i>Alert Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>By Severity</h6>
+                            <div class="progress mb-2" style="height: 25px;">
+                                @{
+                                    var total = (Model?.AlertSummary?.TotalUnacknowledged ?? 0);
+                                    var criticalPct = total > 0 ? ((Model?.AlertSummary?.CriticalCount ?? 0) * 100.0 / total) : 0;
+                                    var warningPct = total > 0 ? ((Model?.AlertSummary?.WarningCount ?? 0) * 100.0 / total) : 0;
+                                    var infoPct = total > 0 ? ((Model?.AlertSummary?.InfoCount ?? 0) * 100.0 / total) : 0;
+                                }
+                                <div class="progress-bar bg-danger" role="progressbar" style="width: @criticalPct%">
+                                    @if (criticalPct > 10) { @:Critical (@(Model?.AlertSummary?.CriticalCount ?? 0))
+                                    }
+                                </div>
+                                <div class="progress-bar bg-warning" role="progressbar" style="width: @warningPct%">
+                                    @if (warningPct > 10) { @:Warning (@(Model?.AlertSummary?.WarningCount ?? 0))
+                                    }
+                                </div>
+                                <div class="progress-bar bg-info" role="progressbar" style="width: @infoPct%">
+                                    @if (infoPct > 10) { @:Info (@(Model?.AlertSummary?.InfoCount ?? 0))
+                                    }
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between small text-muted">
+                                <span><span class="badge bg-danger">Critical</span> @(Model?.AlertSummary?.CriticalCount ?? 0)</span>
+                                <span><span class="badge bg-warning text-dark">Warning</span> @(Model?.AlertSummary?.WarningCount ?? 0)</span>
+                                <span><span class="badge bg-info">Info</span> @(Model?.AlertSummary?.InfoCount ?? 0)</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>By Type</h6>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                                    <span><i class="bi bi-calendar-x me-2 text-warning"></i>Licence Expiring</span>
+                                    <span class="badge bg-warning text-dark rounded-pill">@(Model?.AlertSummary?.LicenceExpiringCount ?? 0)</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                                    <span><i class="bi bi-x-circle me-2 text-danger"></i>Licence Expired</span>
+                                    <span class="badge bg-danger rounded-pill">@(Model?.AlertSummary?.LicenceExpiredCount ?? 0)</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                                    <span><i class="bi bi-person-check me-2 text-info"></i>Re-verification Due</span>
+                                    <span class="badge bg-info rounded-pill">@(Model?.AlertSummary?.ReVerificationCount ?? 0)</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                                    <span><i class="bi bi-file-earmark-x me-2 text-secondary"></i>Missing Documentation</span>
+                                    <span class="badge bg-secondary rounded-pill">@(Model?.AlertSummary?.MissingDocumentationCount ?? 0)</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions & Summary Panel -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-lightning-fill me-2"></i>Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a asp-controller="Licences" asp-action="Create" class="btn btn-outline-primary">
+                            <i class="bi bi-plus-circle me-2"></i>New Licence
+                        </a>
+                        <a asp-controller="Customers" asp-action="Create" class="btn btn-outline-primary">
+                            <i class="bi bi-person-plus me-2"></i>New Customer
+                        </a>
+                        <a asp-controller="Licences" asp-action="Expiring" class="btn btn-outline-warning">
+                            <i class="bi bi-calendar-event me-2"></i>Review Expiring Licences
+                        </a>
+                        <a asp-controller="Alerts" asp-action="BulkAcknowledge" class="btn btn-outline-success">
+                            <i class="bi bi-check2-all me-2"></i>Bulk Acknowledge Alerts
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Compliance Overview</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="mb-0">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <dt class="mb-0">Active Licences</dt>
+                            <dd class="mb-0 h5">@(Model?.ActiveLicenceCount ?? 0)</dd>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <dt class="mb-0">Qualified Customers</dt>
+                            <dd class="mb-0 h5 text-success">@(Model?.QualifiedCustomerCount ?? 0)</dd>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <dt class="mb-0">Pending Qualification</dt>
+                            <dd class="mb-0 h5 text-warning">@(Model?.PendingQualificationCount ?? 0)</dd>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <dt class="mb-0">Suspended Customers</dt>
+                            <dd class="mb-0 h5 text-danger">@(Model?.SuspendedCustomerCount ?? 0)</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Alert Monitoring</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info small mb-3">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Alerts are automatically generated daily at 2:00 AM UTC per FR-007 and FR-017.
+                    </div>
+                    <ul class="small text-muted mb-0">
+                        <li>Licence expiry warnings: 90, 60, 30 days</li>
+                        <li>Customer re-verification: 30 days before due</li>
+                        <li>Expired licence alerts: Generated immediately</li>
+                    </ul>
+                    @if (User.IsInRole("ComplianceManager"))
+                    {
+                        <hr />
+                        <form asp-controller="Alerts" asp-action="GenerateManual" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-secondary w-100">
+                                <i class="bi bi-arrow-repeat me-2"></i>Generate Alerts Now
+                            </button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

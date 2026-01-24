@@ -117,4 +117,15 @@ public class InMemoryCustomerRepository : ICustomerRepository
             .ToList();
         return Task.FromResult<IEnumerable<Customer>>(customers);
     }
+
+    /// <summary>
+    /// Seeds initial data for testing. Called by InMemorySeedData.
+    /// </summary>
+    internal void Seed(IEnumerable<Customer> customers)
+    {
+        foreach (var customer in customers)
+        {
+            _customers.TryAdd(customer.CustomerId, customer);
+        }
+    }
 }
