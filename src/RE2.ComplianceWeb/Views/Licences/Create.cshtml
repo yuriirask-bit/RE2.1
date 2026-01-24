@@ -29,18 +29,28 @@
 
                 <div class="mb-3">
                     <label asp-for="HolderType" class="form-label">Holder Type *</label>
-                    <select asp-for="HolderType" class="form-select" required>
+                    <select asp-for="HolderType" class="form-select" required id="holderTypeSelect">
                         <option value="Company">Company</option>
                         <option value="Customer">Customer</option>
                     </select>
                     <span asp-validation-for="HolderType" class="text-danger"></span>
                 </div>
 
-                <div class="mb-3">
-                    <label asp-for="HolderId" class="form-label">Holder ID *</label>
-                    <input asp-for="HolderId" class="form-control" required />
+                @* T094: Customer dropdown - shown when HolderType is "Customer" *@
+                <div class="mb-3" id="customerSelectGroup" style="display: none;">
+                    <label class="form-label">Select Customer *</label>
+                    <select id="customerSelect" class="form-select" asp-items="@ViewBag.Customers">
+                        <option value="">Select customer...</option>
+                    </select>
+                    <small class="text-muted">Select the customer to associate with this licence</small>
+                </div>
+
+                @* Company ID input - shown when HolderType is "Company" *@
+                <div class="mb-3" id="companyIdGroup">
+                    <label asp-for="HolderId" class="form-label">Company ID *</label>
+                    <input asp-for="HolderId" class="form-control" id="holderIdInput" />
                     <span asp-validation-for="HolderId" class="text-danger"></span>
-                    <small class="text-muted">Enter the GUID of the company or customer.</small>
+                    <small class="text-muted">Enter the GUID of the company.</small>
                 </div>
             </div>
 
@@ -127,5 +137,39 @@
             });
             document.getElementById('permittedActivitiesValue').value = value;
         }
+
+        // T094: Toggle between customer dropdown and company ID input
+        const holderTypeSelect = document.getElementById('holderTypeSelect');
+        const customerSelectGroup = document.getElementById('customerSelectGroup');
+        const companyIdGroup = document.getElementById('companyIdGroup');
+        const customerSelect = document.getElementById('customerSelect');
+        const holderIdInput = document.getElementById('holderIdInput');
+
+        function updateHolderFields() {
+            const isCustomer = holderTypeSelect.value === 'Customer';
+
+            if (isCustomer) {
+                customerSelectGroup.style.display = 'block';
+                companyIdGroup.style.display = 'none';
+                // Copy selected customer ID to hidden holder ID field
+                holderIdInput.value = customerSelect.value;
+                customerSelect.required = true;
+            } else {
+                customerSelectGroup.style.display = 'none';
+                companyIdGroup.style.display = 'block';
+                customerSelect.required = false;
+            }
+        }
+
+        // Update holder ID when customer is selected
+        customerSelect.addEventListener('change', function() {
+            holderIdInput.value = this.value;
+        });
+
+        // Update fields when holder type changes
+        holderTypeSelect.addEventListener('change', updateHolderFields);
+
+        // Initialize on page load
+        updateHolderFields();
     </script>
 }

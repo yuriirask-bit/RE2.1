@@ -39,8 +39,20 @@
                         <dt class="col-sm-4">Holder Type</dt>
                         <dd class="col-sm-8">@Model.HolderType</dd>
 
-                        <dt class="col-sm-4">Holder ID</dt>
-                        <dd class="col-sm-8"><code>@Model.HolderId</code></dd>
+                        <dt class="col-sm-4">Holder</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.HolderType == "Customer" && ViewBag.HolderName != null)
+                            {
+                                <a asp-controller="Customers" asp-action="Details" asp-route-id="@Model.HolderId">
+                                    @ViewBag.HolderName
+                                </a>
+                                <br /><small class="text-muted"><code>@Model.HolderId</code></small>
+                            }
+                            else
+                            {
+                                <code>@Model.HolderId</code>
+                            }
+                        </dd>
                     </dl>
                 </div>
                 <div class="col-md-6">

@@ -1,0 +1,247 @@
+@model RE2.ComplianceCore.Models.Customer
+@using RE2.ComplianceCore.Interfaces
+@{
+    ViewData["Title"] = "Customer Details";
+    var complianceStatus = ViewBag.ComplianceStatus as CustomerComplianceStatus;
+}
+
+<div class="container">
+    <h1>Customer Details</h1>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (Model.IsSuspended)
+    {
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> Customer Suspended</h4>
+            <p class="mb-0">
+                <strong>Reason:</strong> @(Model.SuspensionReason ?? "No reason provided")
+            </p>
+            <hr />
+            <form asp-action="Reinstate" asp-route-id="@Model.CustomerId" method="post" style="display:inline;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-success" onclick="return confirm('Are you sure you want to reinstate this customer?');">
+                    <i class="bi bi-check-circle"></i> Reinstate Customer
+                </button>
+            </form>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        @Model.BusinessName
+                        @{
+                            var statusClass = Model.ApprovalStatus switch
+                            {
+                                RE2.ComplianceCore.Models.ApprovalStatus.Approved => "bg-success",
+                                RE2.ComplianceCore.Models.ApprovalStatus.ConditionallyApproved => "bg-info",
+                                RE2.ComplianceCore.Models.ApprovalStatus.Pending => "bg-warning text-dark",
+                                RE2.ComplianceCore.Models.ApprovalStatus.Rejected => "bg-danger",
+                                RE2.ComplianceCore.Models.ApprovalStatus.Suspended => "bg-secondary",
+                                _ => "bg-light text-dark"
+                            };
+                        }
+                        <span class="badge @statusClass float-end">@FormatEnumName(Model.ApprovalStatus.ToString())</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-5">Customer ID</dt>
+                                <dd class="col-sm-7"><code>@Model.CustomerId</code></dd>
+
+                                <dt class="col-sm-5">Business Name</dt>
+                                <dd class="col-sm-7">@Model.BusinessName</dd>
+
+                                <dt class="col-sm-5">Registration No.</dt>
+                                <dd class="col-sm-7">@(Model.RegistrationNumber ?? "-")</dd>
+
+                                <dt class="col-sm-5">Business Category</dt>
+                                <dd class="col-sm-7">@FormatEnumName(Model.BusinessCategory.ToString())</dd>
+
+                                <dt class="col-sm-5">Country</dt>
+                                <dd class="col-sm-7">@Model.Country</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-5">Approval Status</dt>
+                                <dd class="col-sm-7">
+                                    <span class="badge @statusClass">@FormatEnumName(Model.ApprovalStatus.ToString())</span>
+                                </dd>
+
+                                <dt class="col-sm-5">GDP Status</dt>
+                                <dd class="col-sm-7">
+                                    @{
+                                        var gdpClass = Model.GdpQualificationStatus switch
+                                        {
+                                            RE2.ComplianceCore.Models.GdpQualificationStatus.Approved => "bg-success",
+                                            RE2.ComplianceCore.Models.GdpQualificationStatus.ConditionallyApproved => "bg-info",
+                                            RE2.ComplianceCore.Models.GdpQualificationStatus.Pending => "bg-warning text-dark",
+                                            RE2.ComplianceCore.Models.GdpQualificationStatus.Rejected => "bg-danger",
+                                            RE2.ComplianceCore.Models.GdpQualificationStatus.UnderReview => "bg-primary",
+                                            RE2.ComplianceCore.Models.GdpQualificationStatus.NotRequired => "bg-light text-dark",
+                                            _ => "bg-light text-dark"
+                                        };
+                                    }
+                                    <span class="badge @gdpClass">@FormatEnumName(Model.GdpQualificationStatus.ToString())</span>
+                                </dd>
+
+                                <dt class="col-sm-5">Onboarding Date</dt>
+                                <dd class="col-sm-7">@(Model.OnboardingDate?.ToString("yyyy-MM-dd") ?? "-")</dd>
+
+                                <dt class="col-sm-5">Re-Verification</dt>
+                                <dd class="col-sm-7">
+                                    @if (Model.NextReVerificationDate.HasValue)
+                                    {
+                                        <span class="@(Model.IsReVerificationDue() ? "text-danger fw-bold" : "")">
+                                            @Model.NextReVerificationDate.Value.ToString("yyyy-MM-dd")
+                                            @if (Model.IsReVerificationDue())
+                                            {
+                                                <span class="badge bg-danger ms-1">DUE</span>
+                                            }
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Not set</span>
+                                    }
+                                </dd>
+
+                                <dt class="col-sm-5">Created</dt>
+                                <dd class="col-sm-7">@Model.CreatedDate.ToString("yyyy-MM-dd HH:mm")</dd>
+
+                                <dt class="col-sm-5">Last Modified</dt>
+                                <dd class="col-sm-7">@Model.ModifiedDate.ToString("yyyy-MM-dd HH:mm")</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a asp-action="Edit" asp-route-id="@Model.CustomerId" class="btn btn-primary">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+                    @if (!Model.IsSuspended)
+                    {
+                        <button type="button" class="btn btn-danger float-end" data-bs-toggle="modal" data-bs-target="#suspendModal">
+                            <i class="bi bi-pause-circle"></i> Suspend
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-3 @(Model.CanTransact() ? "border-success" : "border-danger")">
+                <div class="card-header @(Model.CanTransact() ? "bg-success text-white" : "bg-danger text-white")">
+                    <h5 class="mb-0">
+                        <i class="bi @(Model.CanTransact() ? "bi-check-circle" : "bi-x-circle")"></i>
+                        Transaction Status
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.CanTransact())
+                    {
+                        <p class="text-success fw-bold mb-0">
+                            <i class="bi bi-check-circle-fill"></i> Customer can transact
+                        </p>
+                    }
+                    else
+                    {
+                        <p class="text-danger fw-bold mb-0">
+                            <i class="bi bi-x-circle-fill"></i> Transactions blocked
+                        </p>
+                        <hr />
+                        <ul class="mb-0">
+                            @if (Model.IsSuspended)
+                            {
+                                <li>Customer is suspended</li>
+                            }
+                            @if (Model.ApprovalStatus != RE2.ComplianceCore.Models.ApprovalStatus.Approved &&
+                                Model.ApprovalStatus != RE2.ComplianceCore.Models.ApprovalStatus.ConditionallyApproved)
+                            {
+                                <li>Approval status: @FormatEnumName(Model.ApprovalStatus.ToString())</li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+
+            @if (complianceStatus?.Warnings?.Any() == true)
+            {
+                <div class="card mb-3 border-warning">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Compliance Warnings</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled mb-0">
+                            @foreach (var warning in complianceStatus.Warnings)
+                            {
+                                <li class="mb-2">
+                                    <span class="badge @(warning.Severity == "Error" ? "bg-danger" : warning.Severity == "Warning" ? "bg-warning text-dark" : "bg-info")">
+                                        @warning.Severity
+                                    </span>
+                                    @warning.Message
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@* Suspend Modal *@
+<div class="modal fade" id="suspendModal" tabindex="-1" aria-labelledby="suspendModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="Suspend" asp-route-id="@Model.CustomerId" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="suspendModalLabel">Suspend Customer</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to suspend <strong>@Model.BusinessName</strong>?</p>
+                    <p class="text-danger"><i class="bi bi-exclamation-triangle"></i> This will block all transactions for this customer.</p>
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">Suspension Reason *</label>
+                        <textarea name="reason" id="reason" class="form-control" rows="3" required placeholder="Enter reason for suspension..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Suspend Customer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@functions {
+    string FormatEnumName(string enumName)
+    {
+        return string.Concat(enumName.Select((c, i) =>
+            i > 0 && char.IsUpper(c) ? " " + c : c.ToString()));
+    }
+}
