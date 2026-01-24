@@ -36,8 +36,13 @@ public class HomeController : Controller
             var alertSummary = await _alertService.GetDashboardSummaryAsync(cancellationToken);
 
             // Get licence statistics
-            var licences = await _licenceRepository.GetAllAsync(cancellationToken);
-            var activeLicenceCount = licences.Count(l => l.Status == "Valid" && !l.IsExpired());
+            var licencesList = (await _licenceRepository.GetAllAsync(cancellationToken)).ToList();
+            var activeLicenceCount = licencesList.Count(l => l.Status == "Valid" && !l.IsExpired());
+            var expiredLicenceCount = licencesList.Count(l => l.IsExpired());
+
+            // Get expiring licences count from source data (not alerts)
+            var expiringLicences = await _licenceRepository.GetExpiringLicencesAsync(90, cancellationToken);
+            var expiringLicenceCount = expiringLicences.Count();
 
             // Get customer statistics
             var customers = await _customerRepository.GetAllAsync(cancellationToken);
@@ -45,13 +50,20 @@ public class HomeController : Controller
             var pendingQualificationCount = customers.Count(c => c.ApprovalStatus == RE2.ComplianceCore.Models.ApprovalStatus.Pending);
             var suspendedCustomerCount = customers.Count(c => c.IsSuspended);
 
+            // Get re-verification due count from source data (not alerts)
+            var reVerificationDue = await _customerRepository.GetReVerificationDueAsync(90, cancellationToken);
+            var reVerificationDueCount = reVerificationDue.Count();
+
             var viewModel = new DashboardViewModel
             {
                 AlertSummary = alertSummary,
                 ActiveLicenceCount = activeLicenceCount,
+                ExpiringLicenceCount = expiringLicenceCount,
+                ExpiredLicenceCount = expiredLicenceCount,
                 QualifiedCustomerCount = qualifiedCustomerCount,
                 PendingQualificationCount = pendingQualificationCount,
-                SuspendedCustomerCount = suspendedCustomerCount
+                SuspendedCustomerCount = suspendedCustomerCount,
+                ReVerificationDueCount = reVerificationDueCount
             };
 
             return View(viewModel);
