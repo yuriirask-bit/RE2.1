@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RE2.ComplianceCore.Interfaces;
 using RE2.ComplianceCore.Models;
@@ -9,9 +10,11 @@ namespace RE2.ComplianceApi.Controllers.V1;
 /// <summary>
 /// Customer compliance API endpoints
 /// T091: CustomersController v1 with compliance status endpoint (FR-060)
+/// T098: Route authorization - SalesAdmin and ComplianceManager can create/modify customers
 /// </summary>
 [ApiController]
 [Route("api/v1/[controller]")]
+[Authorize]
 public class CustomersController : ControllerBase
 {
     private readonly ICustomerService _customerService;
@@ -105,8 +108,10 @@ public class CustomersController : ControllerBase
 
     /// <summary>
     /// Creates a new customer.
+    /// T098: SalesAdmin or ComplianceManager can create customers.
     /// </summary>
     [HttpPost]
+    [Authorize(Roles = "SalesAdmin,ComplianceManager")]
     [ProducesResponseType(typeof(CustomerResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateCustomer([FromBody] CreateCustomerRequestDto request, CancellationToken cancellationToken = default)
@@ -134,8 +139,10 @@ public class CustomersController : ControllerBase
 
     /// <summary>
     /// Updates an existing customer.
+    /// T098: SalesAdmin or ComplianceManager can modify customers.
     /// </summary>
     [HttpPut("{id}")]
+    [Authorize(Roles = "SalesAdmin,ComplianceManager")]
     [ProducesResponseType(typeof(CustomerResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
@@ -169,8 +176,10 @@ public class CustomersController : ControllerBase
 
     /// <summary>
     /// Deletes a customer.
+    /// T098: SalesAdmin or ComplianceManager can delete customers.
     /// </summary>
     [HttpDelete("{id}")]
+    [Authorize(Roles = "SalesAdmin,ComplianceManager")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteCustomer(Guid id, CancellationToken cancellationToken = default)
@@ -192,8 +201,10 @@ public class CustomersController : ControllerBase
     /// <summary>
     /// Suspends a customer.
     /// Per FR-015: Compliance managers can mark a customer as suspended.
+    /// T098: Only ComplianceManager role can suspend customers.
     /// </summary>
     [HttpPost("{id}/suspend")]
+    [Authorize(Roles = "ComplianceManager")]
     [ProducesResponseType(typeof(CustomerComplianceStatusResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> SuspendCustomer(Guid id, [FromBody] SuspendCustomerRequestDto request, CancellationToken cancellationToken = default)
@@ -215,8 +226,10 @@ public class CustomersController : ControllerBase
 
     /// <summary>
     /// Reinstates a suspended customer.
+    /// T098: Only ComplianceManager role can reinstate customers.
     /// </summary>
     [HttpPost("{id}/reinstate")]
+    [Authorize(Roles = "ComplianceManager")]
     [ProducesResponseType(typeof(CustomerComplianceStatusResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ReinstateCustomer(Guid id, CancellationToken cancellationToken = default)
