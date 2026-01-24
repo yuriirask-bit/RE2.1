@@ -325,9 +325,11 @@ public class CustomersController : Controller
     /// Alias for ReVerificationDue - linked from dashboard.
     /// T097a: Pending re-verification page accessible from dashboard.
     /// </summary>
-    public Task<IActionResult> PendingReVerification(int daysAhead = 30, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> PendingReVerification(int daysAhead = 30, CancellationToken cancellationToken = default)
     {
-        return ReVerificationDue(daysAhead, cancellationToken);
+        var customers = await _customerService.GetReVerificationDueAsync(daysAhead, cancellationToken);
+        ViewBag.DaysAhead = daysAhead;
+        return View("ReVerificationDue", customers);
     }
 
     #region Helper Methods
