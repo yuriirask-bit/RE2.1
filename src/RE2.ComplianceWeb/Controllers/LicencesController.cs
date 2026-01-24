@@ -11,6 +11,7 @@ namespace RE2.ComplianceWeb.Controllers;
 /// <summary>
 /// MVC controller for licence management web UI.
 /// T077: Web UI controller for licence CRUD operations.
+/// T094: Extended to support associating licences with customers.
 /// </summary>
 [Authorize]
 public class LicencesController : Controller
@@ -19,6 +20,7 @@ public class LicencesController : Controller
     private readonly ILicenceTypeRepository _licenceTypeRepository;
     private readonly ILicenceSubstanceMappingService _mappingService;
     private readonly IControlledSubstanceRepository _substanceRepository;
+    private readonly ICustomerService _customerService;
     private readonly ILogger<LicencesController> _logger;
 
     public LicencesController(
@@ -26,12 +28,14 @@ public class LicencesController : Controller
         ILicenceTypeRepository licenceTypeRepository,
         ILicenceSubstanceMappingService mappingService,
         IControlledSubstanceRepository substanceRepository,
+        ICustomerService customerService,
         ILogger<LicencesController> logger)
     {
         _licenceService = licenceService;
         _licenceTypeRepository = licenceTypeRepository;
         _mappingService = mappingService;
         _substanceRepository = substanceRepository;
+        _customerService = customerService;
         _logger = logger;
     }
 
@@ -42,6 +46,29 @@ public class LicencesController : Controller
     {
         var licenceTypes = await _licenceTypeRepository.GetAllActiveAsync(cancellationToken);
         return new SelectList(licenceTypes, "LicenceTypeId", "Name", selectedId);
+    }
+
+    /// <summary>
+    /// Loads customers for dropdown lists.
+    /// T094: Customer selection for licence association.
+    /// </summary>
+    private async Task<SelectList> GetCustomerSelectListAsync(Guid? selectedId = null, CancellationToken cancellationToken = default)
+    {
+        var customers = await _customerService.GetAllAsync(cancellationToken);
+        var customerList = customers
+            .OrderBy(c => c.BusinessName)
+            .Select(c => new { c.CustomerId, DisplayName = $"{c.BusinessName} ({c.Country})" });
+        return new SelectList(customerList, "CustomerId", "DisplayName", selectedId);
+    }
+
+    /// <summary>
+    /// Gets customer name by ID for display purposes.
+    /// T094: Display customer name in licence details.
+    /// </summary>
+    private async Task<string?> GetCustomerNameAsync(Guid customerId, CancellationToken cancellationToken = default)
+    {
+        var customer = await _customerService.GetByIdAsync(customerId, cancellationToken);
+        return customer?.BusinessName;
     }
 
     /// <summary>
@@ -67,6 +94,7 @@ public class LicencesController : Controller
     public async Task<IActionResult> Create(CancellationToken cancellationToken = default)
     {
         ViewBag.LicenceTypes = await GetLicenceTypeSelectListAsync(cancellationToken: cancellationToken);
+        ViewBag.Customers = await GetCustomerSelectListAsync(cancellationToken: cancellationToken);
         return View(new LicenceCreateViewModel());
     }
 
@@ -81,6 +109,7 @@ public class LicencesController : Controller
         if (!ModelState.IsValid)
         {
             ViewBag.LicenceTypes = await GetLicenceTypeSelectListAsync(model.LicenceTypeId, cancellationToken);
+            ViewBag.Customers = await GetCustomerSelectListAsync(model.HolderType == "Customer" ? model.HolderId : null, cancellationToken);
             return View(model);
         }
 
@@ -108,6 +137,7 @@ public class LicencesController : Controller
                 ModelState.AddModelError(string.Empty, violation.Message);
             }
             ViewBag.LicenceTypes = await GetLicenceTypeSelectListAsync(model.LicenceTypeId, cancellationToken);
+            ViewBag.Customers = await GetCustomerSelectListAsync(model.HolderType == "Customer" ? model.HolderId : null, cancellationToken);
             return View(model);
         }
 
@@ -139,6 +169,12 @@ public class LicencesController : Controller
         // Load available substances for add mapping modal
         var substances = await _substanceRepository.GetAllActiveAsync(cancellationToken);
         ViewBag.Substances = substances;
+
+        // T094: Load customer name if HolderType is "Customer"
+        if (licence.HolderType == "Customer")
+        {
+            ViewBag.HolderName = await GetCustomerNameAsync(licence.HolderId, cancellationToken);
+        }
 
         return View(licence);
     }
@@ -172,6 +208,7 @@ public class LicencesController : Controller
         };
 
         ViewBag.LicenceTypes = await GetLicenceTypeSelectListAsync(model.LicenceTypeId, cancellationToken);
+        ViewBag.Customers = await GetCustomerSelectListAsync(model.HolderType == "Customer" ? model.HolderId : null, cancellationToken);
         return View(model);
     }
 
@@ -191,6 +228,7 @@ public class LicencesController : Controller
         if (!ModelState.IsValid)
         {
             ViewBag.LicenceTypes = await GetLicenceTypeSelectListAsync(model.LicenceTypeId, cancellationToken);
+            ViewBag.Customers = await GetCustomerSelectListAsync(model.HolderType == "Customer" ? model.HolderId : null, cancellationToken);
             return View(model);
         }
 
@@ -218,6 +256,7 @@ public class LicencesController : Controller
                 ModelState.AddModelError(string.Empty, violation.Message);
             }
             ViewBag.LicenceTypes = await GetLicenceTypeSelectListAsync(model.LicenceTypeId, cancellationToken);
+            ViewBag.Customers = await GetCustomerSelectListAsync(model.HolderType == "Customer" ? model.HolderId : null, cancellationToken);
             return View(model);
         }
 

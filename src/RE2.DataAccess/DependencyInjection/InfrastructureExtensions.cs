@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using RE2.ComplianceCore.Interfaces;
 using RE2.ComplianceCore.Services.AlertGeneration;
+using RE2.ComplianceCore.Services.CustomerQualification;
 using RE2.ComplianceCore.Services.LicenceValidation;
 using RE2.ComplianceCore.Services.SubstanceManagement;
 using RE2.DataAccess.BlobStorage;
@@ -208,6 +209,9 @@ public static class InfrastructureExtensions
 
         // Register alert generation service for compliance monitoring
         services.AddScoped<AlertGenerationService>();
+
+        // Register customer service for customer qualification management
+        services.AddScoped<ICustomerService, CustomerService>();
 
         return services;
     }

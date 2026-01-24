@@ -1,3 +1,4 @@
+@model IEnumerable<RE2.ComplianceCore.Models.Customer>
 @{
     ViewData["Title"] = "Customer Management";
 }
@@ -6,42 +7,169 @@
     <h1>Customer Management</h1>
     <p>Manage customer profiles and compliance qualifications</p>
 
-    <div class="mb-3">
-        <a href="/Customers/Create" class="btn btn-primary">Create New Customer</a>
-    </div>
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
 
     <div class="row mb-3">
         <div class="col-md-4">
-            <input type="text" class="form-control" placeholder="Search customers...">
-        </div>
-        <div class="col-md-3">
-            <select class="form-select">
-                <option value="">All Statuses</option>
-                <option value="Approved">Approved</option>
-                <option value="Pending">Pending</option>
-                <option value="Suspended">Suspended</option>
-            </select>
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Create New Customer
+            </a>
+            <a asp-action="ReVerificationDue" class="btn btn-warning">
+                <i class="bi bi-calendar-check"></i> Re-Verification Due
+            </a>
         </div>
     </div>
 
-    <table class="table table-striped">
-        <thead>
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Search by Name</label>
+                    <input type="text" name="search" class="form-control" placeholder="Business name..." value="@ViewBag.SearchTerm" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Approval Status</label>
+                    <select name="status" class="form-select" asp-items="@ViewBag.ApprovalStatuses">
+                        <option value="">All Statuses</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Business Category</label>
+                    <select name="category" class="form-select" asp-items="@ViewBag.BusinessCategories">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="bi bi-search"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
             <tr>
-                <th>Customer Number</th>
-                <th>Name</th>
-                <th>Type</th>
+                <th>Business Name</th>
+                <th>Registration No.</th>
+                <th>Category</th>
                 <th>Country</th>
                 <th>Approval Status</th>
-                <th>Licences</th>
+                <th>GDP Status</th>
+                <th>Can Transact</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
-            <tr>
-                <td colspan="7" class="text-center">
-                    <em>Customer listing to be implemented (T092)</em>
-                </td>
-            </tr>
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="8" class="text-center">
+                        <em>No customers found. Click "Create New Customer" to add one.</em>
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var customer in Model)
+                {
+                    <tr class="@(customer.IsSuspended ? "table-danger" : "")">
+                        <td>
+                            <a asp-action="Details" asp-route-id="@customer.CustomerId">
+                                @customer.BusinessName
+                            </a>
+                            @if (customer.IsSuspended)
+                            {
+                                <span class="badge bg-danger ms-1">SUSPENDED</span>
+                            }
+                        </td>
+                        <td>@(customer.RegistrationNumber ?? "-")</td>
+                        <td>@FormatEnumName(customer.BusinessCategory.ToString())</td>
+                        <td>@customer.Country</td>
+                        <td>
+                            @{
+                                var statusClass = customer.ApprovalStatus switch
+                                {
+                                    RE2.ComplianceCore.Models.ApprovalStatus.Approved => "bg-success",
+                                    RE2.ComplianceCore.Models.ApprovalStatus.ConditionallyApproved => "bg-info",
+                                    RE2.ComplianceCore.Models.ApprovalStatus.Pending => "bg-warning text-dark",
+                                    RE2.ComplianceCore.Models.ApprovalStatus.Rejected => "bg-danger",
+                                    RE2.ComplianceCore.Models.ApprovalStatus.Suspended => "bg-secondary",
+                                    _ => "bg-light text-dark"
+                                };
+                            }
+                            <span class="badge @statusClass">@FormatEnumName(customer.ApprovalStatus.ToString())</span>
+                        </td>
+                        <td>
+                            @{
+                                var gdpClass = customer.GdpQualificationStatus switch
+                                {
+                                    RE2.ComplianceCore.Models.GdpQualificationStatus.Approved => "bg-success",
+                                    RE2.ComplianceCore.Models.GdpQualificationStatus.ConditionallyApproved => "bg-info",
+                                    RE2.ComplianceCore.Models.GdpQualificationStatus.Pending => "bg-warning text-dark",
+                                    RE2.ComplianceCore.Models.GdpQualificationStatus.Rejected => "bg-danger",
+                                    RE2.ComplianceCore.Models.GdpQualificationStatus.UnderReview => "bg-primary",
+                                    RE2.ComplianceCore.Models.GdpQualificationStatus.NotRequired => "bg-light text-dark",
+                                    _ => "bg-light text-dark"
+                                };
+                            }
+                            <span class="badge @gdpClass">@FormatEnumName(customer.GdpQualificationStatus.ToString())</span>
+                        </td>
+                        <td>
+                            @if (customer.CanTransact())
+                            {
+                                <span class="badge bg-success"><i class="bi bi-check-circle"></i> Yes</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger"><i class="bi bi-x-circle"></i> No</span>
+                            }
+                        </td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@customer.CustomerId" class="btn btn-sm btn-outline-primary" title="View Details">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a asp-action="Edit" asp-route-id="@customer.CustomerId" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form asp-action="Delete" asp-route-id="@customer.CustomerId" method="post" style="display:inline;"
+                                  onsubmit="return confirm('Are you sure you want to delete this customer?');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            }
         </tbody>
     </table>
+
+    <div class="text-muted">
+        Showing @Model.Count() customer(s)
+    </div>
 </div>
+
+@functions {
+    string FormatEnumName(string enumName)
+    {
+        return string.Concat(enumName.Select((c, i) =>
+            i > 0 && char.IsUpper(c) ? " " + c : c.ToString()));
+    }
+}

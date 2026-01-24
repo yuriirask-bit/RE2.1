@@ -1,0 +1,133 @@
+@model IEnumerable<RE2.ComplianceCore.Models.Customer>
+@{
+    ViewData["Title"] = "Re-Verification Due";
+    var daysAhead = ViewBag.DaysAhead as int? ?? 90;
+}
+
+<div class="container">
+    <h1>Customers with Re-Verification Due</h1>
+    <p>Customers requiring periodic re-verification within the specified timeframe</p>
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Customer List
+            </a>
+        </div>
+        <div class="col-md-6">
+            <form method="get" class="d-flex justify-content-end">
+                <label class="col-form-label me-2">Days Ahead:</label>
+                <select name="daysAhead" class="form-select w-auto" onchange="this.form.submit()">
+                    <option value="30" selected="@(daysAhead == 30)">30 days</option>
+                    <option value="60" selected="@(daysAhead == 60)">60 days</option>
+                    <option value="90" selected="@(daysAhead == 90)">90 days</option>
+                    <option value="180" selected="@(daysAhead == 180)">180 days</option>
+                    <option value="365" selected="@(daysAhead == 365)">1 year</option>
+                </select>
+            </form>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle"></i> No customers require re-verification within the next @daysAhead days.
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> <strong>@Model.Count()</strong> customer(s) require re-verification within the next @daysAhead days.
+        </div>
+
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Business Name</th>
+                    <th>Category</th>
+                    <th>Country</th>
+                    <th>Re-Verification Date</th>
+                    <th>Days Remaining</th>
+                    <th>Approval Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var customer in Model.OrderBy(c => c.NextReVerificationDate))
+                {
+                    var daysRemaining = customer.NextReVerificationDate.HasValue
+                        ? (customer.NextReVerificationDate.Value.ToDateTime(TimeOnly.MinValue) - DateTime.UtcNow).Days
+                        : 0;
+                    var isOverdue = daysRemaining < 0;
+                    var isUrgent = daysRemaining >= 0 && daysRemaining <= 30;
+
+                    <tr class="@(isOverdue ? "table-danger" : isUrgent ? "table-warning" : "")">
+                        <td>
+                            <a asp-action="Details" asp-route-id="@customer.CustomerId">
+                                @customer.BusinessName
+                            </a>
+                            @if (customer.IsSuspended)
+                            {
+                                <span class="badge bg-danger ms-1">SUSPENDED</span>
+                            }
+                        </td>
+                        <td>@FormatEnumName(customer.BusinessCategory.ToString())</td>
+                        <td>@customer.Country</td>
+                        <td>
+                            @if (customer.NextReVerificationDate.HasValue)
+                            {
+                                <span class="@(isOverdue ? "fw-bold" : "")">
+                                    @customer.NextReVerificationDate.Value.ToString("yyyy-MM-dd")
+                                </span>
+                            }
+                        </td>
+                        <td>
+                            @if (isOverdue)
+                            {
+                                <span class="badge bg-danger">@Math.Abs(daysRemaining) days overdue</span>
+                            }
+                            else if (isUrgent)
+                            {
+                                <span class="badge bg-warning text-dark">@daysRemaining days</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-info">@daysRemaining days</span>
+                            }
+                        </td>
+                        <td>
+                            @{
+                                var statusClass = customer.ApprovalStatus switch
+                                {
+                                    RE2.ComplianceCore.Models.ApprovalStatus.Approved => "bg-success",
+                                    RE2.ComplianceCore.Models.ApprovalStatus.ConditionallyApproved => "bg-info",
+                                    RE2.ComplianceCore.Models.ApprovalStatus.Pending => "bg-warning text-dark",
+                                    RE2.ComplianceCore.Models.ApprovalStatus.Rejected => "bg-danger",
+                                    RE2.ComplianceCore.Models.ApprovalStatus.Suspended => "bg-secondary",
+                                    _ => "bg-light text-dark"
+                                };
+                            }
+                            <span class="badge @statusClass">@FormatEnumName(customer.ApprovalStatus.ToString())</span>
+                        </td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@customer.CustomerId" class="btn btn-sm btn-outline-primary" title="View Details">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a asp-action="Edit" asp-route-id="@customer.CustomerId" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@functions {
+    string FormatEnumName(string enumName)
+    {
+        return string.Concat(enumName.Select((c, i) =>
+            i > 0 && char.IsUpper(c) ? " " + c : c.ToString()));
+    }
+}
