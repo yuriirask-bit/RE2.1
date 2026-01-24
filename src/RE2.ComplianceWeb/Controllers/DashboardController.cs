@@ -102,4 +102,19 @@ public class DashboardViewModel
     /// Count of suspended customers.
     /// </summary>
     public int SuspendedCustomerCount { get; set; }
+
+    /// <summary>
+    /// Count of licences expiring within 90 days (from source data, not alerts).
+    /// </summary>
+    public int ExpiringLicenceCount { get; set; }
+
+    /// <summary>
+    /// Count of customers with re-verification due within 30 days (from source data, not alerts).
+    /// </summary>
+    public int ReVerificationDueCount { get; set; }
+
+    /// <summary>
+    /// Count of expired licences (from source data, not alerts).
+    /// </summary>
+    public int ExpiredLicenceCount { get; set; }
 }
