@@ -1,29 +1,64 @@
 using RE2.ComplianceCore.Models;
 using RE2.Shared.Constants;
+using static RE2.Shared.Constants.TransactionTypes;
 
 namespace RE2.DataAccess.InMemory;
 
 /// <summary>
-/// Provides seed data for in-memory repositories to enable local testing of User Story 1.
+/// Provides seed data for in-memory repositories to enable local testing.
 /// Contains realistic Dutch pharmaceutical licence management test data.
+/// Extended for User Story 4 with customer and threshold data.
 /// </summary>
 public static class InMemorySeedData
 {
-    // Well-known IDs for testing
-    public static readonly Guid CompanyHolderId = Guid.Parse("00000000-0000-0000-0000-000000000001");
-    public static readonly Guid CustomerHospitalId = Guid.Parse("00000000-0000-0000-0000-000000000010");
-    public static readonly Guid CustomerPharmacyId = Guid.Parse("00000000-0000-0000-0000-000000000011");
-    public static readonly Guid CustomerVeterinarianId = Guid.Parse("00000000-0000-0000-0000-000000000012");
+    // Re-export well-known IDs for backward compatibility and convenience
+    public static readonly Guid CompanyHolderId = WellKnownIds.CompanyHolderId;
+    public static readonly Guid CustomerHospitalId = WellKnownIds.CustomerHospitalId;
+    public static readonly Guid CustomerPharmacyId = WellKnownIds.CustomerPharmacyId;
+    public static readonly Guid CustomerVeterinarianId = WellKnownIds.CustomerVeterinarianId;
+    public static readonly Guid CustomerSuspendedId = WellKnownIds.CustomerSuspendedId;
 
-    public static readonly Guid WholesaleLicenceTypeId = Guid.Parse("10000000-0000-0000-0000-000000000001");
-    public static readonly Guid OpiumExemptionTypeId = Guid.Parse("10000000-0000-0000-0000-000000000002");
-    public static readonly Guid ImportPermitTypeId = Guid.Parse("10000000-0000-0000-0000-000000000003");
-    public static readonly Guid ExportPermitTypeId = Guid.Parse("10000000-0000-0000-0000-000000000004");
-    public static readonly Guid PharmacyLicenceTypeId = Guid.Parse("10000000-0000-0000-0000-000000000005");
-    public static readonly Guid PrecursorRegistrationTypeId = Guid.Parse("10000000-0000-0000-0000-000000000006");
+    public static readonly Guid WholesaleLicenceTypeId = WellKnownIds.WholesaleLicenceTypeId;
+    public static readonly Guid OpiumExemptionTypeId = WellKnownIds.OpiumExemptionTypeId;
+    public static readonly Guid ImportPermitTypeId = WellKnownIds.ImportPermitTypeId;
+    public static readonly Guid ExportPermitTypeId = WellKnownIds.ExportPermitTypeId;
+    public static readonly Guid PharmacyLicenceTypeId = WellKnownIds.PharmacyLicenceTypeId;
+    public static readonly Guid PrecursorRegistrationTypeId = WellKnownIds.PrecursorRegistrationTypeId;
+
+    // Substance IDs for testing
+    public static readonly Guid MorphineId = WellKnownIds.MorphineId;
+    public static readonly Guid FentanylId = WellKnownIds.FentanylId;
+    public static readonly Guid OxycodoneId = WellKnownIds.OxycodoneId;
+    public static readonly Guid CodeineId = WellKnownIds.CodeineId;
+    public static readonly Guid DiazepamId = WellKnownIds.DiazepamId;
+    public static readonly Guid EphedrineId = WellKnownIds.EphedrineId;
+
+    // Threshold IDs for testing
+    public static readonly Guid MorphineQuantityThresholdId = Guid.Parse("40000000-0000-0000-0000-000000000001");
+    public static readonly Guid FentanylQuantityThresholdId = Guid.Parse("40000000-0000-0000-0000-000000000002");
+    public static readonly Guid GlobalFrequencyThresholdId = Guid.Parse("40000000-0000-0000-0000-000000000003");
+
+    /// <summary>
+    /// Seeds all repositories with test data.
+    /// Extended overload for User Story 4 including customers and thresholds.
+    /// </summary>
+    public static void SeedAll(
+        InMemoryLicenceTypeRepository licenceTypeRepo,
+        InMemoryControlledSubstanceRepository substanceRepo,
+        InMemoryLicenceRepository licenceRepo,
+        InMemoryCustomerRepository customerRepo,
+        InMemoryThresholdRepository thresholdRepo)
+    {
+        licenceTypeRepo.Seed(GetLicenceTypes());
+        substanceRepo.Seed(GetControlledSubstances());
+        licenceRepo.Seed(GetLicences());
+        customerRepo.Seed(GetCustomers());
+        thresholdRepo.Seed(GetThresholds());
+    }
 
     /// <summary>
     /// Seeds all repositories with test data for User Story 1.
+    /// Legacy overload for backward compatibility.
     /// </summary>
     public static void SeedAll(
         InMemoryLicenceTypeRepository licenceTypeRepo,
@@ -321,6 +356,192 @@ public static class InMemorySeedData
                 PermittedActivities = LicenceTypes.PermittedActivity.Possess |
                                       LicenceTypes.PermittedActivity.Store |
                                       LicenceTypes.PermittedActivity.HandlePrecursors
+            }
+        };
+    }
+
+    /// <summary>
+    /// Gets sample customers for User Story 4 transaction validation testing.
+    /// </summary>
+    public static IEnumerable<Customer> GetCustomers()
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        return new List<Customer>
+        {
+            // Hospital - approved, GDP qualified
+            new()
+            {
+                CustomerId = CustomerHospitalId,
+                BusinessName = "Amsterdam Medical Center",
+                RegistrationNumber = "NL-AMC-12345",
+                BusinessCategory = BusinessCategory.HospitalPharmacy,
+                Country = "NL",
+                ApprovalStatus = ApprovalStatus.Approved,
+                GdpQualificationStatus = GdpQualificationStatus.Approved,
+                OnboardingDate = today.AddYears(-2),
+                NextReVerificationDate = today.AddMonths(10),
+                IsSuspended = false,
+                CreatedDate = DateTime.UtcNow.AddYears(-2),
+                ModifiedDate = DateTime.UtcNow
+            },
+            // Community Pharmacy - approved, GDP qualified
+            new()
+            {
+                CustomerId = CustomerPharmacyId,
+                BusinessName = "Utrecht Central Pharmacy",
+                RegistrationNumber = "NL-UCP-67890",
+                BusinessCategory = BusinessCategory.CommunityPharmacy,
+                Country = "NL",
+                ApprovalStatus = ApprovalStatus.Approved,
+                GdpQualificationStatus = GdpQualificationStatus.Approved,
+                OnboardingDate = today.AddYears(-3),
+                NextReVerificationDate = today.AddMonths(6),
+                IsSuspended = false,
+                CreatedDate = DateTime.UtcNow.AddYears(-3),
+                ModifiedDate = DateTime.UtcNow
+            },
+            // Veterinarian - approved but GDP not required
+            new()
+            {
+                CustomerId = CustomerVeterinarianId,
+                BusinessName = "Rotterdam Veterinary Clinic",
+                RegistrationNumber = "NL-RVC-11111",
+                BusinessCategory = BusinessCategory.Veterinarian,
+                Country = "NL",
+                ApprovalStatus = ApprovalStatus.Approved,
+                GdpQualificationStatus = GdpQualificationStatus.NotRequired,
+                OnboardingDate = today.AddYears(-1),
+                NextReVerificationDate = today.AddMonths(11),
+                IsSuspended = false,
+                CreatedDate = DateTime.UtcNow.AddYears(-1),
+                ModifiedDate = DateTime.UtcNow
+            },
+            // Suspended customer - for testing blocked transactions
+            new()
+            {
+                CustomerId = CustomerSuspendedId,
+                BusinessName = "Suspended Wholesale BV",
+                RegistrationNumber = "NL-SWB-99999",
+                BusinessCategory = BusinessCategory.WholesalerEU,
+                Country = "NL",
+                ApprovalStatus = ApprovalStatus.Approved,
+                GdpQualificationStatus = GdpQualificationStatus.Approved,
+                OnboardingDate = today.AddYears(-4),
+                NextReVerificationDate = today.AddMonths(-1), // Overdue
+                IsSuspended = true,
+                SuspensionReason = "Compliance audit findings - pending remediation",
+                CreatedDate = DateTime.UtcNow.AddYears(-4),
+                ModifiedDate = DateTime.UtcNow
+            }
+        };
+    }
+
+    /// <summary>
+    /// Gets sample thresholds for User Story 4 transaction validation testing.
+    /// Per FR-020/FR-022: Quantity and frequency threshold configuration.
+    /// </summary>
+    public static IEnumerable<Threshold> GetThresholds()
+    {
+        return new List<Threshold>
+        {
+            // Morphine quantity threshold - 1000g per month per customer
+            new()
+            {
+                Id = MorphineQuantityThresholdId,
+                Name = "Morphine Monthly Quantity Limit",
+                Description = "Maximum monthly morphine quantity per customer (hospitals exempt)",
+                ThresholdType = ThresholdType.Quantity,
+                Period = ThresholdPeriod.Monthly,
+                SubstanceId = MorphineId,
+                SubstanceCode = "MORPH-001",
+                SubstanceName = "Morphine",
+                LimitValue = 1000m,
+                LimitUnit = "g",
+                WarningThresholdPercent = 80m,
+                AllowOverride = true,
+                MaxOverridePercent = 150m, // Can override up to 150%
+                IsActive = true,
+                RegulatoryReference = "Opium Act Article 6",
+                CreatedDate = DateTime.UtcNow.AddMonths(-6)
+            },
+            // Fentanyl quantity threshold - 100g per month (stricter)
+            new()
+            {
+                Id = FentanylQuantityThresholdId,
+                Name = "Fentanyl Monthly Quantity Limit",
+                Description = "Maximum monthly fentanyl quantity per customer - strict limit for List I high-potency",
+                ThresholdType = ThresholdType.Quantity,
+                Period = ThresholdPeriod.Monthly,
+                SubstanceId = FentanylId,
+                SubstanceCode = "FENT-001",
+                SubstanceName = "Fentanyl",
+                LimitValue = 100m,
+                LimitUnit = "g",
+                WarningThresholdPercent = 70m,
+                AllowOverride = true,
+                MaxOverridePercent = 120m, // Stricter override limit
+                IsActive = true,
+                RegulatoryReference = "Opium Act Article 6, INCB Guidelines",
+                CreatedDate = DateTime.UtcNow.AddMonths(-6)
+            },
+            // Global frequency threshold - max 10 transactions per day per customer
+            new()
+            {
+                Id = GlobalFrequencyThresholdId,
+                Name = "Daily Transaction Frequency Limit",
+                Description = "Maximum daily transactions per customer for all controlled substances",
+                ThresholdType = ThresholdType.Frequency,
+                Period = ThresholdPeriod.Daily,
+                SubstanceId = null, // Applies to all substances
+                LimitValue = 10m,
+                LimitUnit = "count",
+                WarningThresholdPercent = 80m,
+                AllowOverride = true,
+                MaxOverridePercent = 200m,
+                IsActive = true,
+                RegulatoryReference = "Internal Policy P-2024-001",
+                CreatedDate = DateTime.UtcNow.AddMonths(-6)
+            },
+            // Per-transaction quantity limit for pharmacies
+            new()
+            {
+                Id = Guid.Parse("40000000-0000-0000-0000-000000000004"),
+                Name = "Pharmacy Per-Transaction Oxycodone Limit",
+                Description = "Maximum oxycodone per transaction for community pharmacies",
+                ThresholdType = ThresholdType.Quantity,
+                Period = ThresholdPeriod.PerTransaction,
+                SubstanceId = OxycodoneId,
+                SubstanceCode = "OXY-001",
+                SubstanceName = "Oxycodone",
+                CustomerCategory = BusinessCategory.CommunityPharmacy,
+                LimitValue = 500m,
+                LimitUnit = "g",
+                WarningThresholdPercent = 90m,
+                AllowOverride = true,
+                MaxOverridePercent = 125m,
+                IsActive = true,
+                CreatedDate = DateTime.UtcNow.AddMonths(-3)
+            },
+            // Precursor Category 1 annual limit
+            new()
+            {
+                Id = Guid.Parse("40000000-0000-0000-0000-000000000005"),
+                Name = "Ephedrine Annual Limit",
+                Description = "Annual ephedrine quantity limit per EU precursor regulations",
+                ThresholdType = ThresholdType.CumulativeQuantity,
+                Period = ThresholdPeriod.Yearly,
+                SubstanceId = EphedrineId,
+                SubstanceCode = "EPH-001",
+                SubstanceName = "Ephedrine",
+                OpiumActList = "Precursor Cat 1",
+                LimitValue = 5000m,
+                LimitUnit = "g",
+                WarningThresholdPercent = 75m,
+                AllowOverride = false, // Cannot override EU regulation
+                IsActive = true,
+                RegulatoryReference = "EU Regulation 273/2004",
+                CreatedDate = DateTime.UtcNow.AddMonths(-6)
             }
         };
     }

@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\RE2.ComplianceApi\RE2.ComplianceApi.csproj" />
     <ProjectReference Include="..\..\src\RE2.ComplianceCore\RE2.ComplianceCore.csproj" />
     <ProjectReference Include="..\..\src\RE2.DataAccess\RE2.DataAccess.csproj" />
     <ProjectReference Include="..\..\src\RE2.Shared\RE2.Shared.csproj" />

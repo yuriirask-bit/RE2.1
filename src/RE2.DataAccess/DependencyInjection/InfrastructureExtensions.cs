@@ -8,6 +8,8 @@ using RE2.ComplianceCore.Services.AlertGeneration;
 using RE2.ComplianceCore.Services.CustomerQualification;
 using RE2.ComplianceCore.Services.LicenceValidation;
 using RE2.ComplianceCore.Services.SubstanceManagement;
+using RE2.ComplianceCore.Services.RiskMonitoring;
+using RE2.ComplianceCore.Services.TransactionValidation;
 using RE2.DataAccess.BlobStorage;
 using RE2.DataAccess.D365FinanceOperations;
 using RE2.DataAccess.Dataverse;
@@ -182,11 +184,13 @@ public static class InfrastructureExtensions
         var mappingRepo = new InMemoryLicenceSubstanceMappingRepository();
         var alertRepo = new InMemoryAlertRepository();
         var customerRepo = new InMemoryCustomerRepository();
+        var transactionRepo = new InMemoryTransactionRepository();
+        var thresholdRepo = new InMemoryThresholdRepository();
 
         // Seed test data if requested
         if (seedData)
         {
-            InMemorySeedData.SeedAll(licenceTypeRepo, substanceRepo, licenceRepo);
+            InMemorySeedData.SeedAll(licenceTypeRepo, substanceRepo, licenceRepo, customerRepo, thresholdRepo);
         }
 
         // Register as singletons
@@ -197,6 +201,8 @@ public static class InfrastructureExtensions
         services.AddSingleton<ILicenceSubstanceMappingRepository>(mappingRepo);
         services.AddSingleton<IAlertRepository>(alertRepo);
         services.AddSingleton<ICustomerRepository>(customerRepo);
+        services.AddSingleton<ITransactionRepository>(transactionRepo);
+        services.AddSingleton<IThresholdRepository>(thresholdRepo);
 
         // Register in-memory document storage for local development
         services.AddSingleton<IDocumentStorage, InMemoryDocumentStorage>();
@@ -212,6 +218,12 @@ public static class InfrastructureExtensions
 
         // Register customer service for customer qualification management
         services.AddScoped<ICustomerService, CustomerService>();
+
+        // Register transaction compliance service for order/shipment validation
+        services.AddScoped<ITransactionComplianceService, TransactionComplianceService>();
+
+        // Register threshold service for threshold configuration management
+        services.AddScoped<IThresholdService, ThresholdService>();
 
         return services;
     }

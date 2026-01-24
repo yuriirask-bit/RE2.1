@@ -118,6 +118,80 @@ public static class ErrorCodes
 
     #endregion
 
+    #region Transaction Validation Codes (FR-018 through FR-024)
+
+    /// <summary>
+    /// Transaction validation is pending review.
+    /// </summary>
+    public const string TRANSACTION_PENDING = "TRANSACTION_PENDING";
+
+    /// <summary>
+    /// Transaction has been blocked due to compliance violations.
+    /// </summary>
+    public const string TRANSACTION_BLOCKED = "TRANSACTION_BLOCKED";
+
+    /// <summary>
+    /// Transaction override request is pending approval.
+    /// </summary>
+    public const string OVERRIDE_PENDING = "OVERRIDE_PENDING";
+
+    /// <summary>
+    /// Transaction override was approved.
+    /// </summary>
+    public const string OVERRIDE_APPROVED = "OVERRIDE_APPROVED";
+
+    /// <summary>
+    /// Transaction override was rejected.
+    /// </summary>
+    public const string OVERRIDE_REJECTED = "OVERRIDE_REJECTED";
+
+    /// <summary>
+    /// Cross-border transaction requires import permit.
+    /// Per FR-021: Import permit validation.
+    /// </summary>
+    public const string IMPORT_PERMIT_REQUIRED = "IMPORT_PERMIT_REQUIRED";
+
+    /// <summary>
+    /// Cross-border transaction requires export permit.
+    /// Per FR-021: Export permit validation.
+    /// </summary>
+    public const string EXPORT_PERMIT_REQUIRED = "EXPORT_PERMIT_REQUIRED";
+
+    /// <summary>
+    /// Transaction exceeds quantity threshold for the substance.
+    /// Per FR-020: Quantity threshold validation.
+    /// </summary>
+    public const string QUANTITY_THRESHOLD_EXCEEDED = "QUANTITY_THRESHOLD_EXCEEDED";
+
+    /// <summary>
+    /// Transaction frequency exceeds allowed limit.
+    /// Per FR-022: Frequency threshold validation.
+    /// </summary>
+    public const string FREQUENCY_THRESHOLD_EXCEEDED = "FREQUENCY_THRESHOLD_EXCEEDED";
+
+    /// <summary>
+    /// Customer GDP qualification is not valid.
+    /// Per FR-019: Customer qualification validation.
+    /// </summary>
+    public const string GDP_QUALIFICATION_INVALID = "GDP_QUALIFICATION_INVALID";
+
+    /// <summary>
+    /// Transaction not found with specified ID.
+    /// </summary>
+    public const string TRANSACTION_NOT_FOUND = "TRANSACTION_NOT_FOUND";
+
+    /// <summary>
+    /// Threshold configuration not found with specified ID.
+    /// </summary>
+    public const string THRESHOLD_NOT_FOUND = "THRESHOLD_NOT_FOUND";
+
+    /// <summary>
+    /// Customer not found for transaction validation.
+    /// </summary>
+    public const string CUSTOMER_NOT_FOUND = "CUSTOMER_NOT_FOUND";
+
+    #endregion
+
     #region System Error Codes
 
     /// <summary>
