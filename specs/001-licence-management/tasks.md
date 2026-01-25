@@ -126,15 +126,15 @@ Project uses multi-project .NET solution structure per plan.md:
 
 **Priority**: Should complete alongside or immediately after Phase 2 Foundational tasks to achieve constitution compliance. Not blocking user story implementation but required for final sign-off.
 
-- [ ] T052a Create RE2.ComplianceCli console application (.NET 8) in src/RE2.ComplianceCli/ with CommandLineParser NuGet package
-- [ ] T052b [P] Implement `validate-transaction` command accepting JSON via stdin, returning ValidationResult to stdout per Constitution Principle IV
-- [ ] T052c [P] Implement `lookup-customer` command accepting customer ID via args, returning compliance status JSON to stdout
-- [ ] T052d [P] Implement `lookup-licence` command accepting licence number via args, returning licence details JSON to stdout
-- [ ] T052e [P] Implement `generate-report` command accepting report type and filters via args, returning report data to stdout
-- [ ] T052f Configure RE2.ComplianceCli project references to RE2.ComplianceCore and RE2.DataAccess (same dependencies as API layer)
-- [ ] T052g Add CLI to solution and configure build pipeline to produce standalone executable
-- [ ] T052h [P] Create CLI integration tests in tests/RE2.ComplianceCli.Tests/ verifying stdin/stdout protocol
-- [ ] T052i Update quickstart.md with CLI usage examples and stdin/stdout protocol documentation
+- [X] T052a Create RE2.ComplianceCli console application (.NET 8) in src/RE2.ComplianceCli/ with CommandLineParser NuGet package
+- [X] T052b [P] Implement `validate-transaction` command accepting JSON via stdin, returning ValidationResult to stdout per Constitution Principle IV
+- [X] T052c [P] Implement `lookup-customer` command accepting customer ID via args, returning compliance status JSON to stdout
+- [X] T052d [P] Implement `lookup-licence` command accepting licence number via args, returning licence details JSON to stdout
+- [X] T052e [P] Implement `generate-report` command accepting report type and filters via args, returning report data to stdout
+- [X] T052f Configure RE2.ComplianceCli project references to RE2.ComplianceCore and RE2.DataAccess (same dependencies as API layer)
+- [X] T052g Add CLI to solution and configure build pipeline to produce standalone executable
+- [X] T052h [P] Create CLI integration tests in tests/RE2.ComplianceCli.Tests/ verifying stdin/stdout protocol
+- [X] T052i Update quickstart.md with CLI usage examples and stdin/stdout protocol documentation
 
 **Constitution Compliance Note**: Tasks T052a-T052i implement Constitution Principle IV (CLI Interface Requirement). While Web APIs are the primary interface (justified violation in plan.md), completing these CLI tasks achieves full constitution compliance by providing text I/O protocol for debugging and scripting. These tasks SHOULD be completed before final constitution sign-off.
 

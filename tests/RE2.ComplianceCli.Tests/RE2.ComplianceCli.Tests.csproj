@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\RE2.ComplianceCli\RE2.ComplianceCli.csproj" />
+    <ProjectReference Include="..\..\src\RE2.ComplianceCore\RE2.ComplianceCore.csproj" />
+    <ProjectReference Include="..\..\src\RE2.DataAccess\RE2.DataAccess.csproj" />
+    <ProjectReference Include="..\..\src\RE2.Shared\RE2.Shared.csproj" />
+  </ItemGroup>
+
+</Project>
