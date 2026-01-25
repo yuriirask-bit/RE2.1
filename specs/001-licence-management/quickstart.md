@@ -233,6 +233,142 @@ dotnet test tests/RE2.Contract.Tests/
 dotnet test src/RE2.sln
 ```
 
+## CLI Interface (Constitution Principle IV)
+
+The RE2.ComplianceCli provides a text-based interface for debugging, scripting, and automation. All commands output JSON to stdout for programmatic consumption.
+
+### Build and Run CLI
+
+```bash
+# Build CLI
+dotnet build src/RE2.ComplianceCli/RE2.ComplianceCli.csproj
+
+# Run CLI (shows available commands)
+dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- --help
+```
+
+### Available Commands
+
+#### 1. validate-transaction
+
+Validates a transaction against compliance rules. Accepts JSON via stdin or file.
+
+**Input**: Transaction JSON with customer, substances, and quantities.
+**Output**: Validation result with violations and licence coverage.
+
+```bash
+# From file
+dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- validate-transaction --file transaction.json
+
+# From stdin (pipe)
+echo '{"customerId":"00000000-0000-0000-0000-000000000010","transactionType":"Order","transactionDirection":"Outbound","lines":[{"substanceId":"00000000-0000-0000-0000-000000000001","quantity":100}]}' | dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- validate-transaction
+```
+
+**Exit Codes**:
+- `0`: Transaction valid
+- `1`: Error (invalid input, service error)
+- `2`: Validation failed (compliance violations)
+
+#### 2. lookup-customer
+
+Retrieves customer compliance status by ID or business name.
+
+```bash
+# By ID
+dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- lookup-customer --id 00000000-0000-0000-0000-000000000010
+
+# By name (partial match)
+dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- lookup-customer --name "Amsterdam"
+
+# Include associated licences
+dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- lookup-customer --id 00000000-0000-0000-0000-000000000010 --include-licences
+```
+
+**Output**: Customer details with compliance status (canTransact, isSuspended, warnings).
+
+#### 3. lookup-licence
+
+Retrieves licence details by licence number or ID.
+
+```bash
+# By licence number
+dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- lookup-licence --number WDA-NL-2024-001
+
+# By ID
+dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- lookup-licence --id 00000000-0000-0000-0000-000000000001
+
+# Include substance mappings
+dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- lookup-licence --number WDA-NL-2024-001 --include-substances
+
+# Include supporting documents
+dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- lookup-licence --number WDA-NL-2024-001 --include-documents
+```
+
+**Output**: Licence details including status, expiry, permitted activities, and optionally substance mappings.
+
+#### 4. generate-report
+
+Generates compliance reports in JSON format.
+
+```bash
+# Customer compliance report
+dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- generate-report -t customer-compliance
+
+# Expiring licences report (default: 90 days ahead)
+dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- generate-report -t expiring-licences --days 60
+
+# Alerts summary report
+dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- generate-report -t alerts-summary
+
+# Transaction history report with filters
+dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- generate-report -t transaction-history --customer-id 00000000-0000-0000-0000-000000000010 --from 2026-01-01 --to 2026-01-31
+
+# Output to file
+dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- generate-report -t customer-compliance -o compliance-report.json
+```
+
+**Report Types**:
+- `customer-compliance`: Summary of all customers' compliance status
+- `expiring-licences`: Licences expiring within specified days
+- `alerts-summary`: Active alert counts by type and severity
+- `transaction-history`: Transaction validation history
+
+### CLI Output Format
+
+All CLI commands output JSON to stdout. Error responses follow this format:
+
+```json
+{
+  "error": "Error message description",
+  "errorType": "ValidationError"
+}
+```
+
+Success responses vary by command but always include relevant entity data.
+
+### Verbose Mode
+
+Add `--verbose` to any command for detailed logging to stderr:
+
+```bash
+dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- lookup-customer --id 00000000-0000-0000-0000-000000000010 --verbose
+```
+
+### Building Standalone Executable
+
+For deployment without .NET SDK:
+
+```bash
+# Windows self-contained
+dotnet publish src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -c Release -r win-x64 --self-contained -o ./publish/cli-win
+
+# Linux self-contained
+dotnet publish src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -c Release -r linux-x64 --self-contained -o ./publish/cli-linux
+
+# Run standalone
+./publish/cli-win/RE2.ComplianceCli.exe lookup-customer --name "Amsterdam"
+```
+
 ## TDD Workflow
 
 Per the SpecKit constitution (Principle II: Test-First Development), follow this workflow:
