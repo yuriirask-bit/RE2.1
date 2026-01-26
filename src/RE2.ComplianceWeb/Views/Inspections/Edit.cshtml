@@ -1,0 +1,118 @@
+@model RE2.ComplianceWeb.Controllers.EditInspectionViewModel
+@{
+    ViewData["Title"] = "Edit Inspection";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Edit Inspection Record</h1>
+            <p class="text-muted mb-0">Update inspection details or record corrective action completion</p>
+        </div>
+        <a asp-action="Details" asp-route-id="@Model.InspectionId" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Details
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-pencil me-2"></i>Inspection Details</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="Edit" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="InspectionId" />
+
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger">
+                        <h6><i class="bi bi-exclamation-triangle me-2"></i>Validation Errors</h6>
+                        <div asp-validation-summary="All"></div>
+                    </div>
+                }
+
+                <h6 class="mb-3">Basic Information</h6>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label asp-for="InspectionDate" class="form-label">Inspection Date <span class="text-danger">*</span></label>
+                        <input asp-for="InspectionDate" type="date" class="form-control" required />
+                        <span asp-validation-for="InspectionDate" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Authority" class="form-label">Inspecting Authority <span class="text-danger">*</span></label>
+                        <select asp-for="Authority" class="form-select" required>
+                            @foreach (var auth in Enum.GetValues<RE2.ComplianceCore.Models.InspectingAuthority>())
+                            {
+                                <option value="@auth">@auth</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="ReferenceNumber" class="form-label">Reference Number</label>
+                        <input asp-for="ReferenceNumber" class="form-control" placeholder="e.g., IGJ-2025-1234" />
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="InspectorName" class="form-label">Inspector Name <span class="text-danger">*</span></label>
+                        <input asp-for="InspectorName" class="form-control" required />
+                        <span asp-validation-for="InspectorName" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Outcome" class="form-label">Inspection Outcome <span class="text-danger">*</span></label>
+                        <select asp-for="Outcome" class="form-select" required>
+                            @foreach (var outcome in Enum.GetValues<RE2.ComplianceCore.Models.InspectionOutcome>())
+                            {
+                                <option value="@outcome">@outcome</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <h6 class="mb-3 mt-4">Findings</h6>
+                <div class="mb-3">
+                    <label asp-for="FindingsSummary" class="form-label">Findings Summary</label>
+                    <textarea asp-for="FindingsSummary" class="form-control" rows="4"></textarea>
+                </div>
+
+                <h6 class="mb-3 mt-4">Corrective Actions</h6>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label asp-for="CorrectiveActions" class="form-label">Required Corrective Actions</label>
+                        <textarea asp-for="CorrectiveActions" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="CorrectiveActionsDueDate" class="form-label">Due Date</label>
+                        <input asp-for="CorrectiveActionsDueDate" type="date" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="CorrectiveActionsCompletedDate" class="form-label">Completion Date</label>
+                        <input asp-for="CorrectiveActionsCompletedDate" type="date" class="form-control" />
+                        <small class="text-muted">Set this date when corrective actions are completed</small>
+                    </div>
+                </div>
+
+                <h6 class="mb-3 mt-4">Additional Information</h6>
+                <div class="mb-3">
+                    <label asp-for="Notes" class="form-label">Notes</label>
+                    <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                </div>
+
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> Save Changes
+                    </button>
+                    <a asp-action="Details" asp-route-id="@Model.InspectionId" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

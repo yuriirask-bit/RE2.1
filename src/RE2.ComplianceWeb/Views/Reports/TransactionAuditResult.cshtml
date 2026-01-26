@@ -1,0 +1,147 @@
+@model RE2.ComplianceCore.Services.Reporting.TransactionAuditReport
+@{
+    ViewData["Title"] = "Transaction Audit Report Results";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Transaction Audit Report</h1>
+            <p class="text-muted mb-0">
+                @Model.FromDate.ToString("yyyy-MM-dd") to @Model.ToDate.ToString("yyyy-MM-dd")
+                @if (Model.FilteredBySubstance.HasValue)
+                {
+                    <span class="badge bg-secondary ms-2">Filtered by Substance</span>
+                }
+                @if (Model.FilteredByCustomer.HasValue)
+                {
+                    <span class="badge bg-secondary ms-2">Filtered by Customer</span>
+                }
+                @if (!string.IsNullOrEmpty(Model.FilteredByCountry))
+                {
+                    <span class="badge bg-secondary ms-2">Country: @Model.FilteredByCountry</span>
+                }
+            </p>
+        </div>
+        <div>
+            <a asp-action="TransactionAudit" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-clockwise"></i> New Report
+            </a>
+            <a asp-action="Index" class="btn btn-outline-secondary ms-2">
+                <i class="bi bi-arrow-left"></i> Back to Reports
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-subtitle">Total Transactions</h6>
+                    <h2 class="card-title mb-0">@Model.TotalCount</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="card-subtitle">Report Period</h6>
+                    <h5 class="card-title mb-0">@((Model.ToDate - Model.FromDate).Days) days</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-secondary text-white">
+                <div class="card-body">
+                    <h6 class="card-subtitle">Generated</h6>
+                    <h5 class="card-title mb-0">@Model.GeneratedDate.ToString("yyyy-MM-dd HH:mm")</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.Transactions.Any())
+    {
+        <div class="alert alert-info">
+            <h5>No Transactions Found</h5>
+            <p class="mb-0">There are no transactions matching your filter criteria for the selected date range.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Transaction Details</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>External ID</th>
+                                <th>Date</th>
+                                <th>Customer</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th class="text-end">Quantity</th>
+                                @if (Model.Transactions.Any(t => t.LicencesUsed != null && t.LicencesUsed.Any()))
+                                {
+                                    <th>Licences Used</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var transaction in Model.Transactions.OrderByDescending(t => t.TransactionDate))
+                            {
+                                var statusClass = transaction.ValidationStatus switch
+                                {
+                                    "Passed" => "bg-success",
+                                    "Failed" => "bg-danger",
+                                    "Pending" => "bg-warning text-dark",
+                                    "ApprovedWithOverride" => "bg-info",
+                                    _ => "bg-secondary"
+                                };
+
+                                <tr>
+                                    <td>
+                                        <a asp-controller="Transactions" asp-action="Details" asp-route-id="@transaction.TransactionId">
+                                            @transaction.ExternalTransactionId
+                                        </a>
+                                    </td>
+                                    <td>@transaction.TransactionDate.ToString("yyyy-MM-dd")</td>
+                                    <td>
+                                        <a asp-controller="Customers" asp-action="Details" asp-route-id="@transaction.CustomerId">
+                                            @transaction.CustomerId.ToString().Substring(0, 8)...
+                                        </a>
+                                    </td>
+                                    <td>@transaction.TransactionType</td>
+                                    <td>
+                                        <span class="badge @statusClass">@transaction.ValidationStatus</span>
+                                    </td>
+                                    <td class="text-end">@transaction.TotalQuantity.ToString("N2")</td>
+                                    @if (Model.Transactions.Any(t => t.LicencesUsed != null && t.LicencesUsed.Any()))
+                                    {
+                                        <td>
+                                            @if (transaction.LicencesUsed != null && transaction.LicencesUsed.Any())
+                                            {
+                                                @foreach (var licence in transaction.LicencesUsed)
+                                                {
+                                                    <span class="badge bg-secondary me-1" title="@licence.IssuingAuthority">@licence.LicenceNumber</span>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>

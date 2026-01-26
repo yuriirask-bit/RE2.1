@@ -1,0 +1,190 @@
+@model IEnumerable<RE2.ComplianceCore.Models.RegulatoryInspection>
+@{
+    ViewData["Title"] = "Regulatory Inspections";
+    var selectedAuthority = (RE2.ComplianceCore.Models.InspectingAuthority?)ViewBag.SelectedAuthority;
+    var fromDate = (DateOnly?)ViewBag.FromDate;
+    var toDate = (DateOnly?)ViewBag.ToDate;
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Regulatory Inspections</h1>
+            <p class="text-muted mb-0">Record and track regulatory inspections for Opium Act compliance (FR-028)</p>
+        </div>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Record Inspection
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Filter Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Filter Inspections</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" asp-action="Index">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label">Authority</label>
+                        <select name="authority" class="form-select">
+                            <option value="">All Authorities</option>
+                            @foreach (var auth in Enum.GetValues<RE2.ComplianceCore.Models.InspectingAuthority>())
+                            {
+                                <option value="@auth" selected="@(selectedAuthority == auth)">@auth</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">From Date</label>
+                        <input type="date" name="fromDate" class="form-control"
+                               value="@(fromDate?.ToString("yyyy-MM-dd"))" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">To Date</label>
+                        <input type="date" name="toDate" class="form-control"
+                               value="@(toDate?.ToString("yyyy-MM-dd"))" />
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-outline-primary me-2">
+                            <i class="bi bi-search"></i> Filter
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="mb-4">
+        <a asp-action="OverdueCorrectiveActions" class="btn btn-outline-danger">
+            <i class="bi bi-exclamation-triangle"></i> View Overdue Corrective Actions
+        </a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+            <h5>No Inspections Found</h5>
+            <p class="mb-0">No regulatory inspections match the current filters. <a asp-action="Create">Record a new inspection</a>.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-clipboard-check me-2"></i>Inspection Records</h5>
+                    <span class="badge bg-secondary">@Model.Count() inspections</span>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Authority</th>
+                                <th>Inspector</th>
+                                <th>Reference</th>
+                                <th>Outcome</th>
+                                <th>Corrective Actions</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var inspection in Model)
+                            {
+                                var outcomeClass = inspection.Outcome switch
+                                {
+                                    RE2.ComplianceCore.Models.InspectionOutcome.NoFindings => "bg-success",
+                                    RE2.ComplianceCore.Models.InspectionOutcome.MinorFindings => "bg-info",
+                                    RE2.ComplianceCore.Models.InspectionOutcome.MajorFindings => "bg-warning text-dark",
+                                    RE2.ComplianceCore.Models.InspectionOutcome.CriticalFindings => "bg-danger",
+                                    RE2.ComplianceCore.Models.InspectionOutcome.Pending => "bg-secondary",
+                                    _ => "bg-secondary"
+                                };
+
+                                var authorityBadge = inspection.Authority switch
+                                {
+                                    RE2.ComplianceCore.Models.InspectingAuthority.IGJ => "bg-primary",
+                                    RE2.ComplianceCore.Models.InspectingAuthority.Customs => "bg-info",
+                                    RE2.ComplianceCore.Models.InspectingAuthority.NVWA => "bg-warning text-dark",
+                                    RE2.ComplianceCore.Models.InspectingAuthority.Internal => "bg-secondary",
+                                    _ => "bg-secondary"
+                                };
+
+                                <tr class="@(inspection.AreCorrectiveActionsOverdue() ? "table-danger" : "")">
+                                    <td>@inspection.InspectionDate.ToString("yyyy-MM-dd")</td>
+                                    <td>
+                                        <span class="badge @authorityBadge">@inspection.Authority</span>
+                                    </td>
+                                    <td>@inspection.InspectorName</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(inspection.ReferenceNumber))
+                                        {
+                                            <code>@inspection.ReferenceNumber</code>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge @outcomeClass">@inspection.Outcome</span>
+                                    </td>
+                                    <td>
+                                        @if (inspection.CorrectiveActionsDueDate.HasValue)
+                                        {
+                                            if (inspection.CorrectiveActionsCompletedDate.HasValue)
+                                            {
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-check"></i> Completed @inspection.CorrectiveActionsCompletedDate.Value.ToString("yyyy-MM-dd")
+                                                </span>
+                                            }
+                                            else if (inspection.AreCorrectiveActionsOverdue())
+                                            {
+                                                <span class="badge bg-danger">
+                                                    <i class="bi bi-exclamation-triangle"></i> Overdue (was @inspection.CorrectiveActionsDueDate.Value.ToString("yyyy-MM-dd"))
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning text-dark">
+                                                    Due @inspection.CorrectiveActionsDueDate.Value.ToString("yyyy-MM-dd")
+                                                </span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">N/A</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <a asp-action="Details" asp-route-id="@inspection.InspectionId"
+                                           class="btn btn-sm btn-outline-primary" title="View Details">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@inspection.InspectionId"
+                                           class="btn btn-sm btn-outline-secondary" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>

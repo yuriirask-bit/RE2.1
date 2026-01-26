@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using RE2.ComplianceCore.Interfaces;
 using RE2.ComplianceCore.Models;
+using RE2.ComplianceCore.Services.Notifications;
 using RE2.Shared.Constants;
 using static RE2.Shared.Constants.TransactionTypes;
 
@@ -18,6 +19,7 @@ public class TransactionComplianceService : ITransactionComplianceService
     private readonly ILicenceRepository _licenceRepository;
     private readonly ICustomerRepository _customerRepository;
     private readonly IControlledSubstanceRepository _substanceRepository;
+    private readonly IWebhookDispatchService? _webhookDispatchService;
     private readonly ILogger<TransactionComplianceService> _logger;
 
     public TransactionComplianceService(
@@ -26,13 +28,15 @@ public class TransactionComplianceService : ITransactionComplianceService
         ILicenceRepository licenceRepository,
         ICustomerRepository customerRepository,
         IControlledSubstanceRepository substanceRepository,
-        ILogger<TransactionComplianceService> logger)
+        ILogger<TransactionComplianceService> logger,
+        IWebhookDispatchService? webhookDispatchService = null)
     {
         _transactionRepository = transactionRepository;
         _thresholdRepository = thresholdRepository;
         _licenceRepository = licenceRepository;
         _customerRepository = customerRepository;
         _substanceRepository = substanceRepository;
+        _webhookDispatchService = webhookDispatchService;
         _logger = logger;
     }
 
@@ -689,6 +693,10 @@ public class TransactionComplianceService : ITransactionComplianceService
             approverUserId,
             justification);
 
+        // T149i: Dispatch webhook notifications for override approval
+        await DispatchOverrideApprovedWebhookAsync(transaction, approverUserId, justification, cancellationToken);
+        await DispatchOrderApprovedWebhookAsync(transaction, cancellationToken);
+
         return ValidationResult.Success();
     }
 
@@ -729,6 +737,9 @@ public class TransactionComplianceService : ITransactionComplianceService
             transactionId,
             rejecterUserId,
             reason);
+
+        // T149i: Dispatch webhook notification for order rejection
+        await DispatchOrderRejectedWebhookAsync(transaction, rejecterUserId, reason, cancellationToken);
 
         return ValidationResult.Success();
     }
@@ -949,4 +960,174 @@ public class TransactionComplianceService : ITransactionComplianceService
     }
 
     #endregion
+
+    #region Webhook Dispatch (T149i)
+
+    /// <summary>
+    /// Dispatches webhook notification when an override is approved.
+    /// T149i: Integration of WebhookDispatchService per FR-059.
+    /// </summary>
+    private async Task DispatchOverrideApprovedWebhookAsync(
+        Transaction transaction,
+        string approverUserId,
+        string justification,
+        CancellationToken cancellationToken)
+    {
+        if (_webhookDispatchService == null)
+        {
+            return;
+        }
+
+        try
+        {
+            var payload = new OverrideApprovedEventPayload
+            {
+                TransactionId = transaction.Id,
+                ExternalId = transaction.ExternalId,
+                CustomerId = transaction.CustomerId,
+                CustomerName = transaction.CustomerName,
+                ApproverUserId = approverUserId,
+                Justification = justification,
+                ApprovedAt = transaction.OverrideDecisionDate ?? DateTime.UtcNow,
+                ViolationCount = transaction.Violations?.Count ?? 0
+            };
+
+            await _webhookDispatchService.DispatchAsync(WebhookEventType.OverrideApproved, payload, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            // Log but don't fail the operation - webhook dispatch is non-critical
+            _logger.LogWarning(ex, "Failed to dispatch OverrideApproved webhook for transaction {TransactionId}", transaction.Id);
+        }
+    }
+
+    /// <summary>
+    /// Dispatches webhook notification when an order is approved (validation passed or override approved).
+    /// T149i: Integration of WebhookDispatchService per FR-059.
+    /// </summary>
+    private async Task DispatchOrderApprovedWebhookAsync(
+        Transaction transaction,
+        CancellationToken cancellationToken)
+    {
+        if (_webhookDispatchService == null)
+        {
+            return;
+        }
+
+        try
+        {
+            var payload = new OrderStatusChangedEventPayload
+            {
+                TransactionId = transaction.Id,
+                ExternalId = transaction.ExternalId,
+                CustomerId = transaction.CustomerId,
+                CustomerName = transaction.CustomerName,
+                Status = "Approved",
+                ValidationStatus = transaction.ValidationStatus.ToString(),
+                OverrideStatus = transaction.OverrideStatus.ToString(),
+                ApprovedAt = DateTime.UtcNow,
+                LicencesUsed = transaction.LicencesUsed?.ToList() ?? new List<Guid>()
+            };
+
+            await _webhookDispatchService.DispatchAsync(WebhookEventType.OrderApproved, payload, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to dispatch OrderApproved webhook for transaction {TransactionId}", transaction.Id);
+        }
+    }
+
+    /// <summary>
+    /// Dispatches webhook notification when an order is rejected.
+    /// T149i: Integration of WebhookDispatchService per FR-059.
+    /// </summary>
+    private async Task DispatchOrderRejectedWebhookAsync(
+        Transaction transaction,
+        string? rejectedBy,
+        string? reason,
+        CancellationToken cancellationToken)
+    {
+        if (_webhookDispatchService == null)
+        {
+            return;
+        }
+
+        try
+        {
+            var payload = new OrderStatusChangedEventPayload
+            {
+                TransactionId = transaction.Id,
+                ExternalId = transaction.ExternalId,
+                CustomerId = transaction.CustomerId,
+                CustomerName = transaction.CustomerName,
+                Status = "Rejected",
+                ValidationStatus = transaction.ValidationStatus.ToString(),
+                OverrideStatus = transaction.OverrideStatus.ToString(),
+                RejectedAt = DateTime.UtcNow,
+                RejectedBy = rejectedBy,
+                RejectionReason = reason,
+                Violations = transaction.Violations?.Select(v => new ViolationSummary
+                {
+                    ErrorCode = v.ErrorCode,
+                    Message = v.Message,
+                    Severity = v.Severity.ToString(),
+                    CanOverride = v.CanOverride
+                }).ToList() ?? new List<ViolationSummary>()
+            };
+
+            await _webhookDispatchService.DispatchAsync(WebhookEventType.OrderRejected, payload, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to dispatch OrderRejected webhook for transaction {TransactionId}", transaction.Id);
+        }
+    }
+
+    #endregion
+}
+
+/// <summary>
+/// Payload for OverrideApproved webhook event.
+/// </summary>
+public class OverrideApprovedEventPayload
+{
+    public Guid TransactionId { get; set; }
+    public string ExternalId { get; set; } = string.Empty;
+    public Guid CustomerId { get; set; }
+    public string? CustomerName { get; set; }
+    public string ApproverUserId { get; set; } = string.Empty;
+    public string Justification { get; set; } = string.Empty;
+    public DateTime ApprovedAt { get; set; }
+    public int ViolationCount { get; set; }
+}
+
+/// <summary>
+/// Payload for OrderApproved and OrderRejected webhook events.
+/// </summary>
+public class OrderStatusChangedEventPayload
+{
+    public Guid TransactionId { get; set; }
+    public string ExternalId { get; set; } = string.Empty;
+    public Guid CustomerId { get; set; }
+    public string? CustomerName { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string? ValidationStatus { get; set; }
+    public string? OverrideStatus { get; set; }
+    public DateTime? ApprovedAt { get; set; }
+    public DateTime? RejectedAt { get; set; }
+    public string? RejectedBy { get; set; }
+    public string? RejectionReason { get; set; }
+    public List<Guid> LicencesUsed { get; set; } = new();
+    public List<ViolationSummary> Violations { get; set; } = new();
+}
+
+/// <summary>
+/// Summary of a validation violation for webhook payloads.
+/// </summary>
+public class ViolationSummary
+{
+    public string ErrorCode { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public string Severity { get; set; } = string.Empty;
+    public bool CanOverride { get; set; }
 }

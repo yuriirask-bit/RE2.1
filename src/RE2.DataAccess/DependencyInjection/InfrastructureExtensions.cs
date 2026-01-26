@@ -5,13 +5,17 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using RE2.ComplianceCore.Interfaces;
 using RE2.ComplianceCore.Services.AlertGeneration;
+using RE2.ComplianceCore.Services.Auditing;
 using RE2.ComplianceCore.Services.CustomerQualification;
 using RE2.ComplianceCore.Services.LicenceValidation;
 using RE2.ComplianceCore.Services.SubstanceManagement;
 using RE2.ComplianceCore.Services.RiskMonitoring;
 using RE2.ComplianceCore.Services.TransactionValidation;
+using RE2.ComplianceCore.Services.Notifications;
+using RE2.ComplianceCore.Services.Reporting;
 using RE2.DataAccess.BlobStorage;
 using RE2.DataAccess.D365FinanceOperations;
+using RE2.DataAccess.D365FinanceOperations.Repositories;
 using RE2.DataAccess.Dataverse;
 using RE2.DataAccess.Dataverse.Repositories;
 using RE2.DataAccess.InMemory;
@@ -119,6 +123,18 @@ public static class InfrastructureExtensions
             };
         });
 
+        // Register D365 F&O audit repository (T155)
+        services.AddScoped<IAuditRepository, D365FoAuditRepository>();
+
+        // Register audit logging service (T156)
+        services.AddScoped<IAuditLoggingService, AuditLoggingService>();
+
+        // Register reporting service (T164)
+        services.AddScoped<IReportingService, ReportingService>();
+
+        // Register licence correction impact service (T163a-T163c)
+        services.AddScoped<ILicenceCorrectionImpactService, LicenceCorrectionImpactService>();
+
         return services;
     }
 
@@ -207,6 +223,25 @@ public static class InfrastructureExtensions
         // Register in-memory document storage for local development
         services.AddSingleton<IDocumentStorage, InMemoryDocumentStorage>();
 
+        // Register in-memory webhook repository (T149c-T149f)
+        var webhookRepo = new InMemoryWebhookSubscriptionRepository();
+        services.AddSingleton<IWebhookSubscriptionRepository>(webhookRepo);
+
+        // Register in-memory integration system repository
+        var integrationSystemRepo = new InMemoryIntegrationSystemRepository();
+        services.AddSingleton<IIntegrationSystemRepository>(integrationSystemRepo);
+
+        // Register in-memory audit repository (T155-T156)
+        var auditRepo = new InMemoryAuditRepository();
+        services.AddSingleton<IAuditRepository>(auditRepo);
+
+        // Register in-memory regulatory inspection repository (T167)
+        var inspectionRepo = new InMemoryRegulatoryInspectionRepository();
+        services.AddSingleton<IRegulatoryInspectionRepository>(inspectionRepo);
+
+        // Register audit logging service (T156)
+        services.AddScoped<IAuditLoggingService, AuditLoggingService>();
+
         // Register business services (same as Dataverse setup)
         services.AddScoped<ILicenceService, LicenceService>();
         services.AddScoped<ISubstanceReclassificationService, SubstanceReclassificationService>();
@@ -219,11 +254,21 @@ public static class InfrastructureExtensions
         // Register customer service for customer qualification management
         services.AddScoped<ICustomerService, CustomerService>();
 
+        // Register webhook dispatch service (T149g-T149i)
+        services.AddHttpClient("WebhookClient");
+        services.AddScoped<IWebhookDispatchService, WebhookDispatchService>();
+
         // Register transaction compliance service for order/shipment validation
         services.AddScoped<ITransactionComplianceService, TransactionComplianceService>();
 
         // Register threshold service for threshold configuration management
         services.AddScoped<IThresholdService, ThresholdService>();
+
+        // Register reporting service (T164)
+        services.AddScoped<IReportingService, ReportingService>();
+
+        // Register licence correction impact service (T163a-T163c)
+        services.AddScoped<ILicenceCorrectionImpactService, LicenceCorrectionImpactService>();
 
         return services;
     }

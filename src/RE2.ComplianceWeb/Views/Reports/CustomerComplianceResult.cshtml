@@ -1,0 +1,163 @@
+@model RE2.ComplianceCore.Services.Reporting.CustomerComplianceHistoryReport
+@{
+    ViewData["Title"] = "Customer Compliance History Results";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>@Model.CustomerName</h1>
+            <p class="text-muted mb-0">
+                <span class="badge bg-info">@Model.BusinessCategory</span>
+                <span class="badge bg-secondary ms-1">@Model.ApprovalStatus</span>
+            </p>
+        </div>
+        <div>
+            <a asp-action="CustomerCompliance" class="btn btn-outline-info">
+                <i class="bi bi-arrow-clockwise"></i> New Report
+            </a>
+            <a asp-action="Index" class="btn btn-outline-secondary ms-2">
+                <i class="bi bi-arrow-left"></i> Back to Reports
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="card-subtitle">Compliance Events</h6>
+                    <h2 class="card-title mb-0">@Model.Events.Count</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="card-subtitle">Active Licences</h6>
+                    <h2 class="card-title mb-0">@(Model.CurrentLicences?.Count(l => l.Status == "Valid") ?? 0)</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-subtitle">Approval Status</h6>
+                    <h5 class="card-title mb-0">@Model.ApprovalStatus</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-secondary text-white">
+                <div class="card-body">
+                    <h6 class="card-subtitle">Generated</h6>
+                    <h5 class="card-title mb-0">@Model.GeneratedDate.ToString("yyyy-MM-dd HH:mm")</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Compliance Events -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Compliance Events Timeline</h5>
+                </div>
+                <div class="card-body">
+                    @if (!Model.Events.Any())
+                    {
+                        <div class="alert alert-info mb-0">
+                            <p class="mb-0">No compliance events recorded for this customer.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="timeline">
+                            @foreach (var evt in Model.Events.OrderByDescending(e => e.EventDate))
+                            {
+                                var eventIcon = evt.EventType switch
+                                {
+                                    "CustomerCreated" => "bi-person-plus text-success",
+                                    "CustomerApproved" => "bi-check-circle text-success",
+                                    "CustomerRejected" => "bi-x-circle text-danger",
+                                    "CustomerSuspended" => "bi-pause-circle text-warning",
+                                    "LicenceAssigned" => "bi-card-checklist text-primary",
+                                    "LicenceRevoked" => "bi-card-heading text-danger",
+                                    _ => "bi-circle text-secondary"
+                                };
+
+                                <div class="d-flex mb-3">
+                                    <div class="flex-shrink-0 me-3">
+                                        <i class="bi @eventIcon fs-4"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between">
+                                            <strong>@evt.EventType</strong>
+                                            <small class="text-muted">@evt.EventDate.ToString("yyyy-MM-dd HH:mm")</small>
+                                        </div>
+                                        <p class="mb-1 text-muted">By: @evt.PerformedBy</p>
+                                        @if (!string.IsNullOrEmpty(evt.Details))
+                                        {
+                                            <p class="mb-0 small">@evt.Details</p>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Licences -->
+        <div class="col-lg-4">
+            @if (Model.CurrentLicences != null && Model.CurrentLicences.Any())
+            {
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-card-checklist me-2"></i>Current Licences</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            @foreach (var licence in Model.CurrentLicences)
+                            {
+                                var statusClass = licence.Status switch
+                                {
+                                    "Valid" => "success",
+                                    "Expired" => "danger",
+                                    "Suspended" => "warning",
+                                    _ => "secondary"
+                                };
+
+                                <li class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <strong>@licence.LicenceNumber</strong>
+                                            <br />
+                                            <small class="text-muted">@licence.IssuingAuthority</small>
+                                        </div>
+                                        <span class="badge bg-@statusClass">@licence.Status</span>
+                                    </div>
+                                    @if (licence.ExpiryDate.HasValue)
+                                    {
+                                        <small class="text-muted">Expires: @licence.ExpiryDate.Value.ToString("yyyy-MM-dd")</small>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .timeline {
+        border-left: 2px solid #dee2e6;
+        padding-left: 20px;
+        margin-left: 10px;
+    }
+</style>

@@ -75,6 +75,22 @@ public interface ITransactionRepository
         DateTime toDate,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Gets transactions for a specific customer (alias for GetByCustomerIdAsync).
+    /// T161: Used for reporting queries per FR-026.
+    /// </summary>
+    Task<IEnumerable<Transaction>> GetByCustomerAsync(Guid customerId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets transactions involving a specific substance within a date range.
+    /// T161: Used for transaction audit reports by substance per FR-026.
+    /// </summary>
+    Task<IEnumerable<Transaction>> GetBySubstanceAsync(
+        Guid substanceId,
+        DateTime fromDate,
+        DateTime toDate,
+        CancellationToken cancellationToken = default);
+
     #endregion
 
     #region Transaction Lines

@@ -1,9 +1,12 @@
+using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Azure.Core;
 using Azure.Identity;
 using Microsoft.Extensions.Logging;
+using RE2.ComplianceCore.Exceptions;
 using RE2.ComplianceCore.Interfaces;
 
 namespace RE2.DataAccess.D365FinanceOperations;
@@ -171,6 +174,70 @@ public class D365FoClient : ID365FoClient
             response.EnsureSuccessStatusCode();
 
             _logger.LogInformation("Updated entity in {EntitySetName} with key {Key}", entitySetName, key);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating entity in {EntitySetName} with key {Key}", entitySetName, key);
+            throw;
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task UpdateWithConcurrencyAsync<T>(
+        string entitySetName,
+        string key,
+        T entity,
+        string etag,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        var url = $"{entitySetName}({key})";
+
+        try
+        {
+            _logger.LogDebug("PATCH request with ETag to D365 F&O: {Url} (ETag: {ETag})", url, etag);
+
+            await EnsureAuthTokenAsync(cancellationToken);
+
+            var json = JsonSerializer.Serialize(entity, _jsonOptions);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var request = new HttpRequestMessage(new HttpMethod("PATCH"), url)
+            {
+                Content = content
+            };
+
+            // Add If-Match header with ETag for optimistic concurrency
+            request.Headers.IfMatch.Add(new EntityTagHeaderValue(etag, isWeak: false));
+
+            var response = await _httpClient.SendAsync(request, cancellationToken);
+
+            // Handle PreconditionFailed (412) as concurrency conflict
+            if (response.StatusCode == HttpStatusCode.PreconditionFailed)
+            {
+                _logger.LogWarning("Concurrency conflict detected for {EntitySetName} with key {Key}. " +
+                                   "Local ETag: {LocalETag}",
+                    entitySetName, key, etag);
+
+                // Try to extract entity ID from key
+                Guid entityId = Guid.Empty;
+                if (Guid.TryParse(key.Trim('\'', '"'), out var parsedId))
+                    entityId = parsedId;
+
+                throw new ConcurrencyException(
+                    entitySetName,
+                    entityId,
+                    etag,
+                    response.Headers.ETag?.Tag,
+                    $"The {entitySetName} with key {key} has been modified by another user. Please refresh and try again.");
+            }
+
+            response.EnsureSuccessStatusCode();
+
+            _logger.LogInformation("Updated entity in {EntitySetName} with key {Key} with concurrency check", entitySetName, key);
+        }
+        catch (ConcurrencyException)
+        {
+            throw; // Re-throw concurrency exceptions
         }
         catch (Exception ex)
         {

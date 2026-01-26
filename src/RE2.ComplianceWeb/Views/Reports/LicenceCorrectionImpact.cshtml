@@ -1,0 +1,100 @@
+@model RE2.ComplianceWeb.Controllers.LicenceCorrectionImpactViewModel
+@{
+    ViewData["Title"] = "Licence Correction Impact Analysis";
+    var licences = (IEnumerable<RE2.ComplianceCore.Models.Licence>)ViewBag.Licences;
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Licence Correction Impact Analysis</h1>
+            <p class="text-muted mb-0">Analyze the impact of licence date corrections on historical transactions (SC-038)</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Reports
+        </a>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="alert alert-warning">
+        <h6><i class="bi bi-exclamation-triangle me-2"></i>Important</h6>
+        <p class="mb-0">This report analyzes what would have happened if a licence's effective dates had been different. Use this to assess the compliance impact when correcting licence data entry errors.</p>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Analysis Criteria</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="LicenceCorrectionImpact" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="LicenceId" class="form-label">Licence <span class="text-danger">*</span></label>
+                        <select asp-for="LicenceId" class="form-select" required>
+                            <option value="">Select a licence...</option>
+                            @foreach (var licence in licences.OrderBy(l => l.LicenceNumber))
+                            {
+                                <option value="@licence.LicenceId">@licence.LicenceNumber (@licence.IssuingAuthority) - @licence.HolderType</option>
+                            }
+                        </select>
+                        <span asp-validation-for="LicenceId" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="CorrectionDate" class="form-label">Correction Date <span class="text-danger">*</span></label>
+                        <input asp-for="CorrectionDate" type="date" class="form-control" required />
+                        <small class="text-muted">Date when the correction is being made</small>
+                        <span asp-validation-for="CorrectionDate" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <h6 class="mb-3">Effective Date Change (optional)</h6>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="OriginalEffectiveDate" class="form-label">Original Effective Date</label>
+                        <input asp-for="OriginalEffectiveDate" type="date" class="form-control" />
+                        <small class="text-muted">The incorrect effective date that was recorded</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="CorrectedEffectiveDate" class="form-label">Corrected Effective Date</label>
+                        <input asp-for="CorrectedEffectiveDate" type="date" class="form-control" />
+                        <small class="text-muted">The correct effective date</small>
+                    </div>
+                </div>
+
+                <h6 class="mb-3">Expiry Date Change (optional)</h6>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="OriginalExpiryDate" class="form-label">Original Expiry Date</label>
+                        <input asp-for="OriginalExpiryDate" type="date" class="form-control" />
+                        <small class="text-muted">The incorrect expiry date that was recorded</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="CorrectedExpiryDate" class="form-label">Corrected Expiry Date</label>
+                        <input asp-for="CorrectedExpiryDate" type="date" class="form-control" />
+                        <small class="text-muted">The correct expiry date</small>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-search"></i> Analyze Impact
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

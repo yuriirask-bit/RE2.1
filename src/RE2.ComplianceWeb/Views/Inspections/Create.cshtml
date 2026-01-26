@@ -1,0 +1,116 @@
+@model RE2.ComplianceWeb.Controllers.CreateInspectionViewModel
+@{
+    ViewData["Title"] = "Record Inspection";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Record Regulatory Inspection</h1>
+            <p class="text-muted mb-0">Record a new regulatory inspection for audit compliance (FR-028)</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Inspections
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-clipboard-plus me-2"></i>Inspection Details</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger">
+                        <h6><i class="bi bi-exclamation-triangle me-2"></i>Validation Errors</h6>
+                        <div asp-validation-summary="All"></div>
+                    </div>
+                }
+
+                <h6 class="mb-3">Basic Information</h6>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label asp-for="InspectionDate" class="form-label">Inspection Date <span class="text-danger">*</span></label>
+                        <input asp-for="InspectionDate" type="date" class="form-control" required />
+                        <span asp-validation-for="InspectionDate" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Authority" class="form-label">Inspecting Authority <span class="text-danger">*</span></label>
+                        <select asp-for="Authority" class="form-select" required>
+                            @foreach (var auth in Enum.GetValues<RE2.ComplianceCore.Models.InspectingAuthority>())
+                            {
+                                <option value="@auth">@auth</option>
+                            }
+                        </select>
+                        <small class="text-muted">IGJ = Inspectorate for Health and Youth Care</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="ReferenceNumber" class="form-label">Reference Number</label>
+                        <input asp-for="ReferenceNumber" class="form-control" placeholder="e.g., IGJ-2025-1234" />
+                        <small class="text-muted">Official reference from the authority</small>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="InspectorName" class="form-label">Inspector Name <span class="text-danger">*</span></label>
+                        <input asp-for="InspectorName" class="form-control" required placeholder="Name of inspector or inspection team" />
+                        <span asp-validation-for="InspectorName" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Outcome" class="form-label">Inspection Outcome <span class="text-danger">*</span></label>
+                        <select asp-for="Outcome" class="form-select" required>
+                            @foreach (var outcome in Enum.GetValues<RE2.ComplianceCore.Models.InspectionOutcome>())
+                            {
+                                <option value="@outcome">@outcome</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <h6 class="mb-3 mt-4">Findings</h6>
+                <div class="mb-3">
+                    <label asp-for="FindingsSummary" class="form-label">Findings Summary</label>
+                    <textarea asp-for="FindingsSummary" class="form-control" rows="4"
+                              placeholder="Describe the findings from the inspection..."></textarea>
+                    <small class="text-muted">Summary of deficiencies or observations from the inspection</small>
+                </div>
+
+                <h6 class="mb-3 mt-4">Corrective Actions</h6>
+                <div class="row mb-3">
+                    <div class="col-md-8">
+                        <label asp-for="CorrectiveActions" class="form-label">Required Corrective Actions</label>
+                        <textarea asp-for="CorrectiveActions" class="form-control" rows="3"
+                                  placeholder="Describe the corrective actions required..."></textarea>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="CorrectiveActionsDueDate" class="form-label">Due Date</label>
+                        <input asp-for="CorrectiveActionsDueDate" type="date" class="form-control" />
+                        <small class="text-muted">Deadline for completing corrective actions</small>
+                    </div>
+                </div>
+
+                <h6 class="mb-3 mt-4">Additional Information</h6>
+                <div class="mb-3">
+                    <label asp-for="Notes" class="form-label">Notes</label>
+                    <textarea asp-for="Notes" class="form-control" rows="2"
+                              placeholder="Any additional notes or context..."></textarea>
+                </div>
+
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> Record Inspection
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

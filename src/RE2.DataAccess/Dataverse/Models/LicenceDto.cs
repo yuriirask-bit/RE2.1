@@ -18,6 +18,11 @@ public class LicenceDto
     public string? phr_issuingauthority { get; set; }
     public DateTime phr_issuedate { get; set; }
     public DateTime? phr_expirydate { get; set; }
+    /// <summary>
+    /// Grace period end date from Dataverse virtual table.
+    /// Per Assumption 16: allows continued operation during licence renewal processing.
+    /// </summary>
+    public DateTime? phr_graceperiodenddate { get; set; }
     public string? phr_status { get; set; }
     public string? phr_scope { get; set; }
     public int phr_permittedactivities { get; set; }
@@ -36,6 +41,7 @@ public class LicenceDto
             IssuingAuthority = phr_issuingauthority ?? string.Empty,
             IssueDate = DateOnly.FromDateTime(phr_issuedate),
             ExpiryDate = phr_expirydate.HasValue ? DateOnly.FromDateTime(phr_expirydate.Value) : null,
+            GracePeriodEndDate = phr_graceperiodenddate.HasValue ? DateOnly.FromDateTime(phr_graceperiodenddate.Value) : null,
             Status = phr_status ?? "Valid",
             Scope = phr_scope,
             PermittedActivities = (LicenceTypes.PermittedActivity)phr_permittedactivities,
@@ -56,6 +62,7 @@ public class LicenceDto
             phr_issuingauthority = model.IssuingAuthority,
             phr_issuedate = model.IssueDate.ToDateTime(TimeOnly.MinValue),
             phr_expirydate = model.ExpiryDate?.ToDateTime(TimeOnly.MinValue),
+            phr_graceperiodenddate = model.GracePeriodEndDate?.ToDateTime(TimeOnly.MinValue),
             phr_status = model.Status,
             phr_scope = model.Scope,
             phr_permittedactivities = (int)model.PermittedActivities,

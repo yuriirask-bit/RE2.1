@@ -28,6 +28,9 @@ if (useInMemory && builder.Environment.IsDevelopment())
             policy.RequireRole("SalesAdmin", "ComplianceManager"));
         options.AddPolicy("TrainingCoordinator", policy =>
             policy.RequireRole("TrainingCoordinator", "QAUser", "ComplianceManager"));
+        // T169: Reports accessible to ComplianceManager and QAUser per FR-026, FR-029
+        options.AddPolicy("ComplianceManagerOrQAUser", policy =>
+            policy.RequireRole("ComplianceManager", "QAUser"));
     });
 }
 else
@@ -57,6 +60,10 @@ else
 
         options.AddPolicy("TrainingCoordinator", policy =>
             policy.RequireRole("TrainingCoordinator", "QAUser", "ComplianceManager"));
+
+        // T169: Reports accessible to ComplianceManager and QAUser per FR-026, FR-029
+        options.AddPolicy("ComplianceManagerOrQAUser", policy =>
+            policy.RequireRole("ComplianceManager", "QAUser"));
     });
 }
 

@@ -1,0 +1,80 @@
+@model RE2.ComplianceWeb.Controllers.CustomerComplianceReportViewModel
+@{
+    ViewData["Title"] = "Customer Compliance History";
+    var customers = (IEnumerable<RE2.ComplianceCore.Models.Customer>)ViewBag.Customers;
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Customer Compliance History</h1>
+            <p class="text-muted mb-0">Complete compliance history for a customer (FR-029)</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Reports
+        </a>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Report Criteria</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="CustomerCompliance" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label asp-for="CustomerId" class="form-label">Customer <span class="text-danger">*</span></label>
+                        <select asp-for="CustomerId" class="form-select" required>
+                            <option value="">Select a customer...</option>
+                            @foreach (var customer in customers.OrderBy(c => c.BusinessName))
+                            {
+                                <option value="@customer.CustomerId">@customer.BusinessName (@customer.BusinessCategory)</option>
+                            }
+                        </select>
+                        <span asp-validation-for="CustomerId" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="FromDate" class="form-label">From Date (optional)</label>
+                        <input asp-for="FromDate" type="date" class="form-control" />
+                        <small class="text-muted">Leave blank to include all history</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ToDate" class="form-label">To Date (optional)</label>
+                        <input asp-for="ToDate" type="date" class="form-control" />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input asp-for="IncludeLicenceStatus" class="form-check-input" type="checkbox" />
+                        <label asp-for="IncludeLicenceStatus" class="form-check-label">Include current licence status</label>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-info">
+                        <i class="bi bi-file-earmark-text"></i> Generate Report
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

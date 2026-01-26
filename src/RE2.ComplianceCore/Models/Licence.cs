@@ -57,6 +57,14 @@ public class Licence
     public DateOnly? ExpiryDate { get; set; }
 
     /// <summary>
+    /// End date of grace period allowing continued operation during licence renewal.
+    /// Per Assumption 16: When set and greater than today, licence is treated as valid
+    /// even if ExpiryDate has passed. Grace periods must be configured manually based
+    /// on regulatory authority guidance.
+    /// </summary>
+    public DateOnly? GracePeriodEndDate { get; set; }
+
+    /// <summary>
     /// Current status ("Valid", "Expired", "Suspended", "Revoked").
     /// Required.
     /// </summary>
@@ -158,13 +166,24 @@ public class Licence
     }
 
     /// <summary>
-    /// Checks if the licence is currently expired.
-    /// Per data-model.md: Status automatically set to Expired when ExpiryDate < Today.
+    /// Checks if the licence is currently expired, accounting for grace periods.
+    /// Per data-model.md: Status automatically set to Expired when ExpiryDate &lt; Today
+    /// AND GracePeriodEndDate is null or also past.
     /// </summary>
-    /// <returns>True if expired, false otherwise (includes no expiry date).</returns>
+    /// <returns>True if expired (including grace period), false otherwise.</returns>
     public bool IsExpired()
     {
-        return ExpiryDate.HasValue && ExpiryDate.Value.IsExpired();
+        if (!ExpiryDate.HasValue)
+            return false;
+
+        if (!ExpiryDate.Value.IsExpired())
+            return false;
+
+        // Check if grace period extends validity (per Assumption 16)
+        if (GracePeriodEndDate.HasValue && !GracePeriodEndDate.Value.IsExpired())
+            return false;
+
+        return true;
     }
 
     /// <summary>
