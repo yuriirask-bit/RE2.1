@@ -28,6 +28,7 @@ Represents a legal authorization (permit, exemption, certificate) held by the co
 - `IssuingAuthority` (string, required) - Name of authority (e.g., "IGJ", "Farmatec", "CBG-MEB")
 - `IssueDate` (DateOnly, required) - Date licence was issued
 - `ExpiryDate` (DateOnly, nullable) - Date licence expires (null = no expiry)
+- `GracePeriodEndDate` (DateOnly, nullable) - End date of grace period allowing continued operation during licence renewal processing. When set and > Today, licence is treated as valid even if ExpiryDate has passed. Per Assumption 16: grace periods configured manually based on regulatory authority guidance.
 - `Status` (enum: Valid, Expired, Suspended, Revoked, required) - Current status
 - `Scope` (string, nullable) - Textual description of restrictions or conditions
 - `PermittedActivities` (flags: Possess, Store, Distribute, Import, Export, Manufacture, HandlePrecursors) - What activities this licence allows

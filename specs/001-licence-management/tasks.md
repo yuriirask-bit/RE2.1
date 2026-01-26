@@ -371,6 +371,20 @@ Project uses multi-project .NET solution structure per plan.md:
 - [X] T149a [US4] Add appsettings.json configuration section for override approval roles with default ["ComplianceManager"] and role precedence documentation (any configured role can approve)
 - [X] T149b [US4] Extend TransactionsController to record calling system identity (IntegrationSystem ID from T047a-T047e) in transaction audit per FR-061
 
+### Webhook/Callback Notifications (FR-059)
+
+- [X] T149c [P] [US4] Create WebhookSubscription domain model in src/RE2.ComplianceCore/Models/WebhookSubscription.cs with properties: SubscriptionId, IntegrationSystemId, EventTypes (flags: ComplianceStatusChanged, OrderApproved, OrderRejected, LicenceExpiring), CallbackUrl, SecretKey, IsActive, CreatedDate
+- [X] T149d [P] [US4] Create WebhookSubscription DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/WebhookSubscriptionDto.cs
+- [X] T149e [US4] Create IWebhookSubscriptionRepository interface in src/RE2.ComplianceCore/Interfaces/IWebhookSubscriptionRepository.cs
+- [X] T149f [US4] Implement DataverseWebhookSubscriptionRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseWebhookSubscriptionRepository.cs
+- [X] T149g [US4] Create WebhookDispatchService in src/RE2.ComplianceCore/Services/Notifications/WebhookDispatchService.cs with methods: DispatchAsync(eventType, payload), GetSubscribersForEvent(eventType)
+- [X] T149h [US4] Implement webhook dispatch with HMAC-SHA256 signature using subscriber's SecretKey per industry standards (X-Webhook-Signature header)
+- [X] T149i [US4] Integrate WebhookDispatchService into TransactionComplianceService to dispatch events on: ComplianceStatusChanged (pending→approved, pending→rejected), OverrideApproved
+- [X] T149j [US4] Create WebhookSubscriptionsController v1 in src/RE2.ComplianceApi/Controllers/V1/WebhookSubscriptionsController.cs with GET, POST, DELETE endpoints for integration systems to manage their subscriptions
+- [X] T149k [US4] Configure authorization: only SystemAdmin role can manage webhook subscriptions, or integration systems can manage their own subscriptions via API key auth
+- [X] T149l [P] [US4] Unit tests for WebhookDispatchService in tests/RE2.ComplianceCore.Tests/Services/WebhookDispatchServiceTests.cs
+- [X] T149m [US4] Integration tests for webhook dispatch in tests/RE2.ComplianceApi.Tests/Controllers/V1/WebhookSubscriptionsControllerTests.cs
+
 **Checkpoint**: At this point, User Stories 1-4 are complete - real-time transaction validation API operational, blocking non-compliant orders
 
 ---
@@ -383,34 +397,34 @@ Project uses multi-project .NET solution structure per plan.md:
 
 ### Tests for User Story 5 (TDD - Write First)
 
-- [ ] T150 [P] [US5] Unit tests for AuditEvent model in tests/RE2.ComplianceCore.Tests/Models/AuditEventTests.cs
-- [ ] T151 [P] [US5] Unit tests for reporting service in tests/RE2.ComplianceCore.Tests/Services/ReportingServiceTests.cs
-- [ ] T152 [US5] Integration tests for audit report generation in tests/RE2.ComplianceApi.Tests/Controllers/V1/ReportsControllerTests.cs
+- [X] T150 [P] [US5] Unit tests for AuditEvent model in tests/RE2.ComplianceCore.Tests/Models/AuditEventTests.cs
+- [X] T151 [P] [US5] Unit tests for reporting service in tests/RE2.ComplianceCore.Tests/Services/ReportingServiceTests.cs
+- [X] T152 [US5] Integration tests for audit report generation in tests/RE2.ComplianceApi.Tests/Controllers/V1/ReportsControllerTests.cs
 
 ### Implementation for User Story 5
 
-- [ ] T153 [P] [US5] Create AuditEvent domain model in src/RE2.ComplianceCore/Models/AuditEvent.cs per data-model.md entity 15
-- [ ] T154 [US5] Create IAuditRepository interface in src/RE2.ComplianceCore/Interfaces/IAuditRepository.cs
-- [ ] T155 [US5] Implement D365FoAuditRepository in src/RE2.DataAccess/D365FinanceOperations/Repositories/D365FoAuditRepository.cs
-- [ ] T156 [US5] Create audit logging interceptor for all data modification operations (FR-027)
-- [ ] T157 [US5] Implement optimistic locking with RowVersion/ETag in all Dataverse and D365 F&O repositories per research.md section 7: catch ConcurrencyVersionMismatch exceptions (Dataverse), handle PreconditionFailed responses (D365), throw custom ConcurrencyException for upper layers
-- [ ] T157a [US5] Create ConcurrencyException custom exception in src/RE2.ComplianceCore/Exceptions/ with properties: EntityType, EntityId, LocalVersion, RemoteVersion, ConflictingFields
-- [ ] T158 [US5] Create conflict resolution UI component in src/RE2.ComplianceWeb/Views/Shared/_ConflictResolution.cshtml per FR-027b
-- [ ] T159 [US5] Implement conflict detection and resolution workflow per FR-027b
-- [ ] T160 [US5] Create ReportingService in src/RE2.ComplianceCore/Services/Reporting/ReportingService.cs
-- [ ] T161 [US5] Implement transaction audit report generation (FR-026: by substance, customer, country)
-- [ ] T162 [US5] Implement licence usage report generation
-- [ ] T163 [US5] Implement customer compliance history report generation (FR-029)
-- [ ] T163a [US5] Create LicenceCorrectionImpactService in src/RE2.ComplianceCore/Services/Reporting/LicenceCorrectionImpactService.cs implementing SC-038 historical validation report
-- [ ] T163b [US5] Implement impact analysis logic: query transactions where licence effective dates overlap transaction dates, re-validate each transaction under corrected licence data, return list of transactions with original vs. corrected compliance status
-- [ ] T163c [US5] Add GET /api/v1/reports/licence-correction-impact endpoint to ReportsController v1 accepting licenceId and correctionDate parameters
-- [ ] T163d [US5] Create licence correction impact report UI in src/RE2.ComplianceWeb/Views/Reports/LicenceCorrectionImpact.cshtml showing affected transactions table with columns: TransactionID, Date, Customer, OriginalStatus, CorrectedStatus, ImpactSeverity per SC-038
-- [ ] T164 [US5] Create ReportsController v1 in src/RE2.ComplianceApi/Controllers/V1/ReportsController.cs
-- [ ] T165 [US5] Create reports UI in src/RE2.ComplianceWeb/Views/Reports/ (Index, TransactionAudit, LicenceUsage, CustomerCompliance views)
-- [ ] T166 [US5] Create ReportsController for web UI in src/RE2.ComplianceWeb/Controllers/ReportsController.cs
-- [ ] T167 [US5] Implement inspection recording UI in src/RE2.ComplianceWeb/Views/Inspections/ (Create, Index views) per FR-028
-- [ ] T168 [US5] Create ComplianceReportGenerator Azure Function in src/RE2.ComplianceFunctions/ComplianceReportGenerator.cs (timer trigger, weekly)
-- [ ] T169 [US5] Configure authorization: ComplianceManager and QAUser roles can access reports
+- [X] T153 [P] [US5] Create AuditEvent domain model in src/RE2.ComplianceCore/Models/AuditEvent.cs per data-model.md entity 15
+- [X] T154 [US5] Create IAuditRepository interface in src/RE2.ComplianceCore/Interfaces/IAuditRepository.cs
+- [X] T155 [US5] Implement D365FoAuditRepository in src/RE2.DataAccess/D365FinanceOperations/Repositories/D365FoAuditRepository.cs
+- [X] T156 [US5] Create audit logging interceptor for all data modification operations (FR-027)
+- [X] T157 [US5] Implement optimistic locking with RowVersion/ETag in all Dataverse and D365 F&O repositories per research.md section 7: catch ConcurrencyVersionMismatch exceptions (Dataverse), handle PreconditionFailed responses (D365), throw custom ConcurrencyException for upper layers
+- [X] T157a [US5] Create ConcurrencyException custom exception in src/RE2.ComplianceCore/Exceptions/ with properties: EntityType, EntityId, LocalVersion, RemoteVersion, ConflictingFields
+- [X] T158 [US5] Create conflict resolution UI component in src/RE2.ComplianceWeb/Views/Shared/_ConflictResolution.cshtml per FR-027b
+- [X] T159 [US5] Implement conflict detection and resolution workflow per FR-027b
+- [X] T160 [US5] Create ReportingService in src/RE2.ComplianceCore/Services/Reporting/ReportingService.cs
+- [X] T161 [US5] Implement transaction audit report generation (FR-026: by substance, customer, country)
+- [X] T162 [US5] Implement licence usage report generation
+- [X] T163 [US5] Implement customer compliance history report generation (FR-029)
+- [X] T163a [US5] Create LicenceCorrectionImpactService in src/RE2.ComplianceCore/Services/Reporting/LicenceCorrectionImpactService.cs implementing SC-038 historical validation report
+- [X] T163b [US5] Implement impact analysis logic: query transactions where licence effective dates overlap transaction dates, re-validate each transaction under corrected licence data, return list of transactions with original vs. corrected compliance status
+- [X] T163c [US5] Add GET /api/v1/reports/licence-correction-impact endpoint to ReportsController v1 accepting licenceId and correctionDate parameters
+- [X] T163d [US5] Create licence correction impact report UI in src/RE2.ComplianceWeb/Views/Reports/LicenceCorrectionImpact.cshtml showing affected transactions table with columns: TransactionID, Date, Customer, OriginalStatus, CorrectedStatus, ImpactSeverity per SC-038
+- [X] T164 [US5] Create ReportsController v1 in src/RE2.ComplianceApi/Controllers/V1/ReportsController.cs
+- [X] T165 [US5] Create reports UI in src/RE2.ComplianceWeb/Views/Reports/ (Index, TransactionAudit, LicenceUsage, CustomerCompliance views)
+- [X] T166 [US5] Create ReportsController for web UI in src/RE2.ComplianceWeb/Controllers/ReportsController.cs
+- [X] T167 [US5] Implement inspection recording UI in src/RE2.ComplianceWeb/Views/Inspections/ (Create, Index views) per FR-028
+- [X] T168 [US5] Create ComplianceReportGenerator Azure Function in src/RE2.ComplianceFunctions/ComplianceReportGenerator.cs (timer trigger, weekly)
+- [X] T169 [US5] Configure authorization: ComplianceManager and QAUser roles can access reports
 
 **Checkpoint**: At this point, User Stories 1-5 are complete - full audit trail and reporting capabilities operational for regulatory compliance
 
@@ -856,7 +870,7 @@ With 3+ developers:
 - **Phase 3 (User Story 1 - P1)**: 51 tasks
 - **Phase 4 (User Story 2 - P1)**: 18 tasks
 - **Phase 5 (User Story 3 - P1)**: 23 tasks
-- **Phase 6 (User Story 4 - P2)**: 29 tasks - increased: added T149b for FR-061 integration audit
+- **Phase 6 (User Story 4 - P2)**: 40 tasks - increased: added T149b for FR-061 integration audit, T149c-T149m for FR-059 webhook dispatch
 - **Phase 7 (User Story 5 - P2)**: 20 tasks
 - **Phase 8 (User Story 6 - P3)**: 11 tasks
 - **Phase 9 (User Story 7 - P1)**: 15 tasks
@@ -866,7 +880,7 @@ With 3+ developers:
 - **Phase 13 (User Story 11 - P2)**: 9 tasks
 - **Phase 14 (User Story 12 - P3)**: 17 tasks - reduced: moved IntegrationSystem tasks to Phase 2
 - **Phase 15 (Polish)**: 30 tasks - increased: added T301a for FR-056 resource monitoring
-- **TOTAL**: 326 tasks
+- **TOTAL**: 337 tasks
 
 **MVP Scope** (User Stories 1-3): 75 + 20 (Setup) + 38 (Foundation) = **133 tasks**
 

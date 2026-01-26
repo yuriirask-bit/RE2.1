@@ -1,0 +1,209 @@
+@model RE2.ComplianceWeb.Models.ConflictResolutionViewModel
+@*
+    T158: Conflict resolution UI component per FR-027b.
+    Displays when an optimistic concurrency conflict is detected during save operations.
+    Shows both the user's changes and the conflicting changes from the database,
+    allowing the user to choose one version, merge specific fields, or cancel.
+*@
+
+<div class="modal fade" id="conflictResolutionModal" tabindex="-1" aria-labelledby="conflictResolutionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title" id="conflictResolutionModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Concurrency Conflict Detected
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <p class="mb-0">
+                        <strong>This @Model.EntityType was modified by another user while you were editing it.</strong>
+                        Please review the conflicting changes and choose how to proceed.
+                    </p>
+                </div>
+
+                <div class="mb-3">
+                    <small class="text-muted">
+                        Entity ID: <code>@Model.EntityId</code>
+                        @if (!string.IsNullOrEmpty(Model.ModifiedBy))
+                        {
+                            <span> | Modified by: @Model.ModifiedBy</span>
+                        }
+                        @if (Model.ModifiedAt.HasValue)
+                        {
+                            <span> | Modified at: @Model.ModifiedAt.Value.ToString("yyyy-MM-dd HH:mm:ss")</span>
+                        }
+                    </small>
+                </div>
+
+                @if (Model.ConflictingFields.Any())
+                {
+                    <h6 class="mb-3">Conflicting Fields</h6>
+                    <form id="conflictResolutionForm">
+                        <input type="hidden" name="entityType" value="@Model.EntityType" />
+                        <input type="hidden" name="entityId" value="@Model.EntityId" />
+                        <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 25%;">Field</th>
+                                        <th style="width: 35%;">Your Value</th>
+                                        <th style="width: 35%;">Current Database Value</th>
+                                        <th style="width: 5%;">Use</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var field in Model.ConflictingFields)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>@field.FieldName</strong>
+                                                @if (!string.IsNullOrEmpty(field.FieldLabel))
+                                                {
+                                                    <br /><small class="text-muted">@field.FieldLabel</small>
+                                                }
+                                            </td>
+                                            <td class="@(field.UserValueChanged ? "table-info" : "")">
+                                                @if (field.UserValue == null)
+                                                {
+                                                    <em class="text-muted">(empty)</em>
+                                                }
+                                                else
+                                                {
+                                                    @field.UserValue
+                                                }
+                                            </td>
+                                            <td class="table-warning">
+                                                @if (field.DatabaseValue == null)
+                                                {
+                                                    <em class="text-muted">(empty)</em>
+                                                }
+                                                else
+                                                {
+                                                    @field.DatabaseValue
+                                                }
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input field-choice" type="checkbox"
+                                                           name="fieldChoices[@field.FieldName]"
+                                                           value="user"
+                                                           id="choice_@field.FieldName"
+                                                           @(field.UserValueChanged ? "checked" : "")>
+                                                    <label class="form-check-label visually-hidden" for="choice_@field.FieldName">
+                                                        Use your value
+                                                    </label>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-3">
+                            <div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAllUserValues()">
+                                    <i class="bi bi-check-all"></i> Use All My Values
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAllDatabaseValues()">
+                                    <i class="bi bi-arrow-clockwise"></i> Use All Database Values
+                                </button>
+                            </div>
+                            <small class="text-muted align-self-center">
+                                Toggle switches to select which values to keep (checked = your value)
+                            </small>
+                        </div>
+                    </form>
+                }
+                else
+                {
+                    <div class="alert alert-info">
+                        <p class="mb-0">
+                            The record was modified but specific field changes could not be determined.
+                            Please reload and try your changes again.
+                        </p>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x"></i> Cancel Changes
+                </button>
+                <button type="button" class="btn btn-warning" onclick="reloadRecord()">
+                    <i class="bi bi-arrow-clockwise"></i> Discard My Changes & Reload
+                </button>
+                @if (Model.ConflictingFields.Any())
+                {
+                    <button type="button" class="btn btn-primary" onclick="submitMergedChanges()">
+                        <i class="bi bi-check-lg"></i> Save Selected Values
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function selectAllUserValues() {
+        document.querySelectorAll('.field-choice').forEach(checkbox => {
+            checkbox.checked = true;
+        });
+    }
+
+    function selectAllDatabaseValues() {
+        document.querySelectorAll('.field-choice').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    }
+
+    function reloadRecord() {
+        window.location.reload();
+    }
+
+    function submitMergedChanges() {
+        const form = document.getElementById('conflictResolutionForm');
+        const formData = new FormData(form);
+
+        // Get field choices
+        const choices = {};
+        document.querySelectorAll('.field-choice').forEach(checkbox => {
+            const fieldName = checkbox.name.match(/\[([^\]]+)\]/)[1];
+            choices[fieldName] = checkbox.checked ? 'user' : 'database';
+        });
+
+        formData.append('fieldChoicesJson', JSON.stringify(choices));
+        formData.append('resolution', 'merge');
+
+        // Submit via AJAX
+        fetch('@Url.Action("ResolveConflict", "Conflicts")', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.redirectUrl || '@Model.ReturnUrl';
+                } else {
+                    alert('Error resolving conflict: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                alert('Error submitting resolution: ' + error);
+            });
+    }
+
+    // Show modal when conflict detected
+    @if (Model.ShowModal)
+    {
+        <text>
+        document.addEventListener('DOMContentLoaded', function() {
+            var modal = new bootstrap.Modal(document.getElementById('conflictResolutionModal'));
+            modal.show();
+        });
+        </text>
+    }
+</script>

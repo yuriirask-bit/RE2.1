@@ -230,6 +230,46 @@ public class InMemoryTransactionRepository : ITransactionRepository
         return Task.FromResult<IEnumerable<Transaction>>(transactions);
     }
 
+    public Task<IEnumerable<Transaction>> GetByCustomerAsync(Guid customerId, CancellationToken cancellationToken = default)
+    {
+        return GetByCustomerIdAsync(customerId, cancellationToken);
+    }
+
+    public Task<IEnumerable<Transaction>> GetBySubstanceAsync(
+        Guid substanceId,
+        DateTime fromDate,
+        DateTime toDate,
+        CancellationToken cancellationToken = default)
+    {
+        // Get all transactions in date range that have lines with the given substance
+        var transactionIds = _transactionLines.Values
+            .Where(l => l.SubstanceId == substanceId)
+            .Select(l => l.TransactionId)
+            .Distinct()
+            .ToHashSet();
+
+        var transactions = _transactions.Values
+            .Where(t => transactionIds.Contains(t.Id) &&
+                        t.TransactionDate >= fromDate &&
+                        t.TransactionDate <= toDate)
+            .OrderByDescending(t => t.TransactionDate)
+            .ToList();
+
+        foreach (var t in transactions)
+        {
+            t.Lines = _transactionLines.Values
+                .Where(l => l.TransactionId == t.Id)
+                .OrderBy(l => l.LineNumber)
+                .ToList();
+
+            t.LicenceUsages = _licenceUsages.Values
+                .Where(u => u.TransactionId == t.Id)
+                .ToList();
+        }
+
+        return Task.FromResult<IEnumerable<Transaction>>(transactions);
+    }
+
     #endregion
 
     #region Transaction Lines

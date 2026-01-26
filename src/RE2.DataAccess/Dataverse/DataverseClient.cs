@@ -1,9 +1,11 @@
+using System.ServiceModel;
 using Azure.Core;
 using Azure.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.PowerPlatform.Dataverse.Client;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
+using RE2.ComplianceCore.Exceptions;
 using RE2.ComplianceCore.Interfaces;
 
 namespace RE2.DataAccess.Dataverse;
@@ -157,6 +159,48 @@ public class DataverseClient : IDataverseClient, IDisposable
 
             _logger.LogInformation("Updated entity {EntityName} with ID {Id}",
                 entity.LogicalName, entity.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating entity {EntityName} with ID {Id}",
+                entity.LogicalName, entity.Id);
+            throw;
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task UpdateWithConcurrencyAsync(
+        Entity entity,
+        string rowVersion,
+        CancellationToken cancellationToken = default)
+    {
+        const int ConcurrencyVersionMismatchErrorCode = -2147088254;
+
+        try
+        {
+            _logger.LogDebug("Updating entity {EntityName} with ID {Id} with concurrency check (RowVersion: {RowVersion})",
+                entity.LogicalName, entity.Id, rowVersion);
+
+            // Set the row version on the entity for optimistic concurrency
+            entity.RowVersion = rowVersion;
+
+            await _serviceClient.UpdateAsync(entity, cancellationToken);
+
+            _logger.LogInformation("Updated entity {EntityName} with ID {Id} with concurrency check",
+                entity.LogicalName, entity.Id);
+        }
+        catch (FaultException<OrganizationServiceFault> ex) when (ex.Detail?.ErrorCode == ConcurrencyVersionMismatchErrorCode)
+        {
+            _logger.LogWarning("Concurrency conflict detected for entity {EntityName} with ID {Id}. " +
+                              "Local version: {LocalVersion}",
+                entity.LogicalName, entity.Id, rowVersion);
+
+            throw new ConcurrencyException(
+                entity.LogicalName,
+                entity.Id,
+                rowVersion,
+                null, // Remote version not available from exception
+                $"The {entity.LogicalName} with ID {entity.Id} has been modified by another user. Please refresh and try again.");
         }
         catch (Exception ex)
         {

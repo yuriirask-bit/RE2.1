@@ -60,6 +60,21 @@ public interface IDataverseClient
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Updates an existing entity record with optimistic concurrency control.
+    /// T157: Uses RowVersion for concurrency per research.md section 7.
+    /// </summary>
+    /// <param name="entity">The entity to update (must include Id and RowVersion).</param>
+    /// <param name="rowVersion">The row version from the original read.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="RE2.ComplianceCore.Exceptions.ConcurrencyException">
+    /// Thrown when the entity has been modified by another user since it was read.
+    /// </exception>
+    Task UpdateWithConcurrencyAsync(
+        Entity entity,
+        string rowVersion,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Deletes an entity record.
     /// </summary>
     /// <param name="entityName">Logical name of the entity.</param>

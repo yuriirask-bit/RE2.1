@@ -1,0 +1,101 @@
+@model IEnumerable<RE2.ComplianceCore.Models.RegulatoryInspection>
+@{
+    ViewData["Title"] = "Overdue Corrective Actions";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Overdue Corrective Actions</h1>
+            <p class="text-muted mb-0">Inspections with corrective actions past their due date</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to All Inspections
+        </a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-success">
+            <h5><i class="bi bi-check-circle me-2"></i>No Overdue Corrective Actions</h5>
+            <p class="mb-0">All corrective actions are either completed or not yet due.</p>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-danger mb-4">
+            <h5><i class="bi bi-exclamation-octagon me-2"></i>Attention Required</h5>
+            <p class="mb-0">@Model.Count() inspection(s) have corrective actions that are past their due date and require immediate attention.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Overdue Corrective Actions</h5>
+                    <span class="badge bg-light text-danger">@Model.Count() overdue</span>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Inspection Date</th>
+                                <th>Authority</th>
+                                <th>Reference</th>
+                                <th>Due Date</th>
+                                <th>Days Overdue</th>
+                                <th>Corrective Actions</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var inspection in Model)
+                            {
+                                var daysOverdue = (DateOnly.FromDateTime(DateTime.UtcNow).DayNumber - inspection.CorrectiveActionsDueDate!.Value.DayNumber);
+                                var authorityBadge = inspection.Authority switch
+                                {
+                                    RE2.ComplianceCore.Models.InspectingAuthority.IGJ => "bg-primary",
+                                    RE2.ComplianceCore.Models.InspectingAuthority.Customs => "bg-info",
+                                    RE2.ComplianceCore.Models.InspectingAuthority.NVWA => "bg-warning text-dark",
+                                    RE2.ComplianceCore.Models.InspectingAuthority.Internal => "bg-secondary",
+                                    _ => "bg-secondary"
+                                };
+
+                                <tr class="table-danger">
+                                    <td>@inspection.InspectionDate.ToString("yyyy-MM-dd")</td>
+                                    <td>
+                                        <span class="badge @authorityBadge">@inspection.Authority</span>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(inspection.ReferenceNumber))
+                                        {
+                                            <code>@inspection.ReferenceNumber</code>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>@inspection.CorrectiveActionsDueDate!.Value.ToString("yyyy-MM-dd")</td>
+                                    <td>
+                                        <span class="badge bg-danger">@daysOverdue days</span>
+                                    </td>
+                                    <td>
+                                        <small>@(inspection.CorrectiveActions?.Length > 100 ? inspection.CorrectiveActions.Substring(0, 100) + "..." : inspection.CorrectiveActions)</small>
+                                    </td>
+                                    <td>
+                                        <a asp-action="Edit" asp-route-id="@inspection.InspectionId"
+                                           class="btn btn-sm btn-warning" title="Update / Mark Complete">
+                                            <i class="bi bi-pencil"></i> Update
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>

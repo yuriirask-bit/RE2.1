@@ -1,0 +1,112 @@
+@{
+    ViewData["Title"] = "Reports";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Compliance Reports</h1>
+            <p class="text-muted mb-0">Generate regulatory compliance reports per FR-026, FR-029</p>
+        </div>
+        <div>
+            <a asp-controller="Dashboard" asp-action="Index" class="btn btn-outline-secondary">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Transaction Audit Report -->
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-receipt-cutoff me-2"></i>Transaction Audit</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Generate transaction audit reports by substance, customer, or country. Per FR-026.</p>
+                    <ul class="list-unstyled text-muted small">
+                        <li><i class="bi bi-check2 me-1"></i>Filter by date range</li>
+                        <li><i class="bi bi-check2 me-1"></i>Filter by substance</li>
+                        <li><i class="bi bi-check2 me-1"></i>Filter by customer</li>
+                        <li><i class="bi bi-check2 me-1"></i>Filter by country</li>
+                        <li><i class="bi bi-check2 me-1"></i>Optional licence details</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <a asp-action="TransactionAudit" class="btn btn-primary w-100">
+                        <i class="bi bi-file-earmark-text"></i> Generate Report
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Licence Usage Report -->
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-card-checklist me-2"></i>Licence Usage</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Track licence utilization and transaction coverage. Shows which licences were used in transactions.</p>
+                    <ul class="list-unstyled text-muted small">
+                        <li><i class="bi bi-check2 me-1"></i>Usage statistics per licence</li>
+                        <li><i class="bi bi-check2 me-1"></i>Transaction counts</li>
+                        <li><i class="bi bi-check2 me-1"></i>Quantity processed</li>
+                        <li><i class="bi bi-check2 me-1"></i>Last usage date</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <a asp-action="LicenceUsage" class="btn btn-success w-100">
+                        <i class="bi bi-file-earmark-text"></i> Generate Report
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer Compliance History -->
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-person-badge me-2"></i>Customer Compliance</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Complete compliance history for a customer including all events and licence status. Per FR-029.</p>
+                    <ul class="list-unstyled text-muted small">
+                        <li><i class="bi bi-check2 me-1"></i>Full audit trail</li>
+                        <li><i class="bi bi-check2 me-1"></i>Status changes</li>
+                        <li><i class="bi bi-check2 me-1"></i>Approval events</li>
+                        <li><i class="bi bi-check2 me-1"></i>Current licence status</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <a asp-action="CustomerCompliance" class="btn btn-info w-100">
+                        <i class="bi bi-file-earmark-text"></i> Generate Report
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Licence Correction Impact -->
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Correction Impact</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Analyze the impact of licence date corrections on historical transactions. Per SC-038.</p>
+                    <ul class="list-unstyled text-muted small">
+                        <li><i class="bi bi-check2 me-1"></i>Historical validation analysis</li>
+                        <li><i class="bi bi-check2 me-1"></i>Original vs corrected status</li>
+                        <li><i class="bi bi-check2 me-1"></i>Impact severity rating</li>
+                        <li><i class="bi bi-check2 me-1"></i>Review recommendations</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <a asp-action="LicenceCorrectionImpact" class="btn btn-warning w-100">
+                        <i class="bi bi-file-earmark-text"></i> Generate Report
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -61,6 +61,26 @@ public interface ID365FoClient
         CancellationToken cancellationToken = default) where T : class;
 
     /// <summary>
+    /// Executes an OData PATCH request with optimistic concurrency control via ETag.
+    /// T157: Uses If-Match header with ETag for concurrency per research.md section 7.
+    /// </summary>
+    /// <typeparam name="T">The type of the entity to update.</typeparam>
+    /// <param name="entitySetName">The entity set name.</param>
+    /// <param name="key">The entity key value.</param>
+    /// <param name="entity">The entity data to update.</param>
+    /// <param name="etag">The ETag from the original read.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="RE2.ComplianceCore.Exceptions.ConcurrencyException">
+    /// Thrown when the entity has been modified by another user since it was read.
+    /// </exception>
+    Task UpdateWithConcurrencyAsync<T>(
+        string entitySetName,
+        string key,
+        T entity,
+        string etag,
+        CancellationToken cancellationToken = default) where T : class;
+
+    /// <summary>
     /// Executes an OData DELETE request to remove an entity.
     /// </summary>
     /// <param name="entitySetName">The entity set name.</param>
