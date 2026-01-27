@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using RE2.ComplianceCore.Interfaces;
+using RE2.ComplianceCore.Models;
 using RE2.ComplianceCore.Services.AlertGeneration;
 using RE2.ComplianceWeb.Models;
 
@@ -11,17 +12,20 @@ public class HomeController : Controller
     private readonly AlertGenerationService _alertService;
     private readonly ILicenceRepository _licenceRepository;
     private readonly ICustomerRepository _customerRepository;
+    private readonly IRegulatoryInspectionRepository _inspectionRepository;
     private readonly ILogger<HomeController> _logger;
 
     public HomeController(
         AlertGenerationService alertService,
         ILicenceRepository licenceRepository,
         ICustomerRepository customerRepository,
+        IRegulatoryInspectionRepository inspectionRepository,
         ILogger<HomeController> logger)
     {
         _alertService = alertService ?? throw new ArgumentNullException(nameof(alertService));
         _licenceRepository = licenceRepository ?? throw new ArgumentNullException(nameof(licenceRepository));
         _customerRepository = customerRepository ?? throw new ArgumentNullException(nameof(customerRepository));
+        _inspectionRepository = inspectionRepository ?? throw new ArgumentNullException(nameof(inspectionRepository));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -54,6 +58,13 @@ public class HomeController : Controller
             var reVerificationDue = await _customerRepository.GetReVerificationDueAsync(90, cancellationToken);
             var reVerificationDueCount = reVerificationDue.Count();
 
+            // Get inspection statistics
+            var allInspections = (await _inspectionRepository.GetAllAsync(cancellationToken)).ToList();
+            var overdueInspections = (await _inspectionRepository.GetWithOverdueCorrectiveActionsAsync(cancellationToken)).ToList();
+            var recentInspections = allInspections
+                .Where(i => i.InspectionDate >= DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-90)))
+                .ToList();
+
             var viewModel = new DashboardViewModel
             {
                 AlertSummary = alertSummary,
@@ -63,7 +74,14 @@ public class HomeController : Controller
                 QualifiedCustomerCount = qualifiedCustomerCount,
                 PendingQualificationCount = pendingQualificationCount,
                 SuspendedCustomerCount = suspendedCustomerCount,
-                ReVerificationDueCount = reVerificationDueCount
+                ReVerificationDueCount = reVerificationDueCount,
+                TotalInspections = allInspections.Count,
+                RecentInspections = recentInspections.Count,
+                OverdueCorrectiveActions = overdueInspections.Count,
+                InspectionsWithFindings = allInspections.Count(i =>
+                    i.Outcome == InspectionOutcome.MinorFindings ||
+                    i.Outcome == InspectionOutcome.MajorFindings ||
+                    i.Outcome == InspectionOutcome.CriticalFindings)
             };
 
             return View(viewModel);

@@ -102,6 +102,113 @@
         </div>
     </div>
 
+    <!-- Reports & Inspections Section -->
+    <div class="row mb-4">
+        <!-- Reports Quick Access -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-bar-graph me-2"></i>Compliance Reports</h5>
+                    <a asp-controller="Reports" asp-action="Index" class="btn btn-sm btn-outline-primary">All Reports</a>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <a asp-controller="Reports" asp-action="TransactionAudit" class="card text-decoration-none h-100">
+                                <div class="card-body text-center py-3">
+                                    <i class="bi bi-table text-primary" style="font-size: 1.5rem;"></i>
+                                    <p class="mb-0 mt-2 small fw-bold">Transaction Audit</p>
+                                    <p class="mb-0 text-muted" style="font-size: 0.75rem;">FR-026</p>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a asp-controller="Reports" asp-action="LicenceUsage" class="card text-decoration-none h-100">
+                                <div class="card-body text-center py-3">
+                                    <i class="bi bi-card-checklist text-success" style="font-size: 1.5rem;"></i>
+                                    <p class="mb-0 mt-2 small fw-bold">Licence Usage</p>
+                                    <p class="mb-0 text-muted" style="font-size: 0.75rem;">FR-026</p>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a asp-controller="Reports" asp-action="CustomerCompliance" class="card text-decoration-none h-100">
+                                <div class="card-body text-center py-3">
+                                    <i class="bi bi-person-lines-fill text-info" style="font-size: 1.5rem;"></i>
+                                    <p class="mb-0 mt-2 small fw-bold">Customer Compliance</p>
+                                    <p class="mb-0 text-muted" style="font-size: 0.75rem;">FR-029</p>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a asp-controller="Reports" asp-action="LicenceCorrectionImpact" class="card text-decoration-none h-100">
+                                <div class="card-body text-center py-3">
+                                    <i class="bi bi-exclamation-triangle text-warning" style="font-size: 1.5rem;"></i>
+                                    <p class="mb-0 mt-2 small fw-bold">Correction Impact</p>
+                                    <p class="mb-0 text-muted" style="font-size: 0.75rem;">SC-038</p>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inspections Summary -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-clipboard-check me-2"></i>Regulatory Inspections</h5>
+                    <a asp-controller="Inspections" asp-action="Index" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center mb-3">
+                        <div class="col-3">
+                            <div class="border rounded p-2">
+                                <h4 class="mb-0">@(Model?.TotalInspections ?? 0)</h4>
+                                <small class="text-muted">Total</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="border rounded p-2">
+                                <h4 class="mb-0 text-primary">@(Model?.RecentInspections ?? 0)</h4>
+                                <small class="text-muted">Last 90d</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="border rounded p-2">
+                                <h4 class="mb-0 text-warning">@(Model?.InspectionsWithFindings ?? 0)</h4>
+                                <small class="text-muted">Findings</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="border rounded p-2 @(Model?.OverdueCorrectiveActions > 0 ? "border-danger" : "")">
+                                <h4 class="mb-0 @(Model?.OverdueCorrectiveActions > 0 ? "text-danger" : "text-success")">@(Model?.OverdueCorrectiveActions ?? 0)</h4>
+                                <small class="text-muted">Overdue</small>
+                            </div>
+                        </div>
+                    </div>
+                    @if ((Model?.OverdueCorrectiveActions ?? 0) > 0)
+                    {
+                        <div class="alert alert-danger small mb-3 py-2">
+                            <i class="bi bi-exclamation-octagon me-1"></i>
+                            <strong>@Model!.OverdueCorrectiveActions</strong> inspection(s) have overdue corrective actions requiring attention.
+                            <a asp-controller="Inspections" asp-action="OverdueCorrectiveActions" class="alert-link">Review now</a>
+                        </div>
+                    }
+                    <div class="d-grid gap-2">
+                        <a asp-controller="Inspections" asp-action="Create" class="btn btn-outline-primary">
+                            <i class="bi bi-plus-circle me-2"></i>Record New Inspection
+                        </a>
+                        <a asp-controller="Inspections" asp-action="OverdueCorrectiveActions" class="btn btn-outline-danger">
+                            <i class="bi bi-exclamation-octagon me-2"></i>Overdue Corrective Actions
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <!-- Recent Alerts Panel -->
         <div class="col-md-8">
@@ -273,6 +380,13 @@
                         </a>
                         <a asp-controller="Alerts" asp-action="BulkAcknowledge" class="btn btn-outline-success">
                             <i class="bi bi-check2-all me-2"></i>Bulk Acknowledge Alerts
+                        </a>
+                        <hr class="my-1" />
+                        <a asp-controller="Reports" asp-action="Index" class="btn btn-outline-info">
+                            <i class="bi bi-file-earmark-bar-graph me-2"></i>Compliance Reports
+                        </a>
+                        <a asp-controller="Inspections" asp-action="Create" class="btn btn-outline-secondary">
+                            <i class="bi bi-clipboard-plus me-2"></i>Record Inspection
                         </a>
                     </div>
                 </div>
