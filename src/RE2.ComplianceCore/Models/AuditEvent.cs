@@ -388,7 +388,22 @@ public enum AuditEventType
     /// <summary>
     /// User logged out.
     /// </summary>
-    UserLogout = 81
+    UserLogout = 81,
+
+    /// <summary>
+    /// Workflow was triggered for approval (FR-030).
+    /// </summary>
+    WorkflowTriggered = 90,
+
+    /// <summary>
+    /// Workflow approval was received.
+    /// </summary>
+    WorkflowApproved = 91,
+
+    /// <summary>
+    /// Workflow rejection was received.
+    /// </summary>
+    WorkflowRejected = 92
 }
 
 /// <summary>
@@ -445,7 +460,12 @@ public enum AuditEntityType
     /// <summary>
     /// Report entity.
     /// </summary>
-    Report = 10
+    Report = 10,
+
+    /// <summary>
+    /// Workflow/approval entity (FR-030).
+    /// </summary>
+    Workflow = 11
 }
 
 /// <summary>

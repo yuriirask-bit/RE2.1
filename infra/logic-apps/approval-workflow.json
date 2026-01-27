@@ -1,0 +1,208 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "description": "T175: Azure Logic App workflow for high-risk event approvals per FR-030. Handles approval workflows for adding controlled substances to customer scope, approving exception sales, and adding new countries.",
+    "version": "1.0.0"
+  },
+  "parameters": {
+    "complianceApiBaseUrl": {
+      "type": "String",
+      "defaultValue": "https://re2-compliance-api.azurewebsites.net",
+      "metadata": {
+        "description": "Base URL of the RE2 Compliance API"
+      }
+    },
+    "approverEmailGroup": {
+      "type": "String",
+      "defaultValue": "compliance-approvers@company.com",
+      "metadata": {
+        "description": "Email distribution group for approval requests"
+      }
+    }
+  },
+  "triggers": {
+    "When_a_HTTP_request_is_received": {
+      "type": "Request",
+      "kind": "Http",
+      "inputs": {
+        "method": "POST",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "workflowId": {
+              "type": "string",
+              "description": "Unique identifier for this workflow instance"
+            },
+            "eventType": {
+              "type": "string",
+              "enum": [
+                "AddSubstanceToCustomerScope",
+                "ApproveExceptionSale",
+                "AddNewCountry",
+                "ModifyLicenceScope",
+                "OverrideComplianceBlock"
+              ],
+              "description": "Type of high-risk event requiring approval"
+            },
+            "initiatedBy": {
+              "type": "string",
+              "description": "User who initiated the event"
+            },
+            "entityType": {
+              "type": "string",
+              "description": "Type of entity being modified (Customer, Licence, Substance)"
+            },
+            "entityId": {
+              "type": "string",
+              "description": "ID of the entity being modified"
+            },
+            "details": {
+              "type": "string",
+              "description": "Human-readable description of the change"
+            },
+            "riskLevel": {
+              "type": "string",
+              "enum": ["High", "Critical"],
+              "description": "Risk classification of the event"
+            },
+            "callbackUrl": {
+              "type": "string",
+              "description": "URL to call back with approval/rejection result"
+            }
+          },
+          "required": [
+            "workflowId",
+            "eventType",
+            "initiatedBy",
+            "entityType",
+            "entityId",
+            "details",
+            "riskLevel",
+            "callbackUrl"
+          ]
+        }
+      }
+    }
+  },
+  "actions": {
+    "Initialize_WorkflowStatus": {
+      "type": "InitializeVariable",
+      "runAfter": {},
+      "inputs": {
+        "variables": [
+          {
+            "name": "workflowStatus",
+            "type": "string",
+            "value": "Pending"
+          }
+        ]
+      }
+    },
+    "Send_Approval_Email": {
+      "type": "ApiConnectionManaged",
+      "runAfter": {
+        "Initialize_WorkflowStatus": ["Succeeded"]
+      },
+      "inputs": {
+        "host": {
+          "connection": {
+            "referenceName": "office365"
+          }
+        },
+        "method": "post",
+        "path": "/approvalmail/$subscriptions",
+        "body": {
+          "NotificationUrl": "https://prod-00.westeurope.logic.azure.com:443/workflows/@{workflow().run.name}/triggers/manual/run?api-version=2016-06-01",
+          "Message": {
+            "To": "@{parameters('approverEmailGroup')}",
+            "Subject": "Compliance Approval Required: @{triggerBody()?['eventType']}",
+            "Options": "Approve, Reject",
+            "Body": "<h2>High-Risk Compliance Event Requires Approval</h2><table><tr><td><b>Workflow ID:</b></td><td>@{triggerBody()?['workflowId']}</td></tr><tr><td><b>Event Type:</b></td><td>@{triggerBody()?['eventType']}</td></tr><tr><td><b>Risk Level:</b></td><td>@{triggerBody()?['riskLevel']}</td></tr><tr><td><b>Initiated By:</b></td><td>@{triggerBody()?['initiatedBy']}</td></tr><tr><td><b>Entity:</b></td><td>@{triggerBody()?['entityType']} (@{triggerBody()?['entityId']})</td></tr><tr><td><b>Details:</b></td><td>@{triggerBody()?['details']}</td></tr></table><p>Please review and approve or reject this request.</p>",
+            "Importance": "High"
+          }
+        }
+      }
+    },
+    "Check_Approval_Response": {
+      "type": "If",
+      "runAfter": {
+        "Send_Approval_Email": ["Succeeded"]
+      },
+      "expression": {
+        "and": [
+          {
+            "equals": [
+              "@body('Send_Approval_Email')?['SelectedOption']",
+              "Approve"
+            ]
+          }
+        ]
+      },
+      "actions": {
+        "Set_Status_Approved": {
+          "type": "SetVariable",
+          "inputs": {
+            "name": "workflowStatus",
+            "value": "Approved"
+          }
+        }
+      },
+      "else": {
+        "actions": {
+          "Set_Status_Rejected": {
+            "type": "SetVariable",
+            "inputs": {
+              "name": "workflowStatus",
+              "value": "Rejected"
+            }
+          }
+        }
+      }
+    },
+    "Callback_To_ComplianceApi": {
+      "type": "Http",
+      "runAfter": {
+        "Check_Approval_Response": ["Succeeded"]
+      },
+      "inputs": {
+        "method": "POST",
+        "uri": "@{triggerBody()?['callbackUrl']}",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "workflowId": "@{triggerBody()?['workflowId']}",
+          "status": "@{variables('workflowStatus')}",
+          "approvedBy": "@{body('Send_Approval_Email')?['UserEmailAddress']}",
+          "approvalDate": "@{utcNow()}",
+          "comments": "@{body('Send_Approval_Email')?['Comments']}"
+        },
+        "authentication": {
+          "type": "ManagedServiceIdentity"
+        },
+        "retryPolicy": {
+          "type": "exponential",
+          "count": 3,
+          "interval": "PT10S",
+          "maximumInterval": "PT5M"
+        }
+      }
+    },
+    "Response": {
+      "type": "Response",
+      "runAfter": {
+        "Callback_To_ComplianceApi": ["Succeeded", "Failed"]
+      },
+      "inputs": {
+        "statusCode": 200,
+        "body": {
+          "workflowId": "@{triggerBody()?['workflowId']}",
+          "status": "@{variables('workflowStatus')}",
+          "message": "Workflow processing complete"
+        }
+      }
+    }
+  },
+  "outputs": {}
+}

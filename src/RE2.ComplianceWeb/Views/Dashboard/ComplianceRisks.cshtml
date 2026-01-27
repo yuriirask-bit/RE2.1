@@ -1,0 +1,360 @@
+@model RE2.ComplianceWeb.Controllers.ComplianceRiskDashboardViewModel
+@{
+    ViewData["Title"] = "Compliance Risk Dashboard";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Compliance Risk Dashboard</h1>
+            <p class="text-muted mb-0">FR-032: Highlights high-risk compliance items requiring attention</p>
+        </div>
+        <div>
+            <a asp-controller="Dashboard" asp-action="Index" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+            </a>
+            <span class="text-muted me-2">Last updated:</span>
+            <span class="badge bg-secondary">@DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm") UTC</span>
+        </div>
+    </div>
+
+    <!-- T178: Risk Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-danger h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-subtitle mb-2 text-muted">Expired Licences</h6>
+                            <p class="card-text display-4 text-danger mb-0">@Model.ExpiredLicences.Count</p>
+                        </div>
+                        <i class="bi bi-x-octagon-fill text-danger" style="font-size: 2rem;"></i>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Licences past expiry date</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-warning h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-subtitle mb-2 text-muted">Expiring Soon</h6>
+                            <p class="card-text display-4 text-warning mb-0">@Model.ExpiringLicences.Count</p>
+                        </div>
+                        <i class="bi bi-clock-history text-warning" style="font-size: 2rem;"></i>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Within next 90 days</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-danger h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-subtitle mb-2 text-muted">Suspended Customers</h6>
+                            <p class="card-text display-4 text-danger mb-0">@Model.SuspendedCustomers.Count</p>
+                        </div>
+                        <i class="bi bi-person-x-fill text-danger" style="font-size: 2rem;"></i>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Orders currently blocked</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-info h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-subtitle mb-2 text-muted">Re-verification Due</h6>
+                            <p class="card-text display-4 text-info mb-0">@Model.PendingReVerificationCustomers.Count</p>
+                        </div>
+                        <i class="bi bi-person-check text-info" style="font-size: 2rem;"></i>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Within next 30 days</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- T178: Risk Overview Bar -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-shield-exclamation me-2"></i>Risk Overview</h5>
+                </div>
+                <div class="card-body">
+                    @{
+                        var totalRiskItems = Model.ExpiredLicences.Count + Model.ExpiringLicences.Count +
+                                            Model.SuspendedCustomers.Count + Model.PendingReVerificationCustomers.Count;
+                        var riskLevel = totalRiskItems == 0 ? "Low" :
+                                        (Model.ExpiredLicences.Count > 0 || Model.SuspendedCustomers.Count > 5) ? "High" :
+                                        totalRiskItems > 5 ? "Medium" : "Low";
+                        var riskBadgeClass = riskLevel switch
+                        {
+                            "High" => "bg-danger",
+                            "Medium" => "bg-warning text-dark",
+                            _ => "bg-success"
+                        };
+                    }
+                    <div class="d-flex align-items-center mb-3">
+                        <h4 class="mb-0 me-3">Overall Risk Level:</h4>
+                        <span class="badge @riskBadgeClass fs-5">@riskLevel</span>
+                        <span class="text-muted ms-3">(@totalRiskItems risk items identified)</span>
+                    </div>
+                    <div class="progress" style="height: 30px;">
+                        @if (totalRiskItems > 0)
+                        {
+                            var expiredPct = (Model.ExpiredLicences.Count * 100.0 / totalRiskItems);
+                            var expiringPct = (Model.ExpiringLicences.Count * 100.0 / totalRiskItems);
+                            var suspendedPct = (Model.SuspendedCustomers.Count * 100.0 / totalRiskItems);
+                            var reverifyPct = (Model.PendingReVerificationCustomers.Count * 100.0 / totalRiskItems);
+
+                            <div class="progress-bar bg-danger" role="progressbar" style="width: @expiredPct%">
+                                @if (expiredPct > 10) { <text>Expired (@Model.ExpiredLicences.Count)</text> }
+                            </div>
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: @expiringPct%">
+                                @if (expiringPct > 10) { <text>Expiring (@Model.ExpiringLicences.Count)</text> }
+                            </div>
+                            <div class="progress-bar bg-danger bg-opacity-75" role="progressbar" style="width: @suspendedPct%">
+                                @if (suspendedPct > 10) { <text>Suspended (@Model.SuspendedCustomers.Count)</text> }
+                            </div>
+                            <div class="progress-bar bg-info" role="progressbar" style="width: @reverifyPct%">
+                                @if (reverifyPct > 10) { <text>Re-verify (@Model.PendingReVerificationCustomers.Count)</text> }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="progress-bar bg-success" style="width: 100%">No risk items</div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- T178: Expiring Licences Table -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-calendar-x me-2 text-warning"></i>Licences Expiring Soon</h5>
+                    <span class="badge bg-warning text-dark">@Model.ExpiringLicences.Count</span>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.ExpiringLicences.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Licence Number</th>
+                                        <th>Authority</th>
+                                        <th>Expiry Date</th>
+                                        <th>Days Left</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var licence in Model.ExpiringLicences.Take(10))
+                                    {
+                                        var daysLeft = licence.ExpiryDate.HasValue
+                                            ? (licence.ExpiryDate.Value.ToDateTime(TimeOnly.MinValue) - DateTime.UtcNow).Days
+                                            : 0;
+                                        var urgencyClass = daysLeft <= 30 ? "text-danger fw-bold" : daysLeft <= 60 ? "text-warning" : "";
+
+                                        <tr>
+                                            <td>
+                                                <a asp-controller="Licences" asp-action="Details" asp-route-id="@licence.LicenceId">
+                                                    @licence.LicenceNumber
+                                                </a>
+                                            </td>
+                                            <td>@licence.IssuingAuthority</td>
+                                            <td>@licence.ExpiryDate?.ToString("yyyy-MM-dd")</td>
+                                            <td class="@urgencyClass">@daysLeft days</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        @if (Model.ExpiringLicences.Count > 10)
+                        {
+                            <div class="card-footer text-center">
+                                <a asp-controller="Licences" asp-action="Expiring" class="btn btn-sm btn-outline-warning">
+                                    View all @Model.ExpiringLicences.Count expiring licences
+                                </a>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="p-4 text-center text-muted">
+                            <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+                            <p class="mt-2 mb-0">No licences expiring within 90 days.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- T178: Expired Licences Table -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-x-octagon me-2 text-danger"></i>Expired Licences</h5>
+                    <span class="badge bg-danger">@Model.ExpiredLicences.Count</span>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.ExpiredLicences.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Licence Number</th>
+                                        <th>Authority</th>
+                                        <th>Expired On</th>
+                                        <th>Days Overdue</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var licence in Model.ExpiredLicences.Take(10))
+                                    {
+                                        var daysOverdue = licence.ExpiryDate.HasValue
+                                            ? (DateTime.UtcNow - licence.ExpiryDate.Value.ToDateTime(TimeOnly.MinValue)).Days
+                                            : 0;
+
+                                        <tr class="table-danger">
+                                            <td>
+                                                <a asp-controller="Licences" asp-action="Details" asp-route-id="@licence.LicenceId">
+                                                    @licence.LicenceNumber
+                                                </a>
+                                            </td>
+                                            <td>@licence.IssuingAuthority</td>
+                                            <td>@licence.ExpiryDate?.ToString("yyyy-MM-dd")</td>
+                                            <td class="fw-bold">@daysOverdue days</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="p-4 text-center text-muted">
+                            <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+                            <p class="mt-2 mb-0">No expired licences.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- T178: Suspended Customers -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-person-x me-2 text-danger"></i>Suspended Customers (Blocked Orders)</h5>
+                    <span class="badge bg-danger">@Model.SuspendedCustomers.Count</span>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.SuspendedCustomers.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Customer</th>
+                                        <th>Category</th>
+                                        <th>Suspension Reason</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var customer in Model.SuspendedCustomers)
+                                    {
+                                        <tr class="table-warning">
+                                            <td>
+                                                <a asp-controller="Customers" asp-action="Details" asp-route-id="@customer.CustomerId">
+                                                    @customer.BusinessName
+                                                </a>
+                                            </td>
+                                            <td>@customer.BusinessCategory</td>
+                                            <td>@(customer.SuspensionReason ?? "Not specified")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="p-4 text-center text-muted">
+                            <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+                            <p class="mt-2 mb-0">No suspended customers.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- T178: Pending Re-verification -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-person-check me-2 text-info"></i>Re-verification Due (30 Days)</h5>
+                    <span class="badge bg-info">@Model.PendingReVerificationCustomers.Count</span>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.PendingReVerificationCustomers.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Customer</th>
+                                        <th>Category</th>
+                                        <th>Due Date</th>
+                                        <th>Days Until Due</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var customer in Model.PendingReVerificationCustomers)
+                                    {
+                                        var daysUntilDue = customer.NextReVerificationDate.HasValue
+                                            ? (customer.NextReVerificationDate.Value.ToDateTime(TimeOnly.MinValue) - DateTime.UtcNow).Days
+                                            : 0;
+                                        var urgencyClass = daysUntilDue <= 7 ? "text-danger fw-bold" : daysUntilDue <= 14 ? "text-warning" : "";
+
+                                        <tr>
+                                            <td>
+                                                <a asp-controller="Customers" asp-action="Details" asp-route-id="@customer.CustomerId">
+                                                    @customer.BusinessName
+                                                </a>
+                                            </td>
+                                            <td>@customer.BusinessCategory</td>
+                                            <td>@customer.NextReVerificationDate?.ToString("yyyy-MM-dd")</td>
+                                            <td class="@urgencyClass">@daysUntilDue days</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="p-4 text-center text-muted">
+                            <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+                            <p class="mt-2 mb-0">No customers due for re-verification.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

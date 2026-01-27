@@ -88,6 +88,63 @@ public class DashboardController : Controller
             return View(new DashboardViewModel());
         }
     }
+
+    /// <summary>
+    /// Displays the compliance risk dashboard.
+    /// T177: Compliance risk dashboard per FR-032.
+    /// T178: Highlights customers with expiring licences, blocked orders, abnormal volumes.
+    /// </summary>
+    [Authorize(Policy = "ComplianceManager")]
+    public async Task<IActionResult> ComplianceRisks(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var licences = (await _licenceRepository.GetAllAsync(cancellationToken)).ToList();
+            var customers = (await _customerRepository.GetAllAsync(cancellationToken)).ToList();
+            var alertSummary = await _alertService.GetDashboardSummaryAsync(cancellationToken);
+
+            var expiringLicences = licences
+                .Where(l => l.Status == "Valid" && l.ExpiryDate.HasValue &&
+                            l.ExpiryDate.Value <= DateOnly.FromDateTime(DateTime.UtcNow.AddDays(90)) &&
+                            l.ExpiryDate.Value > DateOnly.FromDateTime(DateTime.UtcNow))
+                .OrderBy(l => l.ExpiryDate)
+                .ToList();
+
+            var expiredLicences = licences
+                .Where(l => l.IsExpired())
+                .ToList();
+
+            var suspendedCustomers = customers
+                .Where(c => c.IsSuspended)
+                .ToList();
+
+            var pendingReVerification = customers
+                .Where(c => c.NextReVerificationDate.HasValue &&
+                            c.NextReVerificationDate.Value <= DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)))
+                .OrderBy(c => c.NextReVerificationDate)
+                .ToList();
+
+            var viewModel = new ComplianceRiskDashboardViewModel
+            {
+                ExpiringLicences = expiringLicences,
+                ExpiredLicences = expiredLicences,
+                SuspendedCustomers = suspendedCustomers,
+                PendingReVerificationCustomers = pendingReVerification,
+                TotalActiveLicences = licences.Count(l => l.Status == "Valid" && !l.IsExpired()),
+                TotalCustomers = customers.Count,
+                CriticalAlertCount = alertSummary?.CriticalCount ?? 0,
+                WarningAlertCount = alertSummary?.WarningCount ?? 0
+            };
+
+            return View(viewModel);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading compliance risk dashboard");
+            TempData["ErrorMessage"] = "Error loading compliance risk data. Please try again.";
+            return View(new ComplianceRiskDashboardViewModel());
+        }
+    }
 }
 
 /// <summary>
@@ -155,4 +212,20 @@ public class DashboardViewModel
     /// Number of inspections that had findings (minor, major, or critical).
     /// </summary>
     public int InspectionsWithFindings { get; set; }
+}
+
+/// <summary>
+/// T177: View model for the compliance risk dashboard per FR-032.
+/// T178: Highlights customers with expiring licences, blocked orders, abnormal volumes.
+/// </summary>
+public class ComplianceRiskDashboardViewModel
+{
+    public List<RE2.ComplianceCore.Models.Licence> ExpiringLicences { get; set; } = new();
+    public List<RE2.ComplianceCore.Models.Licence> ExpiredLicences { get; set; } = new();
+    public List<RE2.ComplianceCore.Models.Customer> SuspendedCustomers { get; set; } = new();
+    public List<RE2.ComplianceCore.Models.Customer> PendingReVerificationCustomers { get; set; } = new();
+    public int TotalActiveLicences { get; set; }
+    public int TotalCustomers { get; set; }
+    public int CriticalAlertCount { get; set; }
+    public int WarningAlertCount { get; set; }
 }
