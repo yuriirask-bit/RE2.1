@@ -298,7 +298,7 @@ As a QA user or training coordinator, I need to maintain an index of GDP-relevan
 - **FR-031a**: System MUST support hybrid authentication: Azure Active Directory B2C for enterprise SSO integration (supporting SAML 2.0, OAuth2, OpenID Connect protocols for connecting to organizational identity providers like Active Directory, Azure AD, Okta) AND local username/password authentication (for external partners, auditors, or deployments without enterprise SSO). Technology selection: Azure AD B2C as SSO provider per plan.md technical context.
 - **FR-031b**: System MUST manage user sessions securely with configurable timeout periods, automatic logout on inactivity, and audit logging of all authentication events (successful logins, failed attempts, logouts, session expirations)
 - **FR-031c**: System MUST allow administrators to configure which authentication method(s) are enabled per deployment and map SSO groups/claims to internal application roles
-- **FR-032**: System MUST provide dashboards highlighting key risks (customers with expiring licences, blocked orders due to missing exemptions, abnormal order volumes) for compliance and QA managers
+- **FR-032**: System MUST provide dashboards highlighting key risks (customers with expiring licences, blocked orders due to missing exemptions, abnormal order volumes) for compliance and QA managers. Dashboard MUST load within 5 seconds, display data no older than 15 minutes (cached from source systems), and support filtering by date range and entity type
 
 ### Functional Requirements - GDP Master Data & Authorisations
 
@@ -349,7 +349,7 @@ As a QA user or training coordinator, I need to maintain an index of GDP-relevan
 
 - **FR-057**: System MUST provide RESTful API endpoints for integration with external order management systems (ERP, custom order entry systems) and warehouse management systems (WMS)
 - **FR-058**: System MUST support synchronous API calls for real-time transaction validation with response time under 3 seconds at 95th percentile (p95) that block/allow order processing based on compliance checks. Target p50 response time: <1 second. Maximum acceptable p99 response time: 5 seconds.
-- **FR-059**: System MUST provide webhook/callback mechanism for asynchronous notifications when compliance status changes (e.g., pending order approved, customer suspended due to licence expiry)
+- **FR-059**: System MUST provide webhook/callback mechanism for asynchronous notifications when compliance status changes (e.g., pending order approved, customer suspended due to licence expiry). Webhook delivery MUST retry failed deliveries up to 3 times with exponential backoff (10s, 60s, 300s). After 3 failures, the subscription is marked as unhealthy and an alert is generated for the SystemAdmin. Subscribers can query missed events via GET /api/v1/webhooks/{subscriptionId}/events endpoint
 - **FR-060**: System MUST support customer/product master data synchronization APIs allowing external systems to query customer compliance status, licence validity, and GDP qualifications before displaying options to users
 - **FR-061**: System MUST maintain transaction audit records for all API calls including calling system identity, request payload, response, timestamp, and user context (which external user triggered the validation)
 - **FR-062**: System MUST provide API versioning and backward compatibility support to minimize disruption when APIs evolve (maintain previous API version for minimum 6 months after new version release)

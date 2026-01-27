@@ -1,9 +1,12 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Identity.Web;
 using Microsoft.OpenApi.Models;
 using RE2.ComplianceApi.Authentication;
+using RE2.ComplianceApi.HealthChecks;
 using RE2.ComplianceApi.Middleware;
 using RE2.DataAccess.DependencyInjection;
 
@@ -146,6 +149,27 @@ builder.Services.AddApiVersioning(options =>
 // T046: Configure Application Insights telemetry
 builder.Services.AddApplicationInsightsTelemetry();
 
+// T047g: Register health checks for external service connectivity per FR-056
+builder.Services.AddSingleton<ServiceHealthStatus>();
+
+var healthChecksBuilder = builder.Services.AddHealthChecks();
+
+if (!builder.Configuration.GetValue<bool>("UseInMemoryRepositories"))
+{
+    healthChecksBuilder
+        .AddCheck<DataverseHealthCheck>("dataverse", tags: new[] { "ready", "external" })
+        .AddCheck<D365FoHealthCheck>("d365fo", tags: new[] { "ready", "external" })
+        .AddCheck<BlobStorageHealthCheck>("blobstorage", tags: new[] { "ready", "external" });
+}
+
+// T047g: Publish health check results to ServiceHealthStatus for use by degradation middleware
+builder.Services.Configure<HealthCheckPublisherOptions>(options =>
+{
+    options.Period = TimeSpan.FromSeconds(30);
+    options.Delay = TimeSpan.FromSeconds(5);
+});
+builder.Services.AddSingleton<IHealthCheckPublisher, HealthCheckPublisher>();
+
 // Add controllers
 builder.Services.AddControllers();
 
@@ -213,6 +237,10 @@ app.UseMiddleware<ErrorHandlingMiddleware>();
 // T045: Add request logging middleware
 app.UseMiddleware<RequestLoggingMiddleware>();
 
+// T047h: Graceful degradation middleware per FR-054/FR-055
+// Returns 503 for non-critical endpoints when external services are unavailable
+app.UseMiddleware<GracefulDegradationMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -230,5 +258,20 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// T047g: Map health check endpoints per FR-056
+// /health - liveness probe (always returns 200 if app is running)
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    Predicate = _ => false, // No checks - just confirms app is running
+    ResponseWriter = HealthCheckResponseWriter.WriteResponse
+});
+
+// /ready - readiness probe (checks external service connectivity)
+app.MapHealthChecks("/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
+    ResponseWriter = HealthCheckResponseWriter.WriteResponse
+});
 
 app.Run();

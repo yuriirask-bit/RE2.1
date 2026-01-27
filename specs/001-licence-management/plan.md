@@ -23,7 +23,7 @@ A comprehensive licence management and GDP compliance system for Dutch pharmaceu
 
 ## System Criticality Classification
 
-**Critical Path (99.9% availability target, failover required)**:
+**Critical Path (99.5% availability target per FR-052, failover required)**:
 - Transaction validation API (POST /api/v1/transactions/validate)
 - Customer compliance lookup API (GET /api/v1/customers/{id}/compliance-status)
 - Warehouse operation validation API (POST /api/v1/warehouse/operations/validate)

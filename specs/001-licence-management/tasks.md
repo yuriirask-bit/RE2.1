@@ -98,6 +98,8 @@ Project uses multi-project .NET solution structure per plan.md:
 - [X] T045 Create request logging middleware in src/RE2.ComplianceApi/Middleware/RequestLoggingMiddleware.cs
 - [X] T046 Configure Application Insights telemetry in RE2.ComplianceApi and RE2.ComplianceFunctions
 - [X] T047 Create standardized error response DTOs in src/RE2.Shared/Models/ per transaction-validation-api.yaml ErrorResponse schema
+- [X] T047g Implement health check endpoints (/health, /ready) in RE2.ComplianceApi per FR-056 with Dataverse/D365/Blob connectivity checks, degraded state detection for non-critical features per FR-054
+- [X] T047h Implement graceful degradation middleware in src/RE2.ComplianceApi/Middleware/GracefulDegradationMiddleware.cs per FR-054/FR-055: categorize endpoints as critical (transaction validation, customer lookup, warehouse validation) or non-critical (reports, dashboards, document upload, workflow approvals); return HTTP 503 with Retry-After: 300 header for non-critical endpoints when dependent services (Dataverse, D365 F&O) are detected as unavailable via health check status
 
 ### Integration System Foundation (FR-061, data-model.md entity 27)
 
@@ -311,7 +313,7 @@ Project uses multi-project .NET solution structure per plan.md:
 - [X] T118 [US3] Add verification recording UI in src/RE2.ComplianceWeb/Views/Licences/RecordVerification.cshtml
 - [X] T119 [US3] Add scope change history UI in src/RE2.ComplianceWeb/Views/Licences/ScopeHistory.cshtml
 - [X] T120 [US3] Create unified AlertGenerationService in src/RE2.ComplianceCore/Services/AlertGeneration/AlertGenerationService.cs supporting multiple entity types (Licence, GdpCredential, Customer re-verification)
-- [X] T121 [US3] Create LicenceExpiryMonitor Azure Function in src/RE2.ComplianceFunctions/LicenceExpiryMonitor.cs (timer trigger, daily at 2 AM) using AlertGenerationService for 90/60/30 day warnings per FR-007
+- [X] T121 [US3] Create LicenceExpiryMonitor Azure Function in src/RE2.ComplianceFunctions/LicenceExpiryMonitor.cs (timer trigger, daily at 2 AM) using AlertGenerationService per FR-007: 90/60/30 day warnings for own company licences, 60/30 day warnings for customer licences (thresholds configurable per licence type)
 - [X] T122 [US3] Add alert display dashboard in src/RE2.ComplianceWeb/Views/Dashboard/Index.cshtml
 
 **Checkpoint**: At this point, User Stories 1-3 are complete - full licence lifecycle management with documents, verification, and expiry monitoring
@@ -379,6 +381,7 @@ Project uses multi-project .NET solution structure per plan.md:
 - [X] T149f [US4] Implement DataverseWebhookSubscriptionRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseWebhookSubscriptionRepository.cs
 - [X] T149g [US4] Create WebhookDispatchService in src/RE2.ComplianceCore/Services/Notifications/WebhookDispatchService.cs with methods: DispatchAsync(eventType, payload), GetSubscribersForEvent(eventType)
 - [X] T149h [US4] Implement webhook dispatch with HMAC-SHA256 signature using subscriber's SecretKey per industry standards (X-Webhook-Signature header)
+- [X] T149h2 [US4] Implement webhook retry logic in WebhookDispatchService: retry up to 3 times with exponential backoff (10s, 60s, 300s), mark subscription as unhealthy after 3 consecutive failures, generate SystemAdmin alert on webhook delivery failure per FR-059
 - [X] T149i [US4] Integrate WebhookDispatchService into TransactionComplianceService to dispatch events on: ComplianceStatusChanged (pending→approved, pending→rejected), OverrideApproved
 - [X] T149j [US4] Create WebhookSubscriptionsController v1 in src/RE2.ComplianceApi/Controllers/V1/WebhookSubscriptionsController.cs with GET, POST, DELETE endpoints for integration systems to manage their subscriptions
 - [X] T149k [US4] Configure authorization: only SystemAdmin role can manage webhook subscriptions, or integration systems can manage their own subscriptions via API key auth
@@ -685,8 +688,6 @@ Project uses multi-project .NET solution structure per plan.md:
 - [ ] T296 Performance testing: verify <1 second customer compliance status lookup (SC-033)
 - [ ] T297 Load testing: verify 50 concurrent validation requests supported (SC-032)
 - [ ] T298 Availability testing: verify 99.5% uptime target achievable (SC-028)
-- [ ] T299 [P] Implement health check endpoints (/health, /ready) in RE2.ComplianceApi per FR-056 with Dataverse/D365/Blob connectivity checks, degraded state detection for non-critical features per FR-054
-
 - [ ] T300 [P] Implement API version deprecation middleware in RE2.ComplianceApi adding X-API-Deprecated, X-API-Sunset-Date, Link headers per FR-062, with version routing enforcement: return HTTP 410 Gone for versions beyond sunset date (6 months after deprecation notice), redirect to latest version documentation
 
 - [ ] T300a Implement API version compatibility layer in RE2.ComplianceApi: maintain previous API version (v1 initially) for minimum 6 months after v2 release per FR-062, transform v1 requests to v2 internal format
@@ -866,11 +867,11 @@ With 3+ developers:
 ## Task Count Summary
 
 - **Phase 1 (Setup)**: 20 tasks
-- **Phase 2 (Foundational)**: 38 tasks (BLOCKING) - increased: added T047a-T047f for IntegrationSystem foundation
+- **Phase 2 (Foundational)**: 40 tasks (BLOCKING) - increased: added T047a-T047f for IntegrationSystem foundation, T047g for health checks (moved from Phase 15 T299), T047h for graceful degradation middleware
 - **Phase 3 (User Story 1 - P1)**: 51 tasks
 - **Phase 4 (User Story 2 - P1)**: 18 tasks
 - **Phase 5 (User Story 3 - P1)**: 23 tasks
-- **Phase 6 (User Story 4 - P2)**: 40 tasks - increased: added T149b for FR-061 integration audit, T149c-T149m for FR-059 webhook dispatch
+- **Phase 6 (User Story 4 - P2)**: 41 tasks - increased: added T149b for FR-061 integration audit, T149c-T149m for FR-059 webhook dispatch, T149h2 for webhook retry logic
 - **Phase 7 (User Story 5 - P2)**: 20 tasks
 - **Phase 8 (User Story 6 - P3)**: 11 tasks
 - **Phase 9 (User Story 7 - P1)**: 15 tasks
@@ -879,10 +880,10 @@ With 3+ developers:
 - **Phase 12 (User Story 10 - P2)**: 9 tasks
 - **Phase 13 (User Story 11 - P2)**: 9 tasks
 - **Phase 14 (User Story 12 - P3)**: 17 tasks - reduced: moved IntegrationSystem tasks to Phase 2
-- **Phase 15 (Polish)**: 30 tasks - increased: added T301a for FR-056 resource monitoring
-- **TOTAL**: 337 tasks
+- **Phase 15 (Polish)**: 29 tasks - T299 moved to Phase 2 as T047g; added T301a for FR-056 resource monitoring
+- **TOTAL**: 339 tasks
 
-**MVP Scope** (User Stories 1-3): 75 + 20 (Setup) + 38 (Foundation) = **133 tasks**
+**MVP Scope** (User Stories 1-3): 75 + 20 (Setup) + 40 (Foundation) = **135 tasks**
 
 **Parallel Opportunities**:
 - Phase 1: 16 parallelizable tasks (80%)
