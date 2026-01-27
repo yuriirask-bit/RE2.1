@@ -441,27 +441,27 @@ Project uses multi-project .NET solution structure per plan.md:
 
 ### Tests for User Story 6 (TDD - Write First)
 
-- [ ] T170 [P] [US6] Unit tests for authorization policies in tests/RE2.ComplianceApi.Tests/Authorization/AuthorizationPolicyTests.cs
-- [ ] T171 [US6] Integration tests for role-based access control in tests/RE2.ComplianceApi.Tests/Controllers/RoleBasedAccessTests.cs
+- [X] T170 [P] [US6] Unit tests for authorization policies in tests/RE2.ComplianceApi.Tests/Authorization/AuthorizationPolicyTests.cs
+- [X] T171 [US6] Integration tests for role-based access control in tests/RE2.ComplianceApi.Tests/Controllers/RoleBasedAccessTests.cs
 
 ### Implementation for User Story 6
 
-- [ ] T172 [US6] Create custom authorization requirement ActiveEmployeeRequirement in src/RE2.ComplianceApi/Authorization/ActiveEmployeeRequirement.cs per research.md section 6
-- [ ] T173 [US6] Create authorization handler ActiveEmployeeHandler in src/RE2.ComplianceApi/Authorization/ActiveEmployeeHandler.cs
-- [ ] T174 [US6] Configure custom authorization policies (CanManageLicences, InternalTenantOnly, ActiveEmployeeOnly) in RE2.ComplianceApi Program.cs
-- [ ] T175 [US6] Implement Azure Logic App workflow definition for high-risk event approvals in infra/logic-apps/approval-workflow.json per FR-030 with HTTP trigger, approval action, and callback to ComplianceApi
-- [ ] T176 [US6] Create ApprovalWorkflowController v1 in src/RE2.ComplianceApi/Controllers/V1/ApprovalWorkflowController.cs with:
+- [X] T172 [US6] Create custom authorization requirement ActiveEmployeeRequirement in src/RE2.ComplianceApi/Authorization/ActiveEmployeeRequirement.cs per research.md section 6
+- [X] T173 [US6] Create authorization handler ActiveEmployeeHandler in src/RE2.ComplianceApi/Authorization/ActiveEmployeeHandler.cs
+- [X] T174 [US6] Configure custom authorization policies (CanManageLicences, InternalTenantOnly, ActiveEmployeeOnly) in RE2.ComplianceApi Program.cs
+- [X] T175 [US6] Implement Azure Logic App workflow definition for high-risk event approvals in infra/logic-apps/approval-workflow.json per FR-030 with HTTP trigger, approval action, and callback to ComplianceApi
+- [X] T176 [US6] Create ApprovalWorkflowController v1 in src/RE2.ComplianceApi/Controllers/V1/ApprovalWorkflowController.cs with:
   - POST /api/v1/workflows/trigger (trigger Logic App for high-risk events)
   - POST /api/v1/workflows/callback (receive approval/rejection from Logic App)
   - GET /api/v1/workflows/{workflowId}/status (check workflow state)
 
-- [ ] T176a Implement workflow state synchronization: update internal approval status when Logic App callback received, generate audit events per FR-030
-- [ ] T176b Configure Azure Logic App deployment in infra/bicep/logic-apps.bicep with Managed Identity authentication to ComplianceApi callback endpoints
+- [X] T176a Implement workflow state synchronization: update internal approval status when Logic App callback received, generate audit events per FR-030
+- [X] T176b Configure Azure Logic App deployment in infra/bicep/logic-apps.bicep with Managed Identity authentication to ComplianceApi callback endpoints
 
-- [ ] T177 [US6] Create compliance dashboard in src/RE2.ComplianceWeb/Views/Dashboard/ComplianceRisks.cshtml per FR-032
-- [ ] T178 [US6] Implement dashboard highlighting: customers with expiring licences, blocked orders, abnormal order volumes
-- [ ] T179 [US6] Add role-based UI hiding/showing in Razor views (e.g., hide "Create Licence" button if not ComplianceManager)
-- [ ] T180 [US6] Configure Azure API Management policies for rate limiting per FR-063
+- [X] T177 [US6] Create compliance dashboard in src/RE2.ComplianceWeb/Views/Dashboard/ComplianceRisks.cshtml per FR-032
+- [X] T178 [US6] Implement dashboard highlighting: customers with expiring licences, blocked orders, abnormal order volumes
+- [X] T179 [US6] Add role-based UI hiding/showing in Razor views (e.g., hide "Create Licence" button if not ComplianceManager)
+- [X] T180 [US6] Configure Azure API Management policies for rate limiting per FR-063
 
 **Checkpoint**: At this point, User Stories 1-6 are complete - governance layer and risk controls operational on top of compliance functionality
 

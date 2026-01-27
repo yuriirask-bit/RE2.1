@@ -1,11 +1,15 @@
+using System.Threading.RateLimiting;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Identity.Web;
 using Microsoft.OpenApi.Models;
 using RE2.ComplianceApi.Authentication;
+using RE2.ComplianceApi.Authorization;
 using RE2.ComplianceApi.HealthChecks;
 using RE2.ComplianceApi.Middleware;
 using RE2.DataAccess.DependencyInjection;
@@ -22,6 +26,9 @@ if (useInMemory && builder.Environment.IsDevelopment())
         .AddScheme<AuthenticationSchemeOptions, DevelopmentAuthHandler>(
             DevelopmentAuthHandler.SchemeName, _ => { });
 
+    // T174: Register ActiveEmployeeHandler for authorization
+    builder.Services.AddSingleton<IAuthorizationHandler, ActiveEmployeeHandler>();
+
     // Simple authorization that accepts the development scheme
     builder.Services.AddAuthorization(options =>
     {
@@ -37,6 +44,15 @@ if (useInMemory && builder.Environment.IsDevelopment())
             policy.RequireRole("QAUser", "ComplianceManager"));
         options.AddPolicy("SalesAdmin", policy =>
             policy.RequireRole("SalesAdmin", "ComplianceManager"));
+
+        // T174: Custom authorization policies for User Story 6
+        options.AddPolicy("CanManageLicences", policy =>
+            policy.RequireRole("ComplianceManager"));
+        options.AddPolicy("InternalTenantOnly", policy =>
+            policy.RequireAuthenticatedUser());
+        options.AddPolicy("ActiveEmployeeOnly", policy =>
+            policy.RequireAuthenticatedUser()
+                  .AddRequirements(new ActiveEmployeeRequirement()));
     });
 }
 else
@@ -82,6 +98,9 @@ else
             },
             jwtBearerScheme: "AzureAdB2C");
 
+    // T174: Register ActiveEmployeeHandler for authorization
+    builder.Services.AddSingleton<IAuthorizationHandler, ActiveEmployeeHandler>();
+
     // T024: Configure authorization policies
     builder.Services.AddAuthorization(options =>
     {
@@ -112,6 +131,21 @@ else
         options.AddPolicy("SalesAdmin", policy =>
             policy.RequireRole("SalesAdmin", "ComplianceManager")
                   .AddAuthenticationSchemes("AzureAd"));
+
+        // T174: Custom authorization policies for User Story 6
+        options.AddPolicy("CanManageLicences", policy =>
+            policy.RequireRole("ComplianceManager")
+                  .AddAuthenticationSchemes("AzureAd")
+                  .AddRequirements(new ActiveEmployeeRequirement()));
+
+        options.AddPolicy("InternalTenantOnly", policy =>
+            policy.RequireAuthenticatedUser()
+                  .AddAuthenticationSchemes("AzureAd"));
+
+        options.AddPolicy("ActiveEmployeeOnly", policy =>
+            policy.RequireAuthenticatedUser()
+                  .AddAuthenticationSchemes("AzureAd")
+                  .AddRequirements(new ActiveEmployeeRequirement()));
     });
 }
 
@@ -169,6 +203,53 @@ builder.Services.Configure<HealthCheckPublisherOptions>(options =>
     options.Delay = TimeSpan.FromSeconds(5);
 });
 builder.Services.AddSingleton<IHealthCheckPublisher, HealthCheckPublisher>();
+
+// T180: Configure API rate limiting per FR-063
+builder.Services.AddRateLimiter(options =>
+{
+    // Global rate limit: 100 requests per minute per client IP
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 100,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 10
+            }));
+
+    // Named policy for transaction validation endpoints (more restrictive)
+    options.AddFixedWindowLimiter("TransactionValidation", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 50;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 5;
+    });
+
+    // Named policy for workflow trigger endpoints (most restrictive)
+    options.AddFixedWindowLimiter("WorkflowTrigger", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 10;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 2;
+    });
+
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.Headers.RetryAfter = "60";
+        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogWarning("Rate limit exceeded for {IP}", context.HttpContext.Connection.RemoteIpAddress);
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            errorCode = "RATE_LIMIT_EXCEEDED",
+            message = "Too many requests. Please try again later."
+        }, cancellationToken);
+    };
+});
 
 // Add controllers
 builder.Services.AddControllers();
@@ -256,6 +337,9 @@ app.UseHttpsRedirection();
 // Authentication and Authorization middleware (order matters!)
 app.UseAuthentication();
 app.UseAuthorization();
+
+// T180: Rate limiting middleware per FR-063
+app.UseRateLimiter();
 
 app.MapControllers();
 
