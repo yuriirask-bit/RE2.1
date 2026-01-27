@@ -276,7 +276,12 @@ public enum AlertType
     /// <summary>
     /// Substance reclassification affecting customer.
     /// </summary>
-    ReclassificationImpact = 9
+    ReclassificationImpact = 9,
+
+    /// <summary>
+    /// T149h2: Webhook delivery has failed after all retry attempts per FR-059.
+    /// </summary>
+    WebhookDeliveryFailure = 10
 }
 
 /// <summary>
@@ -335,5 +340,10 @@ public enum TargetEntityType
     /// <summary>
     /// Alert is about a transaction.
     /// </summary>
-    Transaction = 6
+    Transaction = 6,
+
+    /// <summary>
+    /// T149h2: Alert is about a webhook subscription per FR-059.
+    /// </summary>
+    WebhookSubscription = 7
 }
