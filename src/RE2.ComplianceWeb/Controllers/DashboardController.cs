@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RE2.ComplianceCore.Interfaces;
+using RE2.ComplianceCore.Models;
 using RE2.ComplianceCore.Services.AlertGeneration;
 
 namespace RE2.ComplianceWeb.Controllers;
@@ -15,17 +16,20 @@ public class DashboardController : Controller
     private readonly AlertGenerationService _alertService;
     private readonly ILicenceRepository _licenceRepository;
     private readonly ICustomerRepository _customerRepository;
+    private readonly IRegulatoryInspectionRepository _inspectionRepository;
     private readonly ILogger<DashboardController> _logger;
 
     public DashboardController(
         AlertGenerationService alertService,
         ILicenceRepository licenceRepository,
         ICustomerRepository customerRepository,
+        IRegulatoryInspectionRepository inspectionRepository,
         ILogger<DashboardController> logger)
     {
         _alertService = alertService ?? throw new ArgumentNullException(nameof(alertService));
         _licenceRepository = licenceRepository ?? throw new ArgumentNullException(nameof(licenceRepository));
         _customerRepository = customerRepository ?? throw new ArgumentNullException(nameof(customerRepository));
+        _inspectionRepository = inspectionRepository ?? throw new ArgumentNullException(nameof(inspectionRepository));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -50,13 +54,27 @@ public class DashboardController : Controller
             var pendingQualificationCount = customers.Count(c => c.ApprovalStatus == RE2.ComplianceCore.Models.ApprovalStatus.Pending);
             var suspendedCustomerCount = customers.Count(c => c.IsSuspended);
 
+            // Get inspection statistics
+            var allInspections = (await _inspectionRepository.GetAllAsync(cancellationToken)).ToList();
+            var overdueInspections = (await _inspectionRepository.GetWithOverdueCorrectiveActionsAsync(cancellationToken)).ToList();
+            var recentInspections = allInspections
+                .Where(i => i.InspectionDate >= DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-90)))
+                .ToList();
+
             var viewModel = new DashboardViewModel
             {
                 AlertSummary = alertSummary,
                 ActiveLicenceCount = activeLicenceCount,
                 QualifiedCustomerCount = qualifiedCustomerCount,
                 PendingQualificationCount = pendingQualificationCount,
-                SuspendedCustomerCount = suspendedCustomerCount
+                SuspendedCustomerCount = suspendedCustomerCount,
+                TotalInspections = allInspections.Count,
+                RecentInspections = recentInspections.Count,
+                OverdueCorrectiveActions = overdueInspections.Count,
+                InspectionsWithFindings = allInspections.Count(i =>
+                    i.Outcome == InspectionOutcome.MinorFindings ||
+                    i.Outcome == InspectionOutcome.MajorFindings ||
+                    i.Outcome == InspectionOutcome.CriticalFindings)
             };
 
             return View(viewModel);
@@ -117,4 +135,24 @@ public class DashboardViewModel
     /// Count of expired licences (from source data, not alerts).
     /// </summary>
     public int ExpiredLicenceCount { get; set; }
+
+    /// <summary>
+    /// Total number of regulatory inspections on record.
+    /// </summary>
+    public int TotalInspections { get; set; }
+
+    /// <summary>
+    /// Number of inspections in the last 90 days.
+    /// </summary>
+    public int RecentInspections { get; set; }
+
+    /// <summary>
+    /// Number of inspections with overdue corrective actions.
+    /// </summary>
+    public int OverdueCorrectiveActions { get; set; }
+
+    /// <summary>
+    /// Number of inspections that had findings (minor, major, or critical).
+    /// </summary>
+    public int InspectionsWithFindings { get; set; }
 }
