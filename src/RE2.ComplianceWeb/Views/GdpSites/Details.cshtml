@@ -1,0 +1,223 @@
+@model RE2.ComplianceCore.Models.GdpSite
+@{
+    ViewData["Title"] = "GDP Site Details";
+    var wdaCoverages = ViewBag.WdaCoverages as List<RE2.ComplianceCore.Models.GdpSiteWdaCoverage> ?? new List<RE2.ComplianceCore.Models.GdpSiteWdaCoverage>();
+}
+
+<div class="container">
+    <h1><i class="bi bi-building"></i> GDP Site Details</h1>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">D365FO Warehouse Information</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Warehouse ID</dt>
+                        <dd class="col-sm-7"><code>@Model.WarehouseId</code></dd>
+                        <dt class="col-sm-5">Warehouse Name</dt>
+                        <dd class="col-sm-7">@Model.WarehouseName</dd>
+                        <dt class="col-sm-5">Operational Site</dt>
+                        <dd class="col-sm-7">@(Model.OperationalSiteName) <small class="text-muted">(@Model.OperationalSiteId)</small></dd>
+                        <dt class="col-sm-5">Data Area</dt>
+                        <dd class="col-sm-7"><code>@Model.DataAreaId</code></dd>
+                        <dt class="col-sm-5">Warehouse Type</dt>
+                        <dd class="col-sm-7">@Model.WarehouseType</dd>
+                        <dt class="col-sm-5">Address</dt>
+                        <dd class="col-sm-7">@Model.FormattedAddress</dd>
+                        <dt class="col-sm-5">City</dt>
+                        <dd class="col-sm-7">@Model.City</dd>
+                        <dt class="col-sm-5">Country</dt>
+                        <dd class="col-sm-7">@Model.CountryRegionId</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        GDP Configuration
+                        @if (Model.IsGdpActive)
+                        {
+                            <span class="badge bg-success float-end">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary float-end">Inactive</span>
+                        }
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">GDP Site Type</dt>
+                        <dd class="col-sm-7"><span class="badge bg-primary">@FormatEnumName(Model.GdpSiteType.ToString())</span></dd>
+                        <dt class="col-sm-5">Activities</dt>
+                        <dd class="col-sm-7">
+                            @if (Model.HasActivity(RE2.ComplianceCore.Models.GdpSiteActivity.StorageOver72h))
+                            {<span class="badge bg-info me-1">Storage >72h</span>}
+                            @if (Model.HasActivity(RE2.ComplianceCore.Models.GdpSiteActivity.TemperatureControlled))
+                            {<span class="badge bg-warning text-dark me-1">Temp Controlled</span>}
+                            @if (Model.HasActivity(RE2.ComplianceCore.Models.GdpSiteActivity.Outsourced))
+                            {<span class="badge bg-secondary me-1">Outsourced</span>}
+                            @if (Model.HasActivity(RE2.ComplianceCore.Models.GdpSiteActivity.TransportOnly))
+                            {<span class="badge bg-dark me-1">Transport Only</span>}
+                        </dd>
+                        <dt class="col-sm-5">Created</dt>
+                        <dd class="col-sm-7">@Model.CreatedDate.ToString("yyyy-MM-dd HH:mm")</dd>
+                        <dt class="col-sm-5">Last Modified</dt>
+                        <dd class="col-sm-7">@Model.ModifiedDate.ToString("yyyy-MM-dd HH:mm")</dd>
+                    </dl>
+                </div>
+                <div class="card-footer">
+                    <a asp-action="Edit" asp-route-warehouseId="@Model.WarehouseId" asp-route-dataAreaId="@Model.DataAreaId"
+                       class="btn btn-primary btn-sm">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    <form asp-action="RemoveGdpConfig" method="post" style="display:inline;">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="warehouseId" value="@Model.WarehouseId" />
+                        <input type="hidden" name="dataAreaId" value="@Model.DataAreaId" />
+                        <button type="submit" class="btn btn-danger btn-sm float-end"
+                                onclick="return confirm('Are you sure you want to remove GDP configuration? This will also remove all WDA coverages.');">
+                            <i class="bi bi-trash"></i> Remove GDP Config
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WDA Coverage Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="bi bi-shield-check"></i> WDA Coverage
+                <span class="badge bg-secondary float-end">@wdaCoverages.Count coverage(s)</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Licence Number</th>
+                        <th>Issuing Authority</th>
+                        <th>Effective Date</th>
+                        <th>Expiry Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!wdaCoverages.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center">
+                                <em>No WDA coverage configured. Add coverage below.</em>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var coverage in wdaCoverages)
+                        {
+                            <tr>
+                                <td>@(coverage.Licence?.LicenceNumber ?? coverage.LicenceId.ToString())</td>
+                                <td>@(coverage.Licence?.IssuingAuthority ?? "-")</td>
+                                <td>@coverage.EffectiveDate.ToString("yyyy-MM-dd")</td>
+                                <td>@(coverage.ExpiryDate?.ToString("yyyy-MM-dd") ?? "No expiry")</td>
+                                <td>
+                                    @if (coverage.IsActive())
+                                    {
+                                        <span class="badge bg-success">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">Inactive</span>
+                                    }
+                                </td>
+                                <td>
+                                    <form asp-action="RemoveWdaCoverage" method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="coverageId" value="@coverage.CoverageId" />
+                                        <input type="hidden" name="warehouseId" value="@Model.WarehouseId" />
+                                        <input type="hidden" name="dataAreaId" value="@Model.DataAreaId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                onclick="return confirm('Remove this WDA coverage?');">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer">
+            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#addCoverageForm">
+                <i class="bi bi-plus-circle"></i> Add WDA Coverage
+            </button>
+
+            <div class="collapse mt-3" id="addCoverageForm">
+                <form asp-action="AddWdaCoverage" method="post" class="card card-body">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="WarehouseId" value="@Model.WarehouseId" />
+                    <input type="hidden" name="DataAreaId" value="@Model.DataAreaId" />
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">WDA Licence ID *</label>
+                            <input type="text" name="LicenceId" class="form-control" placeholder="Enter WDA licence GUID" required />
+                            <small class="text-muted">Must be a Wholesale Distribution Authorisation (WDA) licence.</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Effective Date *</label>
+                            <input type="date" name="EffectiveDate" class="form-control" value="@DateTime.UtcNow.ToString("yyyy-MM-dd")" required />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Expiry Date</label>
+                            <input type="date" name="ExpiryDate" class="form-control" />
+                            <small class="text-muted">Leave empty for no expiry.</small>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-success w-100">Add</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to GDP Sites
+        </a>
+    </div>
+</div>
+
+@functions {
+    string FormatEnumName(string enumName)
+    {
+        return string.Concat(enumName.Select((c, i) =>
+            i > 0 && char.IsUpper(c) ? " " + c : c.ToString()));
+    }
+}

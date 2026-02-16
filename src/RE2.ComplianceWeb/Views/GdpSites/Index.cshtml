@@ -1,0 +1,121 @@
+@model IEnumerable<RE2.ComplianceCore.Models.GdpSite>
+@{
+    ViewData["Title"] = "GDP Sites";
+}
+
+<div class="container">
+    <h1><i class="bi bi-building"></i> GDP Sites</h1>
+    <p>Warehouses configured for Good Distribution Practice (GDP) compliance</p>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row mb-3">
+        <div class="col">
+            <a asp-action="Browse" class="btn btn-primary">
+                <i class="bi bi-search"></i> Browse D365FO Warehouses
+            </a>
+        </div>
+    </div>
+
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Warehouse</th>
+                <th>Site</th>
+                <th>Data Area</th>
+                <th>GDP Type</th>
+                <th>Activities</th>
+                <th>Active</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="7" class="text-center">
+                        <em>No GDP-configured sites. Click "Browse D365FO Warehouses" to configure one.</em>
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var site in Model)
+                {
+                    <tr>
+                        <td>
+                            <a asp-action="Details" asp-route-warehouseId="@site.WarehouseId" asp-route-dataAreaId="@site.DataAreaId">
+                                <strong>@site.WarehouseId</strong>
+                            </a>
+                            <br /><small class="text-muted">@site.WarehouseName</small>
+                        </td>
+                        <td>@site.OperationalSiteName</td>
+                        <td><code>@site.DataAreaId</code></td>
+                        <td><span class="badge bg-primary">@FormatEnumName(site.GdpSiteType.ToString())</span></td>
+                        <td>@GetActivityBadges(site)</td>
+                        <td>
+                            @if (site.IsGdpActive)
+                            {
+                                <span class="badge bg-success"><i class="bi bi-check-circle"></i> Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary"><i class="bi bi-x-circle"></i> Inactive</span>
+                            }
+                        </td>
+                        <td>
+                            <a asp-action="Details" asp-route-warehouseId="@site.WarehouseId" asp-route-dataAreaId="@site.DataAreaId"
+                               class="btn btn-sm btn-outline-primary" title="View Details">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a asp-action="Edit" asp-route-warehouseId="@site.WarehouseId" asp-route-dataAreaId="@site.DataAreaId"
+                               class="btn btn-sm btn-outline-secondary" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+
+    <div class="text-muted">
+        Showing @Model.Count() GDP-configured site(s)
+    </div>
+</div>
+
+@functions {
+    string FormatEnumName(string enumName)
+    {
+        return string.Concat(enumName.Select((c, i) =>
+            i > 0 && char.IsUpper(c) ? " " + c : c.ToString()));
+    }
+
+    Microsoft.AspNetCore.Html.IHtmlContent GetActivityBadges(RE2.ComplianceCore.Models.GdpSite site)
+    {
+        var badges = new System.Text.StringBuilder();
+        if (site.HasActivity(RE2.ComplianceCore.Models.GdpSiteActivity.StorageOver72h))
+            badges.Append("<span class='badge bg-info me-1'>Storage >72h</span>");
+        if (site.HasActivity(RE2.ComplianceCore.Models.GdpSiteActivity.TemperatureControlled))
+            badges.Append("<span class='badge bg-warning text-dark me-1'>Temp Controlled</span>");
+        if (site.HasActivity(RE2.ComplianceCore.Models.GdpSiteActivity.Outsourced))
+            badges.Append("<span class='badge bg-secondary me-1'>Outsourced</span>");
+        if (site.HasActivity(RE2.ComplianceCore.Models.GdpSiteActivity.TransportOnly))
+            badges.Append("<span class='badge bg-dark me-1'>Transport Only</span>");
+        return new Microsoft.AspNetCore.Html.HtmlString(badges.ToString());
+    }
+}

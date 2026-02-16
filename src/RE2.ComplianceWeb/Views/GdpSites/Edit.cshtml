@@ -1,0 +1,81 @@
+@model RE2.ComplianceWeb.Controllers.GdpSiteConfigureViewModel
+@{
+    ViewData["Title"] = "Edit GDP Configuration";
+}
+
+<div class="container">
+    <h1><i class="bi bi-pencil"></i> Edit GDP Configuration</h1>
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <div class="card mb-3">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">D365FO Warehouse Information (read-only)</h5>
+        </div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Warehouse ID</dt>
+                <dd class="col-sm-9"><code>@Model.WarehouseId</code></dd>
+                <dt class="col-sm-3">Warehouse Name</dt>
+                <dd class="col-sm-9">@Model.WarehouseName</dd>
+                <dt class="col-sm-3">Operational Site</dt>
+                <dd class="col-sm-9">@Model.OperationalSiteName</dd>
+                <dt class="col-sm-3">Data Area</dt>
+                <dd class="col-sm-9"><code>@Model.DataAreaId</code></dd>
+                <dt class="col-sm-3">Address</dt>
+                <dd class="col-sm-9">@Model.FormattedAddress</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">GDP Configuration</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="Edit" asp-route-warehouseId="@Model.WarehouseId" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="WarehouseId" />
+                <input type="hidden" asp-for="WarehouseName" />
+                <input type="hidden" asp-for="OperationalSiteName" />
+                <input type="hidden" asp-for="DataAreaId" />
+                <input type="hidden" asp-for="FormattedAddress" />
+
+                <div class="mb-3">
+                    <label asp-for="GdpSiteType" class="form-label">GDP Site Type *</label>
+                    <select asp-for="GdpSiteType" class="form-select" asp-items="@ViewBag.GdpSiteTypes">
+                        <option value="">Select type...</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Permitted Activities *</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" asp-for="StorageOver72h" />
+                        <label class="form-check-label" asp-for="StorageOver72h">Storage Over 72 Hours</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" asp-for="TemperatureControlled" />
+                        <label class="form-check-label" asp-for="TemperatureControlled">Temperature Controlled</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" asp-for="Outsourced" />
+                        <label class="form-check-label" asp-for="Outsourced">Outsourced</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" asp-for="TransportOnly" />
+                        <label class="form-check-label" asp-for="TransportOnly">Transport Only</label>
+                    </div>
+                    <small class="text-muted">At least one activity must be selected.</small>
+                </div>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Save Changes
+                    </button>
+                    <a asp-action="Details" asp-route-warehouseId="@Model.WarehouseId" asp-route-dataAreaId="@Model.DataAreaId" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

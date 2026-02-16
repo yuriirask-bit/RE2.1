@@ -1,0 +1,86 @@
+@model IEnumerable<RE2.ComplianceCore.Models.GdpSite>
+@{
+    ViewData["Title"] = "Browse D365FO Warehouses";
+}
+
+<div class="container">
+    <h1><i class="bi bi-search"></i> Browse D365FO Warehouses</h1>
+    <p>All warehouses from D365 Finance & Operations. Select a warehouse to configure for GDP.</p>
+
+    <div class="mb-3">
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to GDP Sites
+        </a>
+    </div>
+
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Warehouse ID</th>
+                <th>Name</th>
+                <th>Site</th>
+                <th>Data Area</th>
+                <th>Type</th>
+                <th>City</th>
+                <th>Country</th>
+                <th>GDP Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="9" class="text-center">
+                        <em>No warehouses found in D365 F&O. Verify the D365FO connection.</em>
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var warehouse in Model)
+                {
+                    <tr>
+                        <td><strong>@warehouse.WarehouseId</strong></td>
+                        <td>@warehouse.WarehouseName</td>
+                        <td>@warehouse.OperationalSiteName</td>
+                        <td><code>@warehouse.DataAreaId</code></td>
+                        <td>@warehouse.WarehouseType</td>
+                        <td>@warehouse.City</td>
+                        <td>@warehouse.CountryRegionId</td>
+                        <td>
+                            @if (warehouse.IsConfiguredForGdp)
+                            {
+                                <span class="badge bg-success"><i class="bi bi-check-circle"></i> GDP Configured</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-light text-dark">Not Configured</span>
+                            }
+                        </td>
+                        <td>
+                            @if (warehouse.IsConfiguredForGdp)
+                            {
+                                <a asp-action="Details" asp-route-warehouseId="@warehouse.WarehouseId" asp-route-dataAreaId="@warehouse.DataAreaId"
+                                   class="btn btn-sm btn-outline-primary" title="View GDP Details">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                            }
+                            else
+                            {
+                                <a asp-action="Configure" asp-route-warehouseId="@warehouse.WarehouseId" asp-route-dataAreaId="@warehouse.DataAreaId"
+                                   class="btn btn-sm btn-primary" title="Configure for GDP">
+                                    <i class="bi bi-plus-circle"></i> Configure GDP
+                                </a>
+                            }
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+
+    <div class="text-muted">
+        Showing @Model.Count() warehouse(s)
+    </div>
+</div>
