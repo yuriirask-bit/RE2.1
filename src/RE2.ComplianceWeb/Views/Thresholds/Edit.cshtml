@@ -129,8 +129,8 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label asp-for="SubstanceId" class="form-label">Substance</label>
-                                <select asp-for="SubstanceId" class="form-select">
+                                <label asp-for="SubstanceCode" class="form-label">Substance</label>
+                                <select asp-for="SubstanceCode" class="form-select">
                                     <option value="">All substances</option>
                                     @foreach (var substance in (List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)ViewBag.Substances)
                                     {

@@ -45,9 +45,9 @@ public class LicenceSubstanceMappingService : ILicenceSubstanceMappingService
         return mappings;
     }
 
-    public async Task<IEnumerable<LicenceSubstanceMapping>> GetBySubstanceIdAsync(Guid substanceId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<LicenceSubstanceMapping>> GetBySubstanceCodeAsync(string substanceCode, CancellationToken cancellationToken = default)
     {
-        var mappings = (await _mappingRepository.GetBySubstanceIdAsync(substanceId, cancellationToken)).ToList();
+        var mappings = (await _mappingRepository.GetBySubstanceCodeAsync(substanceCode, cancellationToken)).ToList();
         await PopulateNavigationPropertiesAsync(mappings, cancellationToken);
         return mappings;
     }
@@ -75,10 +75,10 @@ public class LicenceSubstanceMappingService : ILicenceSubstanceMappingService
             return (null, validationResult);
         }
 
-        // Check for duplicate (LicenceId + SubstanceId + EffectiveDate must be unique)
+        // Check for duplicate (LicenceId + SubstanceCode + EffectiveDate must be unique)
         var existing = await _mappingRepository.GetByLicenceSubstanceEffectiveDateAsync(
             mapping.LicenceId,
-            mapping.SubstanceId,
+            mapping.SubstanceCode,
             mapping.EffectiveDate,
             cancellationToken);
 
@@ -95,8 +95,8 @@ public class LicenceSubstanceMappingService : ILicenceSubstanceMappingService
         }
 
         var id = await _mappingRepository.CreateAsync(mapping, cancellationToken);
-        _logger.LogInformation("Created mapping {Id} for licence {LicenceId} and substance {SubstanceId}",
-            id, mapping.LicenceId, mapping.SubstanceId);
+        _logger.LogInformation("Created mapping {Id} for licence {LicenceId} and substance {SubstanceCode}",
+            id, mapping.LicenceId, mapping.SubstanceCode);
 
         return (id, ValidationResult.Success());
     }
@@ -126,12 +126,12 @@ public class LicenceSubstanceMappingService : ILicenceSubstanceMappingService
 
         // Check for duplicate (if key fields changed)
         if (existing.LicenceId != mapping.LicenceId ||
-            existing.SubstanceId != mapping.SubstanceId ||
+            existing.SubstanceCode != mapping.SubstanceCode ||
             existing.EffectiveDate != mapping.EffectiveDate)
         {
             var duplicate = await _mappingRepository.GetByLicenceSubstanceEffectiveDateAsync(
                 mapping.LicenceId,
-                mapping.SubstanceId,
+                mapping.SubstanceCode,
                 mapping.EffectiveDate,
                 cancellationToken);
 
@@ -207,13 +207,13 @@ public class LicenceSubstanceMappingService : ILicenceSubstanceMappingService
         }
 
         // Verify substance exists
-        var substance = await _substanceRepository.GetByIdAsync(mapping.SubstanceId, cancellationToken);
+        var substance = await _substanceRepository.GetBySubstanceCodeAsync(mapping.SubstanceCode, cancellationToken);
         if (substance == null)
         {
             violations.Add(new ValidationViolation
             {
                 ErrorCode = ErrorCodes.VALIDATION_ERROR,
-                Message = $"Substance with ID '{mapping.SubstanceId}' not found"
+                Message = $"Substance with code '{mapping.SubstanceCode}' not found"
             });
         }
         else if (!substance.IsActive)
@@ -230,10 +230,10 @@ public class LicenceSubstanceMappingService : ILicenceSubstanceMappingService
             : ValidationResult.Success();
     }
 
-    public async Task<bool> IsSubstanceAuthorizedByLicenceAsync(Guid licenceId, Guid substanceId, CancellationToken cancellationToken = default)
+    public async Task<bool> IsSubstanceAuthorizedByLicenceAsync(Guid licenceId, string substanceCode, CancellationToken cancellationToken = default)
     {
         var activeMappings = await _mappingRepository.GetActiveMappingsByLicenceIdAsync(licenceId, cancellationToken);
-        return activeMappings.Any(m => m.SubstanceId == substanceId);
+        return activeMappings.Any(m => m.SubstanceCode == substanceCode);
     }
 
     private async Task PopulateNavigationPropertiesAsync(LicenceSubstanceMapping mapping, CancellationToken cancellationToken)
@@ -242,24 +242,20 @@ public class LicenceSubstanceMappingService : ILicenceSubstanceMappingService
         {
             mapping.Licence = await _licenceRepository.GetByIdAsync(mapping.LicenceId, cancellationToken);
         }
-        if (mapping.Substance == null && mapping.SubstanceId != Guid.Empty)
+        if (mapping.Substance == null && !string.IsNullOrEmpty(mapping.SubstanceCode))
         {
-            mapping.Substance = await _substanceRepository.GetByIdAsync(mapping.SubstanceId, cancellationToken);
+            mapping.Substance = await _substanceRepository.GetBySubstanceCodeAsync(mapping.SubstanceCode, cancellationToken);
         }
     }
 
     private async Task PopulateNavigationPropertiesAsync(IEnumerable<LicenceSubstanceMapping> mappings, CancellationToken cancellationToken)
     {
-        // Get all unique IDs
-        var licenceIds = mappings.Select(m => m.LicenceId).Distinct().ToList();
-        var substanceIds = mappings.Select(m => m.SubstanceId).Distinct().ToList();
-
         // Load all related entities in batches
         var allLicences = await _licenceRepository.GetAllAsync(cancellationToken);
         var licencesDict = allLicences.ToDictionary(l => l.LicenceId);
 
         var allSubstances = await _substanceRepository.GetAllAsync(cancellationToken);
-        var substancesDict = allSubstances.ToDictionary(s => s.SubstanceId);
+        var substancesDict = allSubstances.ToDictionary(s => s.SubstanceCode);
 
         // Populate navigation properties
         foreach (var mapping in mappings)
@@ -268,7 +264,8 @@ public class LicenceSubstanceMappingService : ILicenceSubstanceMappingService
             {
                 mapping.Licence = licence;
             }
-            if (substancesDict.TryGetValue(mapping.SubstanceId, out var substance))
+            if (!string.IsNullOrEmpty(mapping.SubstanceCode) &&
+                substancesDict.TryGetValue(mapping.SubstanceCode, out var substance))
             {
                 mapping.Substance = substance;
             }

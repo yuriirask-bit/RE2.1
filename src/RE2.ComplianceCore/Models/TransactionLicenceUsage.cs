@@ -54,9 +54,9 @@ public class TransactionLicenceUsage
     public List<int> CoveredLineNumbers { get; set; } = new();
 
     /// <summary>
-    /// List of substance IDs this licence covers for this transaction.
+    /// List of substance codes this licence covers for this transaction.
     /// </summary>
-    public List<Guid> CoveredSubstanceIds { get; set; } = new();
+    public List<string> CoveredSubstanceCodes { get; set; } = new();
 
     /// <summary>
     /// Total quantity covered by this licence.
@@ -146,7 +146,7 @@ public class TransactionLicenceUsage
             HolderType = licence.HolderType,
             HolderId = licence.HolderId,
             CoveredLineNumbers = linesList.Select(l => l.LineNumber).ToList(),
-            CoveredSubstanceIds = linesList.Select(l => l.SubstanceId).Distinct().ToList(),
+            CoveredSubstanceCodes = linesList.Where(l => l.SubstanceCode != null).Select(l => l.SubstanceCode!).Distinct().ToList(),
             CoveredQuantity = linesList.Sum(l => l.BaseUnitQuantity),
             CoveredQuantityUnit = linesList.FirstOrDefault()?.BaseUnit ?? "g",
             LicenceStatus = licence.Status,

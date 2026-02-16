@@ -43,13 +43,13 @@ public class SubstanceReclassificationServiceTests
     public async Task CreateReclassificationAsync_WithValidData_ReturnsId()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
-        var substance = CreateSubstance(substanceId, SubstanceCategories.OpiumActList.ListII, SubstanceCategories.PrecursorCategory.None);
-        var reclassification = CreateReclassification(substanceId,
+        var substanceCode = "Morphine";
+        var substance = CreateSubstance(substanceCode, SubstanceCategories.OpiumActList.ListII, SubstanceCategories.PrecursorCategory.None);
+        var reclassification = CreateReclassification(substanceCode,
             SubstanceCategories.OpiumActList.ListII, SubstanceCategories.OpiumActList.ListI,
             SubstanceCategories.PrecursorCategory.None, SubstanceCategories.PrecursorCategory.None);
 
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
         _reclassificationRepoMock.Setup(r => r.CreateAsync(It.IsAny<SubstanceReclassification>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Guid.NewGuid());
@@ -67,10 +67,10 @@ public class SubstanceReclassificationServiceTests
     public async Task CreateReclassificationAsync_WithNonExistentSubstance_ReturnsValidationError()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
-        var reclassification = CreateReclassification(substanceId);
+        var substanceCode = "NonExistent";
+        var reclassification = CreateReclassification(substanceCode);
 
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ControlledSubstance?)null);
 
         // Act
@@ -86,13 +86,13 @@ public class SubstanceReclassificationServiceTests
     public async Task CreateReclassificationAsync_WithMismatchedPreviousClassification_ReturnsValidationError()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
-        var substance = CreateSubstance(substanceId, SubstanceCategories.OpiumActList.ListI, SubstanceCategories.PrecursorCategory.None);
-        var reclassification = CreateReclassification(substanceId,
+        var substanceCode = "Morphine";
+        var substance = CreateSubstance(substanceCode, SubstanceCategories.OpiumActList.ListI, SubstanceCategories.PrecursorCategory.None);
+        var reclassification = CreateReclassification(substanceCode,
             SubstanceCategories.OpiumActList.ListII, SubstanceCategories.OpiumActList.ListI, // Previous doesn't match
             SubstanceCategories.PrecursorCategory.None, SubstanceCategories.PrecursorCategory.None);
 
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
 
         // Act
@@ -108,13 +108,13 @@ public class SubstanceReclassificationServiceTests
     public async Task CreateReclassificationAsync_WithNoActualChange_ReturnsValidationError()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
-        var substance = CreateSubstance(substanceId, SubstanceCategories.OpiumActList.ListII, SubstanceCategories.PrecursorCategory.None);
-        var reclassification = CreateReclassification(substanceId,
+        var substanceCode = "Morphine";
+        var substance = CreateSubstance(substanceCode, SubstanceCategories.OpiumActList.ListII, SubstanceCategories.PrecursorCategory.None);
+        var reclassification = CreateReclassification(substanceCode,
             SubstanceCategories.OpiumActList.ListII, SubstanceCategories.OpiumActList.ListII, // Same values
             SubstanceCategories.PrecursorCategory.None, SubstanceCategories.PrecursorCategory.None);
 
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
 
         // Act
@@ -135,17 +135,17 @@ public class SubstanceReclassificationServiceTests
     {
         // Arrange
         var reclassificationId = Guid.NewGuid();
-        var substanceId = Guid.NewGuid();
-        var reclassification = CreateReclassification(substanceId);
+        var substanceCode = "Morphine";
+        var reclassification = CreateReclassification(substanceCode);
         reclassification.ReclassificationId = reclassificationId;
 
-        var substance = CreateSubstance(substanceId);
+        var substance = CreateSubstance(substanceCode);
 
         _reclassificationRepoMock.Setup(r => r.GetByIdAsync(reclassificationId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(reclassification);
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
-        _licenceRepoMock.Setup(r => r.GetBySubstanceIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _licenceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Enumerable.Empty<Licence>());
 
         // Act
@@ -162,15 +162,15 @@ public class SubstanceReclassificationServiceTests
     {
         // Arrange
         var reclassificationId = Guid.NewGuid();
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "Morphine";
         var customerId = Guid.NewGuid();
 
-        var reclassification = CreateReclassification(substanceId,
+        var reclassification = CreateReclassification(substanceCode,
             SubstanceCategories.OpiumActList.ListII, SubstanceCategories.OpiumActList.ListI,
             SubstanceCategories.PrecursorCategory.None, SubstanceCategories.PrecursorCategory.None);
         reclassification.ReclassificationId = reclassificationId;
 
-        var substance = CreateSubstance(substanceId);
+        var substance = CreateSubstance(substanceCode);
 
         var licenceType = new LicenceType
         {
@@ -195,9 +195,9 @@ public class SubstanceReclassificationServiceTests
 
         _reclassificationRepoMock.Setup(r => r.GetByIdAsync(reclassificationId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(reclassification);
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
-        _licenceRepoMock.Setup(r => r.GetBySubstanceIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _licenceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[] { licence });
         _licenceTypeRepoMock.Setup(r => r.GetByIdAsync(licenceType.LicenceTypeId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(licenceType);
@@ -218,15 +218,15 @@ public class SubstanceReclassificationServiceTests
     {
         // Arrange
         var reclassificationId = Guid.NewGuid();
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "Morphine";
         var customerId = Guid.NewGuid();
 
-        var reclassification = CreateReclassification(substanceId,
+        var reclassification = CreateReclassification(substanceCode,
             SubstanceCategories.OpiumActList.ListII, SubstanceCategories.OpiumActList.ListI,
             SubstanceCategories.PrecursorCategory.None, SubstanceCategories.PrecursorCategory.None);
         reclassification.ReclassificationId = reclassificationId;
 
-        var substance = CreateSubstance(substanceId);
+        var substance = CreateSubstance(substanceCode);
 
         var licenceType = new LicenceType
         {
@@ -251,9 +251,9 @@ public class SubstanceReclassificationServiceTests
 
         _reclassificationRepoMock.Setup(r => r.GetByIdAsync(reclassificationId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(reclassification);
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
-        _licenceRepoMock.Setup(r => r.GetBySubstanceIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _licenceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[] { licence });
         _licenceTypeRepoMock.Setup(r => r.GetByIdAsync(licenceType.LicenceTypeId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(licenceType);
@@ -278,19 +278,19 @@ public class SubstanceReclassificationServiceTests
     {
         // Arrange
         var reclassificationId = Guid.NewGuid();
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "Morphine";
 
-        var reclassification = CreateReclassification(substanceId);
+        var reclassification = CreateReclassification(substanceCode);
         reclassification.ReclassificationId = reclassificationId;
         reclassification.Status = ReclassificationStatus.Pending;
 
-        var substance = CreateSubstance(substanceId);
+        var substance = CreateSubstance(substanceCode);
 
         _reclassificationRepoMock.Setup(r => r.GetByIdAsync(reclassificationId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(reclassification);
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
-        _licenceRepoMock.Setup(r => r.GetBySubstanceIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _licenceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Enumerable.Empty<Licence>());
 
         // Act
@@ -301,7 +301,7 @@ public class SubstanceReclassificationServiceTests
         _reclassificationRepoMock.Verify(r => r.UpdateAsync(
             It.Is<SubstanceReclassification>(s => s.Status == ReclassificationStatus.Completed),
             It.IsAny<CancellationToken>()), Times.AtLeastOnce);
-        _substanceRepoMock.Verify(r => r.UpdateAsync(It.IsAny<ControlledSubstance>(), It.IsAny<CancellationToken>()), Times.Once);
+        _substanceRepoMock.Verify(r => r.UpdateComplianceExtensionAsync(It.IsAny<ControlledSubstance>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -309,9 +309,9 @@ public class SubstanceReclassificationServiceTests
     {
         // Arrange
         var reclassificationId = Guid.NewGuid();
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "Morphine";
 
-        var reclassification = CreateReclassification(substanceId);
+        var reclassification = CreateReclassification(substanceCode);
         reclassification.ReclassificationId = reclassificationId;
         reclassification.Status = ReclassificationStatus.Completed;
 
@@ -446,23 +446,23 @@ public class SubstanceReclassificationServiceTests
     public async Task GetEffectiveClassificationAsync_WithReclassification_ReturnsNewClassification()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "Morphine";
         var asOfDate = DateOnly.FromDateTime(DateTime.UtcNow);
-        var substance = CreateSubstance(substanceId, SubstanceCategories.OpiumActList.ListI, SubstanceCategories.PrecursorCategory.None);
+        var substance = CreateSubstance(substanceCode, SubstanceCategories.OpiumActList.ListI, SubstanceCategories.PrecursorCategory.None);
 
-        var reclassification = CreateReclassification(substanceId,
+        var reclassification = CreateReclassification(substanceCode,
             SubstanceCategories.OpiumActList.ListII, SubstanceCategories.OpiumActList.ListI,
             SubstanceCategories.PrecursorCategory.None, SubstanceCategories.PrecursorCategory.None);
         reclassification.ReclassificationId = Guid.NewGuid();
         reclassification.Status = ReclassificationStatus.Completed;
 
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
-        _reclassificationRepoMock.Setup(r => r.GetEffectiveReclassificationAsync(substanceId, asOfDate, It.IsAny<CancellationToken>()))
+        _reclassificationRepoMock.Setup(r => r.GetEffectiveReclassificationAsync(substanceCode, asOfDate, It.IsAny<CancellationToken>()))
             .ReturnsAsync(reclassification);
 
         // Act
-        var classification = await _service.GetEffectiveClassificationAsync(substanceId, asOfDate);
+        var classification = await _service.GetEffectiveClassificationAsync(substanceCode, asOfDate);
 
         // Assert
         classification.OpiumActList.Should().Be(SubstanceCategories.OpiumActList.ListI);
@@ -473,19 +473,19 @@ public class SubstanceReclassificationServiceTests
     public async Task GetEffectiveClassificationAsync_WithNoReclassification_ReturnsCurrentClassification()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "Morphine";
         var asOfDate = DateOnly.FromDateTime(DateTime.UtcNow);
-        var substance = CreateSubstance(substanceId, SubstanceCategories.OpiumActList.ListII, SubstanceCategories.PrecursorCategory.None);
+        var substance = CreateSubstance(substanceCode, SubstanceCategories.OpiumActList.ListII, SubstanceCategories.PrecursorCategory.None);
 
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
-        _reclassificationRepoMock.Setup(r => r.GetEffectiveReclassificationAsync(substanceId, asOfDate, It.IsAny<CancellationToken>()))
+        _reclassificationRepoMock.Setup(r => r.GetEffectiveReclassificationAsync(substanceCode, asOfDate, It.IsAny<CancellationToken>()))
             .ReturnsAsync((SubstanceReclassification?)null);
-        _reclassificationRepoMock.Setup(r => r.GetBySubstanceIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _reclassificationRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Enumerable.Empty<SubstanceReclassification>());
 
         // Act
-        var classification = await _service.GetEffectiveClassificationAsync(substanceId, asOfDate);
+        var classification = await _service.GetEffectiveClassificationAsync(substanceCode, asOfDate);
 
         // Assert
         classification.OpiumActList.Should().Be(SubstanceCategories.OpiumActList.ListII);
@@ -497,15 +497,14 @@ public class SubstanceReclassificationServiceTests
     #region Helper Methods
 
     private static ControlledSubstance CreateSubstance(
-        Guid substanceId,
+        string substanceCode,
         SubstanceCategories.OpiumActList opiumActList = SubstanceCategories.OpiumActList.ListII,
         SubstanceCategories.PrecursorCategory precursorCategory = SubstanceCategories.PrecursorCategory.None)
     {
         return new ControlledSubstance
         {
-            SubstanceId = substanceId,
+            SubstanceCode = substanceCode,
             SubstanceName = "Test Substance",
-            InternalCode = "TEST-001",
             OpiumActList = opiumActList,
             PrecursorCategory = precursorCategory,
             IsActive = true
@@ -513,7 +512,7 @@ public class SubstanceReclassificationServiceTests
     }
 
     private static SubstanceReclassification CreateReclassification(
-        Guid substanceId,
+        string substanceCode,
         SubstanceCategories.OpiumActList previousOpiumActList = SubstanceCategories.OpiumActList.ListII,
         SubstanceCategories.OpiumActList newOpiumActList = SubstanceCategories.OpiumActList.ListI,
         SubstanceCategories.PrecursorCategory previousPrecursorCategory = SubstanceCategories.PrecursorCategory.None,
@@ -521,7 +520,7 @@ public class SubstanceReclassificationServiceTests
     {
         return new SubstanceReclassification
         {
-            SubstanceId = substanceId,
+            SubstanceCode = substanceCode,
             PreviousOpiumActList = previousOpiumActList,
             NewOpiumActList = newOpiumActList,
             PreviousPrecursorCategory = previousPrecursorCategory,

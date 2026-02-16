@@ -9,9 +9,9 @@
             <h1>Transaction Audit Report</h1>
             <p class="text-muted mb-0">
                 @Model.FromDate.ToString("yyyy-MM-dd") to @Model.ToDate.ToString("yyyy-MM-dd")
-                @if (Model.FilteredBySubstance.HasValue)
+                @if (!string.IsNullOrEmpty(Model.FilteredBySubstanceCode))
                 {
-                    <span class="badge bg-secondary ms-2">Filtered by Substance</span>
+                    <span class="badge bg-secondary ms-2">Filtered by Substance: @Model.FilteredBySubstanceCode</span>
                 }
                 @if (!string.IsNullOrEmpty(Model.FilteredByCustomerAccount))
                 {

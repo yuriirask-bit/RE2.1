@@ -46,12 +46,7 @@ public class TransactionViolation
     public int? LineNumber { get; set; }
 
     /// <summary>
-    /// Substance ID related to this violation.
-    /// </summary>
-    public Guid? SubstanceId { get; set; }
-
-    /// <summary>
-    /// Substance code related to this violation.
+    /// Substance code related to this violation (business key).
     /// </summary>
     public string? SubstanceCode { get; set; }
 
@@ -178,7 +173,6 @@ public class TransactionViolation
         string? licenceNumber = null,
         DateOnly? expiryDate = null,
         int? lineNumber = null,
-        Guid? substanceId = null,
         string? substanceCode = null,
         bool canOverride = false)
     {
@@ -194,7 +188,6 @@ public class TransactionViolation
             LicenceNumber = licenceNumber,
             LicenceExpiryDate = expiryDate,
             LineNumber = lineNumber,
-            SubstanceId = substanceId,
             SubstanceCode = substanceCode,
             CanOverride = canOverride,
             DetectedAt = DateTime.UtcNow
@@ -214,7 +207,6 @@ public class TransactionViolation
         ThresholdPeriod period,
         Guid? thresholdId = null,
         int? lineNumber = null,
-        Guid? substanceId = null,
         string? substanceCode = null,
         bool canOverride = true)
     {
@@ -232,7 +224,6 @@ public class TransactionViolation
             ActualValue = actualValue,
             ThresholdPeriod = period,
             LineNumber = lineNumber,
-            SubstanceId = substanceId,
             SubstanceCode = substanceCode,
             CanOverride = canOverride,
             DetectedAt = DateTime.UtcNow

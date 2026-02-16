@@ -33,7 +33,7 @@ public class ThresholdsController : ControllerBase
     /// </summary>
     /// <param name="activeOnly">If true, only returns active thresholds. Default: false.</param>
     /// <param name="type">Optional filter by threshold type.</param>
-    /// <param name="substanceId">Optional filter by substance ID.</param>
+    /// <param name="substanceCode">Optional filter by substance code.</param>
     /// <param name="search">Optional search term for name/description.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of thresholds.</returns>
@@ -42,7 +42,7 @@ public class ThresholdsController : ControllerBase
     public async Task<IActionResult> GetThresholds(
         [FromQuery] bool activeOnly = false,
         [FromQuery] ThresholdType? type = null,
-        [FromQuery] Guid? substanceId = null,
+        [FromQuery] string? substanceCode = null,
         [FromQuery] string? search = null,
         CancellationToken cancellationToken = default)
     {
@@ -52,9 +52,9 @@ public class ThresholdsController : ControllerBase
         {
             thresholds = await _thresholdService.SearchAsync(search, cancellationToken);
         }
-        else if (substanceId.HasValue)
+        else if (!string.IsNullOrWhiteSpace(substanceCode))
         {
-            thresholds = await _thresholdService.GetBySubstanceIdAsync(substanceId.Value, cancellationToken);
+            thresholds = await _thresholdService.GetBySubstanceCodeAsync(substanceCode, cancellationToken);
         }
         else if (type.HasValue)
         {
@@ -100,18 +100,18 @@ public class ThresholdsController : ControllerBase
     }
 
     /// <summary>
-    /// Gets thresholds by substance ID.
+    /// Gets thresholds by substance code.
     /// </summary>
-    /// <param name="substanceId">The substance ID.</param>
+    /// <param name="substanceCode">The substance code.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of thresholds for the substance.</returns>
-    [HttpGet("by-substance/{substanceId:guid}")]
+    [HttpGet("by-substance/{substanceCode}")]
     [ProducesResponseType(typeof(IEnumerable<ThresholdResponseDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetThresholdsBySubstance(
-        Guid substanceId,
+        string substanceCode,
         CancellationToken cancellationToken = default)
     {
-        var thresholds = await _thresholdService.GetBySubstanceIdAsync(substanceId, cancellationToken);
+        var thresholds = await _thresholdService.GetBySubstanceCodeAsync(substanceCode, cancellationToken);
         var response = thresholds.Select(ThresholdResponseDto.FromDomainModel);
         return Ok(response);
     }
@@ -263,7 +263,6 @@ public class ThresholdResponseDto
     public ThresholdPeriod Period { get; set; }
 
     // Scope
-    public Guid? SubstanceId { get; set; }
     public string? SubstanceCode { get; set; }
     public string? SubstanceName { get; set; }
     public Guid? LicenceTypeId { get; set; }
@@ -300,7 +299,6 @@ public class ThresholdResponseDto
             Description = threshold.Description,
             ThresholdType = threshold.ThresholdType,
             Period = threshold.Period,
-            SubstanceId = threshold.SubstanceId,
             SubstanceCode = threshold.SubstanceCode,
             SubstanceName = threshold.SubstanceName,
             LicenceTypeId = threshold.LicenceTypeId,
@@ -334,7 +332,7 @@ public class CreateThresholdRequestDto
     public ThresholdPeriod Period { get; set; }
 
     // Scope
-    public Guid? SubstanceId { get; set; }
+    public string? SubstanceCode { get; set; }
     public Guid? LicenceTypeId { get; set; }
     public BusinessCategory? CustomerCategory { get; set; }
     public Guid? CustomerId { get; set; }
@@ -364,7 +362,7 @@ public class CreateThresholdRequestDto
             Description = Description,
             ThresholdType = ThresholdType,
             Period = Period,
-            SubstanceId = SubstanceId,
+            SubstanceCode = SubstanceCode,
             LicenceTypeId = LicenceTypeId,
             CustomerCategory = CustomerCategory,
             CustomerId = CustomerId,
@@ -394,7 +392,7 @@ public class UpdateThresholdRequestDto
     public ThresholdPeriod Period { get; set; }
 
     // Scope
-    public Guid? SubstanceId { get; set; }
+    public string? SubstanceCode { get; set; }
     public Guid? LicenceTypeId { get; set; }
     public BusinessCategory? CustomerCategory { get; set; }
     public Guid? CustomerId { get; set; }
@@ -424,7 +422,7 @@ public class UpdateThresholdRequestDto
             Description = Description,
             ThresholdType = ThresholdType,
             Period = Period,
-            SubstanceId = SubstanceId,
+            SubstanceCode = SubstanceCode,
             LicenceTypeId = LicenceTypeId,
             CustomerCategory = CustomerCategory,
             CustomerId = CustomerId,

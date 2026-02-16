@@ -21,7 +21,7 @@ public interface ILicenceSubstanceMappingService
     /// <summary>
     /// Gets all mappings for a specific substance with related entities populated.
     /// </summary>
-    Task<IEnumerable<LicenceSubstanceMapping>> GetBySubstanceIdAsync(Guid substanceId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<LicenceSubstanceMapping>> GetBySubstanceCodeAsync(string substanceCode, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets active (currently effective and not expired) mappings for a licence.
@@ -36,7 +36,7 @@ public interface ILicenceSubstanceMappingService
     /// <summary>
     /// Creates a new mapping after validation.
     /// Validates per data-model.md:
-    /// - LicenceId + SubstanceId + EffectiveDate must be unique
+    /// - LicenceId + SubstanceCode + EffectiveDate must be unique
     /// - ExpiryDate must not exceed licence's ExpiryDate
     /// </summary>
     Task<(Guid? Id, ValidationResult Result)> CreateAsync(LicenceSubstanceMapping mapping, CancellationToken cancellationToken = default);
@@ -60,5 +60,5 @@ public interface ILicenceSubstanceMappingService
     /// Checks if a licence authorizes a specific substance (has active mapping).
     /// Used by transaction validation per FR-018.
     /// </summary>
-    Task<bool> IsSubstanceAuthorizedByLicenceAsync(Guid licenceId, Guid substanceId, CancellationToken cancellationToken = default);
+    Task<bool> IsSubstanceAuthorizedByLicenceAsync(Guid licenceId, string substanceCode, CancellationToken cancellationToken = default);
 }

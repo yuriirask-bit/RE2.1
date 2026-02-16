@@ -86,9 +86,8 @@ public class LookupLicenceCommand
             output.SubstanceMappings = mappings.Select(m => new SubstanceMappingOutput
             {
                 MappingId = m.MappingId,
-                SubstanceId = m.SubstanceId,
+                SubstanceCode = m.SubstanceCode,
                 SubstanceName = m.Substance?.SubstanceName,
-                SubstanceCode = m.Substance?.InternalCode,
                 MaxQuantityPerTransaction = m.MaxQuantityPerTransaction,
                 MaxQuantityPerPeriod = m.MaxQuantityPerPeriod,
                 PeriodType = m.PeriodType,
@@ -150,9 +149,8 @@ public class LicenceDetailOutput
 public class SubstanceMappingOutput
 {
     public Guid MappingId { get; set; }
-    public Guid SubstanceId { get; set; }
+    public string SubstanceCode { get; set; } = string.Empty;
     public string? SubstanceName { get; set; }
-    public string? SubstanceCode { get; set; }
     public decimal? MaxQuantityPerTransaction { get; set; }
     public decimal? MaxQuantityPerPeriod { get; set; }
     public string? PeriodType { get; set; }

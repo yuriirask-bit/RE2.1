@@ -65,7 +65,7 @@ public class DataverseLicenceSubstanceMappingRepository : ILicenceSubstanceMappi
         }
     }
 
-    public async Task<IEnumerable<LicenceSubstanceMapping>> GetBySubstanceIdAsync(Guid substanceId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<LicenceSubstanceMapping>> GetBySubstanceCodeAsync(string substanceCode, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -76,7 +76,7 @@ public class DataverseLicenceSubstanceMappingRepository : ILicenceSubstanceMappi
                 {
                     Conditions =
                     {
-                        new ConditionExpression("phr_substanceid", ConditionOperator.Equal, substanceId)
+                        new ConditionExpression("phr_substancecode", ConditionOperator.Equal, substanceCode)
                     }
                 }
             };
@@ -86,7 +86,7 @@ public class DataverseLicenceSubstanceMappingRepository : ILicenceSubstanceMappi
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving mappings for substance {SubstanceId}", substanceId);
+            _logger.LogError(ex, "Error retrieving mappings for substance {SubstanceCode}", substanceCode);
             return Enumerable.Empty<LicenceSubstanceMapping>();
         }
     }
@@ -134,7 +134,7 @@ public class DataverseLicenceSubstanceMappingRepository : ILicenceSubstanceMappi
 
     public async Task<LicenceSubstanceMapping?> GetByLicenceSubstanceEffectiveDateAsync(
         Guid licenceId,
-        Guid substanceId,
+        string substanceCode,
         DateOnly effectiveDate,
         CancellationToken cancellationToken = default)
     {
@@ -148,7 +148,7 @@ public class DataverseLicenceSubstanceMappingRepository : ILicenceSubstanceMappi
                     Conditions =
                     {
                         new ConditionExpression("phr_licenceid", ConditionOperator.Equal, licenceId),
-                        new ConditionExpression("phr_substanceid", ConditionOperator.Equal, substanceId),
+                        new ConditionExpression("phr_substancecode", ConditionOperator.Equal, substanceCode),
                         new ConditionExpression("phr_effectivedate", ConditionOperator.Equal, effectiveDate.ToDateTime(TimeOnly.MinValue))
                     }
                 }
@@ -161,8 +161,8 @@ public class DataverseLicenceSubstanceMappingRepository : ILicenceSubstanceMappi
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking for duplicate mapping {LicenceId}/{SubstanceId}/{EffectiveDate}",
-                licenceId, substanceId, effectiveDate);
+            _logger.LogError(ex, "Error checking for duplicate mapping {LicenceId}/{SubstanceCode}/{EffectiveDate}",
+                licenceId, substanceCode, effectiveDate);
             return null;
         }
     }
@@ -192,8 +192,8 @@ public class DataverseLicenceSubstanceMappingRepository : ILicenceSubstanceMappi
         var entity = MapToEntity(dto);
 
         var id = await _client.CreateAsync(entity, cancellationToken);
-        _logger.LogInformation("Created mapping {Id} for licence {LicenceId} and substance {SubstanceId}",
-            id, mapping.LicenceId, mapping.SubstanceId);
+        _logger.LogInformation("Created mapping {Id} for licence {LicenceId} and substance {SubstanceCode}",
+            id, mapping.LicenceId, mapping.SubstanceCode);
 
         return id;
     }
@@ -220,7 +220,7 @@ public class DataverseLicenceSubstanceMappingRepository : ILicenceSubstanceMappi
         {
             phr_licencesubstancemappingid = entity.Id,
             phr_licenceid = entity.GetAttributeValue<EntityReference>("phr_licenceid")?.Id ?? Guid.Empty,
-            phr_substanceid = entity.GetAttributeValue<EntityReference>("phr_substanceid")?.Id ?? Guid.Empty,
+            phr_substancecode = entity.GetAttributeValue<string>("phr_substancecode") ?? string.Empty,
             phr_maxquantitypertransaction = entity.GetAttributeValue<decimal?>("phr_maxquantitypertransaction"),
             phr_maxquantityperperiod = entity.GetAttributeValue<decimal?>("phr_maxquantityperperiod"),
             phr_periodtype = entity.GetAttributeValue<string>("phr_periodtype"),
@@ -240,7 +240,7 @@ public class DataverseLicenceSubstanceMappingRepository : ILicenceSubstanceMappi
         }
 
         entity["phr_licenceid"] = new EntityReference("phr_licence", dto.phr_licenceid);
-        entity["phr_substanceid"] = new EntityReference("phr_controlledsubstance", dto.phr_substanceid);
+        entity["phr_substancecode"] = dto.phr_substancecode;
         entity["phr_effectivedate"] = dto.phr_effectivedate;
 
         if (dto.phr_maxquantitypertransaction.HasValue)

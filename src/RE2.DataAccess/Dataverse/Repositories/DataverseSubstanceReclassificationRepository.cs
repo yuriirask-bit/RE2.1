@@ -41,7 +41,7 @@ public class DataverseSubstanceReclassificationRepository : ISubstanceReclassifi
         }
     }
 
-    public async Task<IEnumerable<SubstanceReclassification>> GetBySubstanceIdAsync(Guid substanceId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<SubstanceReclassification>> GetBySubstanceCodeAsync(string substanceCode, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -52,7 +52,7 @@ public class DataverseSubstanceReclassificationRepository : ISubstanceReclassifi
                 {
                     Conditions =
                     {
-                        new ConditionExpression("phr_substanceid", ConditionOperator.Equal, substanceId)
+                        new ConditionExpression("phr_substancecode", ConditionOperator.Equal, substanceCode)
                     }
                 },
                 Orders = { new OrderExpression("phr_effectivedate", OrderType.Descending) }
@@ -63,7 +63,7 @@ public class DataverseSubstanceReclassificationRepository : ISubstanceReclassifi
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving reclassifications for substance {SubstanceId}", substanceId);
+            _logger.LogError(ex, "Error retrieving reclassifications for substance {SubstanceCode}", substanceCode);
             return Enumerable.Empty<SubstanceReclassification>();
         }
     }
@@ -156,7 +156,7 @@ public class DataverseSubstanceReclassificationRepository : ISubstanceReclassifi
         }
     }
 
-    public async Task<SubstanceReclassification?> GetEffectiveReclassificationAsync(Guid substanceId, DateOnly asOfDate, CancellationToken cancellationToken = default)
+    public async Task<SubstanceReclassification?> GetEffectiveReclassificationAsync(string substanceCode, DateOnly asOfDate, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -169,7 +169,7 @@ public class DataverseSubstanceReclassificationRepository : ISubstanceReclassifi
                 {
                     Conditions =
                     {
-                        new ConditionExpression("phr_substanceid", ConditionOperator.Equal, substanceId),
+                        new ConditionExpression("phr_substancecode", ConditionOperator.Equal, substanceCode),
                         new ConditionExpression("phr_effectivedate", ConditionOperator.LessEqual, dateTime),
                         new ConditionExpression("phr_status", ConditionOperator.Equal, (int)ReclassificationStatus.Completed)
                     }
@@ -185,7 +185,7 @@ public class DataverseSubstanceReclassificationRepository : ISubstanceReclassifi
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving effective reclassification for substance {SubstanceId} as of {AsOfDate}", substanceId, asOfDate);
+            _logger.LogError(ex, "Error retrieving effective reclassification for substance {SubstanceCode} as of {AsOfDate}", substanceCode, asOfDate);
             return null;
         }
     }
@@ -200,7 +200,7 @@ public class DataverseSubstanceReclassificationRepository : ISubstanceReclassifi
         var entity = MapReclassificationToEntity(dto);
 
         var id = await _client.CreateAsync(entity, cancellationToken);
-        _logger.LogInformation("Created reclassification {Id} for substance {SubstanceId}", id, reclassification.SubstanceId);
+        _logger.LogInformation("Created reclassification {Id} for substance {SubstanceCode}", id, reclassification.SubstanceCode);
         return id;
     }
 
@@ -337,7 +337,7 @@ public class DataverseSubstanceReclassificationRepository : ISubstanceReclassifi
         return new SubstanceReclassificationDto
         {
             phr_substancereclassificationid = entity.Id,
-            phr_substanceid = entity.GetAttributeValue<Guid>("phr_substanceid"),
+            phr_substancecode = entity.GetAttributeValue<string>("phr_substancecode") ?? string.Empty,
             phr_previousopiumactlist = entity.GetAttributeValue<int?>("phr_previousopiumactlist"),
             phr_newopiumactlist = entity.GetAttributeValue<int?>("phr_newopiumactlist"),
             phr_previousprecursorcategory = entity.GetAttributeValue<int?>("phr_previousprecursorcategory"),
@@ -359,7 +359,7 @@ public class DataverseSubstanceReclassificationRepository : ISubstanceReclassifi
     private Entity MapReclassificationToEntity(SubstanceReclassificationDto dto)
     {
         var entity = new Entity(ReclassificationEntityName) { Id = dto.phr_substancereclassificationid };
-        entity["phr_substanceid"] = dto.phr_substanceid;
+        entity["phr_substancecode"] = dto.phr_substancecode;
         entity["phr_previousopiumactlist"] = dto.phr_previousopiumactlist;
         entity["phr_newopiumactlist"] = dto.phr_newopiumactlist;
         entity["phr_previousprecursorcategory"] = dto.phr_previousprecursorcategory;

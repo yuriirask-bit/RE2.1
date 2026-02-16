@@ -31,10 +31,10 @@ public class ReclassificationsController : Controller
     /// <summary>
     /// Loads substances for dropdown lists.
     /// </summary>
-    private async Task<SelectList> GetSubstanceSelectListAsync(Guid? selectedId = null, CancellationToken cancellationToken = default)
+    private async Task<SelectList> GetSubstanceSelectListAsync(string? selectedCode = null, CancellationToken cancellationToken = default)
     {
         var substances = await _substanceRepository.GetAllActiveAsync(cancellationToken);
-        return new SelectList(substances, "SubstanceId", "SubstanceName", selectedId);
+        return new SelectList(substances, "SubstanceCode", "SubstanceName", selectedCode);
     }
 
     /// <summary>
@@ -87,7 +87,7 @@ public class ReclassificationsController : Controller
         // Load substance info for each reclassification
         foreach (var r in reclassifications)
         {
-            r.Substance = await _substanceRepository.GetByIdAsync(r.SubstanceId, cancellationToken);
+            r.Substance = await _substanceRepository.GetBySubstanceCodeAsync(r.SubstanceCode, cancellationToken);
         }
 
         ViewBag.StatusFilter = status;
@@ -98,19 +98,19 @@ public class ReclassificationsController : Controller
     /// Displays the create reclassification form.
     /// </summary>
     [Authorize(Policy = "ComplianceManager")]
-    public async Task<IActionResult> Create(Guid? substanceId = null, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Create(string? substanceCode = null, CancellationToken cancellationToken = default)
     {
         var model = new ReclassificationCreateViewModel
         {
             EffectiveDate = DateTime.Today.AddDays(30)
         };
 
-        if (substanceId.HasValue)
+        if (!string.IsNullOrEmpty(substanceCode))
         {
-            var substance = await _substanceRepository.GetByIdAsync(substanceId.Value, cancellationToken);
+            var substance = await _substanceRepository.GetBySubstanceCodeAsync(substanceCode, cancellationToken);
             if (substance != null)
             {
-                model.SubstanceId = substance.SubstanceId;
+                model.SubstanceCode = substance.SubstanceCode;
                 model.PreviousOpiumActList = (int)substance.OpiumActList;
                 model.PreviousPrecursorCategory = (int)substance.PrecursorCategory;
                 model.NewOpiumActList = (int)substance.OpiumActList;
@@ -137,17 +137,17 @@ public class ReclassificationsController : Controller
             return View(model);
         }
 
-        var substance = await _substanceRepository.GetByIdAsync(model.SubstanceId, cancellationToken);
+        var substance = await _substanceRepository.GetBySubstanceCodeAsync(model.SubstanceCode, cancellationToken);
         if (substance == null)
         {
-            ModelState.AddModelError(nameof(model.SubstanceId), "Substance not found");
+            ModelState.AddModelError(nameof(model.SubstanceCode), "Substance not found");
             await PrepareCreateViewBag(model, cancellationToken);
             return View(model);
         }
 
         var reclassification = new SubstanceReclassification
         {
-            SubstanceId = model.SubstanceId,
+            SubstanceCode = model.SubstanceCode,
             PreviousOpiumActList = substance.OpiumActList,
             NewOpiumActList = (SubstanceCategories.OpiumActList)model.NewOpiumActList,
             PreviousPrecursorCategory = substance.PrecursorCategory,
@@ -181,7 +181,7 @@ public class ReclassificationsController : Controller
     /// </summary>
     private async Task PrepareCreateViewBag(ReclassificationCreateViewModel model, CancellationToken cancellationToken)
     {
-        ViewBag.Substances = await GetSubstanceSelectListAsync(model.SubstanceId, cancellationToken);
+        ViewBag.Substances = await GetSubstanceSelectListAsync(model.SubstanceCode, cancellationToken);
         ViewBag.OpiumActLists = GetOpiumActListSelectList(model.NewOpiumActList);
         ViewBag.PrecursorCategories = GetPrecursorCategorySelectList(model.NewPrecursorCategory);
     }
@@ -312,7 +312,7 @@ public class ReclassificationsController : Controller
 /// </summary>
 public class ReclassificationCreateViewModel
 {
-    public Guid SubstanceId { get; set; }
+    public string SubstanceCode { get; set; } = string.Empty;
     public int PreviousOpiumActList { get; set; }
     public int NewOpiumActList { get; set; }
     public int PreviousPrecursorCategory { get; set; }

@@ -185,7 +185,7 @@ public class ComplianceReportGenerator
         {
             FromDate = fromDate.ToDateTime(TimeOnly.MinValue),
             ToDate = toDate.ToDateTime(TimeOnly.MaxValue),
-            SubstanceId = null,
+            SubstanceCode = null,
             CustomerAccount = null,
             CustomerDataAreaId = null,
             CountryCode = null,

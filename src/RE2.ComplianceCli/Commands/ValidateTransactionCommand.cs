@@ -9,6 +9,7 @@ namespace RE2.ComplianceCli.Commands;
 /// <summary>
 /// T052b: Validate transaction command implementation.
 /// Accepts transaction JSON via stdin, returns ValidationResult to stdout.
+/// Lines use ItemNumber + DataAreaId; substance resolution happens server-side.
 /// </summary>
 public class ValidateTransactionCommand
 {
@@ -94,7 +95,7 @@ public class ValidateTransactionCommand
             {
                 LicenceId = u.LicenceId,
                 LicenceNumber = u.LicenceNumber,
-                SubstanceIds = u.CoveredSubstanceIds,
+                SubstanceCodes = u.CoveredSubstanceCodes,
                 QuantityUsed = u.CoveredQuantity
             }).ToList(),
             ValidatedAt = DateTime.UtcNow
@@ -121,8 +122,9 @@ public class ValidateTransactionCommand
             Lines = input.Lines.Select(l => new TransactionLine
             {
                 Id = l.LineId ?? Guid.NewGuid(),
-                SubstanceId = l.SubstanceId,
-                SubstanceCode = l.SubstanceCode ?? string.Empty,
+                ItemNumber = l.ItemNumber,
+                DataAreaId = l.DataAreaId,
+                // SubstanceCode is resolved by the system during validation
                 Quantity = l.Quantity,
                 UnitOfMeasure = l.UnitOfMeasure ?? "EA"
             }).ToList()
@@ -158,8 +160,8 @@ public class TransactionInput
 public class TransactionLineInput
 {
     public Guid? LineId { get; set; }
-    public Guid SubstanceId { get; set; }
-    public string? SubstanceCode { get; set; }
+    public string ItemNumber { get; set; } = string.Empty;
+    public string DataAreaId { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
     public string? UnitOfMeasure { get; set; }
 }
@@ -186,7 +188,7 @@ public class LicenceUsageOutput
 {
     public Guid LicenceId { get; set; }
     public string LicenceNumber { get; set; } = string.Empty;
-    public List<Guid> SubstanceIds { get; set; } = new();
+    public List<string> SubstanceCodes { get; set; } = new();
     public decimal QuantityUsed { get; set; }
 }
 

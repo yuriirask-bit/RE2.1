@@ -32,7 +32,7 @@ public class LicenceSubstanceMappingsController : ControllerBase
     /// Gets all licence-substance mappings with optional filtering.
     /// </summary>
     /// <param name="licenceId">Optional filter by licence ID.</param>
-    /// <param name="substanceId">Optional filter by substance ID.</param>
+    /// <param name="substanceCode">Optional filter by substance code.</param>
     /// <param name="activeOnly">If true, returns only currently active mappings (default: false).</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of mappings.</returns>
@@ -40,7 +40,7 @@ public class LicenceSubstanceMappingsController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<LicenceSubstanceMappingResponseDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMappings(
         [FromQuery] Guid? licenceId = null,
-        [FromQuery] Guid? substanceId = null,
+        [FromQuery] string? substanceCode = null,
         [FromQuery] bool activeOnly = false,
         CancellationToken cancellationToken = default)
     {
@@ -54,9 +54,9 @@ public class LicenceSubstanceMappingsController : ControllerBase
         {
             mappings = await _mappingService.GetByLicenceIdAsync(licenceId.Value, cancellationToken);
         }
-        else if (substanceId.HasValue)
+        else if (!string.IsNullOrEmpty(substanceCode))
         {
-            mappings = await _mappingService.GetBySubstanceIdAsync(substanceId.Value, cancellationToken);
+            mappings = await _mappingService.GetBySubstanceCodeAsync(substanceCode, cancellationToken);
         }
         else
         {
@@ -98,23 +98,23 @@ public class LicenceSubstanceMappingsController : ControllerBase
     /// Used by transaction validation per FR-018.
     /// </summary>
     /// <param name="licenceId">Licence ID.</param>
-    /// <param name="substanceId">Substance ID.</param>
+    /// <param name="substanceCode">Substance code.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Authorization status.</returns>
     [HttpGet("check-authorization")]
     [ProducesResponseType(typeof(SubstanceAuthorizationCheckDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> CheckSubstanceAuthorization(
         [FromQuery] Guid licenceId,
-        [FromQuery] Guid substanceId,
+        [FromQuery] string substanceCode,
         CancellationToken cancellationToken = default)
     {
         var isAuthorized = await _mappingService.IsSubstanceAuthorizedByLicenceAsync(
-            licenceId, substanceId, cancellationToken);
+            licenceId, substanceCode, cancellationToken);
 
         return Ok(new SubstanceAuthorizationCheckDto
         {
             LicenceId = licenceId,
-            SubstanceId = substanceId,
+            SubstanceCode = substanceCode,
             IsAuthorized = isAuthorized
         });
     }
@@ -152,8 +152,8 @@ public class LicenceSubstanceMappingsController : ControllerBase
         }
 
         var created = await _mappingService.GetByIdAsync(id!.Value, cancellationToken);
-        _logger.LogInformation("Created mapping {Id} for licence {LicenceId} and substance {SubstanceId}",
-            id, created!.LicenceId, created.SubstanceId);
+        _logger.LogInformation("Created mapping {Id} for licence {LicenceId} and substance {SubstanceCode}",
+            id, created!.LicenceId, created.SubstanceCode);
 
         return CreatedAtAction(
             nameof(GetMapping),
@@ -251,9 +251,8 @@ public class LicenceSubstanceMappingResponseDto
     public Guid MappingId { get; set; }
     public Guid LicenceId { get; set; }
     public string? LicenceNumber { get; set; }
-    public Guid SubstanceId { get; set; }
+    public string SubstanceCode { get; set; } = string.Empty;
     public string? SubstanceName { get; set; }
-    public string? SubstanceCode { get; set; }
     public decimal? MaxQuantityPerTransaction { get; set; }
     public decimal? MaxQuantityPerPeriod { get; set; }
     public string? PeriodType { get; set; }
@@ -273,9 +272,8 @@ public class LicenceSubstanceMappingResponseDto
             MappingId = mapping.MappingId,
             LicenceId = mapping.LicenceId,
             LicenceNumber = mapping.Licence?.LicenceNumber,
-            SubstanceId = mapping.SubstanceId,
+            SubstanceCode = mapping.SubstanceCode,
             SubstanceName = mapping.Substance?.SubstanceName,
-            SubstanceCode = mapping.Substance?.InternalCode,
             MaxQuantityPerTransaction = mapping.MaxQuantityPerTransaction,
             MaxQuantityPerPeriod = mapping.MaxQuantityPerPeriod,
             PeriodType = mapping.PeriodType,
@@ -293,7 +291,7 @@ public class LicenceSubstanceMappingResponseDto
 public class CreateLicenceSubstanceMappingRequestDto
 {
     public Guid LicenceId { get; set; }
-    public Guid SubstanceId { get; set; }
+    public string SubstanceCode { get; set; } = string.Empty;
     public decimal? MaxQuantityPerTransaction { get; set; }
     public decimal? MaxQuantityPerPeriod { get; set; }
     public string? PeriodType { get; set; }
@@ -307,7 +305,7 @@ public class CreateLicenceSubstanceMappingRequestDto
         {
             MappingId = Guid.NewGuid(),
             LicenceId = LicenceId,
-            SubstanceId = SubstanceId,
+            SubstanceCode = SubstanceCode,
             MaxQuantityPerTransaction = MaxQuantityPerTransaction,
             MaxQuantityPerPeriod = MaxQuantityPerPeriod,
             PeriodType = PeriodType,
@@ -324,7 +322,7 @@ public class CreateLicenceSubstanceMappingRequestDto
 public class UpdateLicenceSubstanceMappingRequestDto
 {
     public Guid LicenceId { get; set; }
-    public Guid SubstanceId { get; set; }
+    public string SubstanceCode { get; set; } = string.Empty;
     public decimal? MaxQuantityPerTransaction { get; set; }
     public decimal? MaxQuantityPerPeriod { get; set; }
     public string? PeriodType { get; set; }
@@ -338,7 +336,7 @@ public class UpdateLicenceSubstanceMappingRequestDto
         {
             MappingId = mappingId,
             LicenceId = LicenceId,
-            SubstanceId = SubstanceId,
+            SubstanceCode = SubstanceCode,
             MaxQuantityPerTransaction = MaxQuantityPerTransaction,
             MaxQuantityPerPeriod = MaxQuantityPerPeriod,
             PeriodType = PeriodType,
@@ -355,7 +353,7 @@ public class UpdateLicenceSubstanceMappingRequestDto
 public class SubstanceAuthorizationCheckDto
 {
     public Guid LicenceId { get; set; }
-    public Guid SubstanceId { get; set; }
+    public string SubstanceCode { get; set; } = string.Empty;
     public bool IsAuthorized { get; set; }
 }
 

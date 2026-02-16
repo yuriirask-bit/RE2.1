@@ -17,18 +17,18 @@ public class TransactionsController : Controller
 {
     private readonly ITransactionComplianceService _complianceService;
     private readonly ICustomerService _customerService;
-    private readonly IControlledSubstanceService _substanceService;
+    private readonly IProductRepository _productRepository;
     private readonly ILogger<TransactionsController> _logger;
 
     public TransactionsController(
         ITransactionComplianceService complianceService,
         ICustomerService customerService,
-        IControlledSubstanceService substanceService,
+        IProductRepository productRepository,
         ILogger<TransactionsController> logger)
     {
         _complianceService = complianceService;
         _customerService = customerService;
-        _substanceService = substanceService;
+        _productRepository = productRepository;
         _logger = logger;
     }
 
@@ -102,13 +102,13 @@ public class TransactionsController : Controller
     public async Task<IActionResult> Validate(CancellationToken cancellationToken = default)
     {
         var customers = await _customerService.GetAllAsync(cancellationToken);
-        var substances = await _substanceService.GetAllAsync(cancellationToken);
+        var products = await _productRepository.GetControlledProductsAsync(cancellationToken);
 
         ViewBag.Customers = new SelectList(
             customers.Where(c => c.CanTransact()),
             "CustomerAccount",
             "BusinessName");
-        ViewBag.Substances = substances.ToList();
+        ViewBag.Products = products.ToList();
         ViewBag.TransactionTypes = GetTransactionTypeSelectList();
         ViewBag.Directions = GetDirectionSelectList();
 
@@ -125,13 +125,13 @@ public class TransactionsController : Controller
         if (!ModelState.IsValid)
         {
             var customers = await _customerService.GetAllAsync(cancellationToken);
-            var substances = await _substanceService.GetAllAsync(cancellationToken);
+            var products = await _productRepository.GetControlledProductsAsync(cancellationToken);
 
             ViewBag.Customers = new SelectList(
                 customers.Where(c => c.CanTransact()),
-                "CustomerId",
+                "CustomerAccount",
                 "BusinessName");
-            ViewBag.Substances = substances.ToList();
+            ViewBag.Products = products.ToList();
             ViewBag.TransactionTypes = GetTransactionTypeSelectList();
             ViewBag.Directions = GetDirectionSelectList();
 
@@ -160,13 +160,13 @@ public class TransactionsController : Controller
             ModelState.AddModelError(string.Empty, "An error occurred during validation.");
 
             var customers = await _customerService.GetAllAsync(cancellationToken);
-            var substances = await _substanceService.GetAllAsync(cancellationToken);
+            var products = await _productRepository.GetControlledProductsAsync(cancellationToken);
 
             ViewBag.Customers = new SelectList(
                 customers.Where(c => c.CanTransact()),
-                "CustomerId",
+                "CustomerAccount",
                 "BusinessName");
-            ViewBag.Substances = substances.ToList();
+            ViewBag.Products = products.ToList();
             ViewBag.TransactionTypes = GetTransactionTypeSelectList();
             ViewBag.Directions = GetDirectionSelectList();
 
@@ -268,6 +268,7 @@ public class TransactionsController : Controller
 
 /// <summary>
 /// View model for transaction validation.
+/// Lines use ItemNumber + DataAreaId instead of SubstanceId.
 /// </summary>
 public class TransactionValidateViewModel
 {
@@ -304,16 +305,16 @@ public class TransactionValidateViewModel
         };
 
         var lineNumber = 1;
-        foreach (var lineVm in Lines.Where(l => l.SubstanceId != Guid.Empty))
+        foreach (var lineVm in Lines.Where(l => !string.IsNullOrWhiteSpace(l.ItemNumber)))
         {
             transaction.Lines.Add(new TransactionLine
             {
                 Id = Guid.NewGuid(),
                 TransactionId = transaction.Id,
                 LineNumber = lineNumber++,
-                SubstanceId = lineVm.SubstanceId,
-                SubstanceCode = lineVm.SubstanceCode ?? string.Empty,
-                ProductCode = lineVm.ProductCode,
+                ItemNumber = lineVm.ItemNumber ?? string.Empty,
+                DataAreaId = lineVm.DataAreaId ?? string.Empty,
+                // SubstanceCode is resolved by the system during validation
                 Quantity = lineVm.Quantity,
                 UnitOfMeasure = lineVm.UnitOfMeasure ?? "EA",
                 BaseUnitQuantity = lineVm.BaseUnitQuantity ?? lineVm.Quantity,
@@ -329,12 +330,12 @@ public class TransactionValidateViewModel
 
 /// <summary>
 /// View model for transaction line.
+/// Uses ItemNumber + DataAreaId (product identity) instead of SubstanceId.
 /// </summary>
 public class TransactionLineViewModel
 {
-    public Guid SubstanceId { get; set; }
-    public string? SubstanceCode { get; set; }
-    public string? ProductCode { get; set; }
+    public string? ItemNumber { get; set; }
+    public string? DataAreaId { get; set; }
     public decimal Quantity { get; set; } = 100;
     public string? UnitOfMeasure { get; set; } = "EA";
     public decimal? BaseUnitQuantity { get; set; } = 100;

@@ -65,10 +65,10 @@ public class InMemoryThresholdRepository : IThresholdRepository
 
     #region Filtered Queries
 
-    public Task<IEnumerable<Threshold>> GetBySubstanceIdAsync(Guid substanceId, CancellationToken cancellationToken = default)
+    public Task<IEnumerable<Threshold>> GetBySubstanceCodeAsync(string substanceCode, CancellationToken cancellationToken = default)
     {
         var thresholds = _thresholds.Values
-            .Where(t => t.SubstanceId == substanceId && t.IsEffective())
+            .Where(t => t.AppliesToSubstance(substanceCode) && t.IsEffective())
             .ToList();
 
         return Task.FromResult<IEnumerable<Threshold>>(thresholds);
@@ -106,7 +106,7 @@ public class InMemoryThresholdRepository : IThresholdRepository
     #region Threshold Lookup
 
     public Task<Threshold?> GetApplicableThresholdAsync(
-        Guid substanceId,
+        string substanceCode,
         ThresholdType type,
         CancellationToken cancellationToken = default)
     {
@@ -115,15 +115,15 @@ public class InMemoryThresholdRepository : IThresholdRepository
         var threshold = _thresholds.Values
             .Where(t => t.IsEffective() &&
                         t.ThresholdType == type &&
-                        t.AppliesToSubstance(substanceId))
-            .OrderByDescending(t => t.SubstanceId.HasValue) // Substance-specific first
+                        t.AppliesToSubstance(substanceCode))
+            .OrderByDescending(t => !string.IsNullOrEmpty(t.SubstanceCode)) // Substance-specific first
             .FirstOrDefault();
 
         return Task.FromResult(threshold);
     }
 
     public Task<Threshold?> GetApplicableThresholdAsync(
-        Guid substanceId,
+        string substanceCode,
         Guid customerId,
         BusinessCategory customerCategory,
         ThresholdType type,
@@ -134,27 +134,27 @@ public class InMemoryThresholdRepository : IThresholdRepository
         var threshold = _thresholds.Values
             .Where(t => t.IsEffective() &&
                         t.ThresholdType == type &&
-                        t.AppliesToSubstance(substanceId) &&
+                        t.AppliesToSubstance(substanceCode) &&
                         t.AppliesToCustomer(customerId, customerCategory))
             .OrderByDescending(t => t.CustomerId.HasValue) // Customer-specific first
             .ThenByDescending(t => t.CustomerCategory.HasValue) // Category-specific next
-            .ThenByDescending(t => t.SubstanceId.HasValue) // Substance-specific next
+            .ThenByDescending(t => !string.IsNullOrEmpty(t.SubstanceCode)) // Substance-specific next
             .FirstOrDefault();
 
         return Task.FromResult(threshold);
     }
 
     public Task<IEnumerable<Threshold>> GetApplicableThresholdsAsync(
-        IEnumerable<Guid> substanceIds,
+        IEnumerable<string> substanceCodes,
         Guid customerId,
         BusinessCategory customerCategory,
         CancellationToken cancellationToken = default)
     {
-        var substanceIdSet = substanceIds.ToHashSet();
+        var substanceCodeSet = substanceCodes.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var thresholds = _thresholds.Values
             .Where(t => t.IsEffective() &&
-                        (t.SubstanceId == null || substanceIdSet.Contains(t.SubstanceId.Value)) &&
+                        (string.IsNullOrEmpty(t.SubstanceCode) || substanceCodeSet.Contains(t.SubstanceCode)) &&
                         t.AppliesToCustomer(customerId, customerCategory))
             .ToList();
 

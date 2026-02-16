@@ -133,7 +133,7 @@ public class CustomersController : ControllerBase
     [ProducesResponseType(typeof(CustomerResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ConfigureCompliance(
-        [FromBody] ConfigureComplianceRequestDto request,
+        [FromBody] ConfigureCustomerComplianceRequestDto request,
         CancellationToken cancellationToken = default)
     {
         var customer = request.ToDomain();
@@ -170,7 +170,7 @@ public class CustomersController : ControllerBase
     public async Task<IActionResult> UpdateCompliance(
         string customerAccount,
         [FromQuery] string dataAreaId,
-        [FromBody] UpdateComplianceRequestDto request,
+        [FromBody] UpdateCustomerComplianceRequestDto request,
         CancellationToken cancellationToken = default)
     {
         var customer = request.ToDomain(customerAccount, dataAreaId);
@@ -412,7 +412,7 @@ public class ComplianceWarningDto
 /// Used to set up compliance extension for a D365FO customer.
 /// BusinessName and Country come from D365FO master data, not from this request.
 /// </summary>
-public class ConfigureComplianceRequestDto
+public class ConfigureCustomerComplianceRequestDto
 {
     public required string CustomerAccount { get; set; }
     public required string DataAreaId { get; set; }
@@ -442,7 +442,7 @@ public class ConfigureComplianceRequestDto
 /// Update compliance request DTO.
 /// Updates compliance extension fields only. Master data fields are read-only from D365FO.
 /// </summary>
-public class UpdateComplianceRequestDto
+public class UpdateCustomerComplianceRequestDto
 {
     public required string BusinessCategory { get; set; }
     public required string ApprovalStatus { get; set; }

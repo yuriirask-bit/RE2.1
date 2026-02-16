@@ -91,21 +91,21 @@ public class LicenceSubstanceMappingsControllerTests
     }
 
     [Fact]
-    public async Task GetMappings_ReturnsMappingsForSubstance_WhenSubstanceIdProvided()
+    public async Task GetMappings_ReturnsMappingsForSubstance_WhenSubstanceCodeProvided()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "Morphine";
         var mappings = CreateTestMappings().Take(2).ToList();
         _mockService
-            .Setup(s => s.GetBySubstanceIdAsync(substanceId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(mappings);
 
         // Act
-        var result = await _controller.GetMappings(substanceId: substanceId);
+        var result = await _controller.GetMappings(substanceCode: substanceCode);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
-        _mockService.Verify(s => s.GetBySubstanceIdAsync(substanceId, It.IsAny<CancellationToken>()), Times.Once);
+        _mockService.Verify(s => s.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -146,7 +146,7 @@ public class LicenceSubstanceMappingsControllerTests
         var response = okResult.Value.Should().BeOfType<LicenceSubstanceMappingResponseDto>().Subject;
         response.MappingId.Should().Be(mapping.MappingId);
         response.LicenceId.Should().Be(mapping.LicenceId);
-        response.SubstanceId.Should().Be(mapping.SubstanceId);
+        response.SubstanceCode.Should().Be(mapping.SubstanceCode);
     }
 
     [Fact]
@@ -177,19 +177,19 @@ public class LicenceSubstanceMappingsControllerTests
     {
         // Arrange
         var licenceId = Guid.NewGuid();
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "Morphine";
         _mockService
-            .Setup(s => s.IsSubstanceAuthorizedByLicenceAsync(licenceId, substanceId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.IsSubstanceAuthorizedByLicenceAsync(licenceId, substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         // Act
-        var result = await _controller.CheckSubstanceAuthorization(licenceId, substanceId);
+        var result = await _controller.CheckSubstanceAuthorization(licenceId, substanceCode);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
         var response = okResult.Value.Should().BeOfType<SubstanceAuthorizationCheckDto>().Subject;
         response.LicenceId.Should().Be(licenceId);
-        response.SubstanceId.Should().Be(substanceId);
+        response.SubstanceCode.Should().Be(substanceCode);
         response.IsAuthorized.Should().BeTrue();
     }
 
@@ -198,13 +198,13 @@ public class LicenceSubstanceMappingsControllerTests
     {
         // Arrange
         var licenceId = Guid.NewGuid();
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "Fentanyl";
         _mockService
-            .Setup(s => s.IsSubstanceAuthorizedByLicenceAsync(licenceId, substanceId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.IsSubstanceAuthorizedByLicenceAsync(licenceId, substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         // Act
-        var result = await _controller.CheckSubstanceAuthorization(licenceId, substanceId);
+        var result = await _controller.CheckSubstanceAuthorization(licenceId, substanceCode);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
@@ -223,7 +223,7 @@ public class LicenceSubstanceMappingsControllerTests
         var request = new CreateLicenceSubstanceMappingRequestDto
         {
             LicenceId = Guid.NewGuid(),
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Morphine",
             EffectiveDate = DateOnly.FromDateTime(DateTime.Today),
             MaxQuantityPerTransaction = 100,
             PeriodType = "Monthly"
@@ -233,7 +233,7 @@ public class LicenceSubstanceMappingsControllerTests
         {
             MappingId = newId,
             LicenceId = request.LicenceId,
-            SubstanceId = request.SubstanceId,
+            SubstanceCode = request.SubstanceCode,
             EffectiveDate = request.EffectiveDate,
             MaxQuantityPerTransaction = request.MaxQuantityPerTransaction,
             PeriodType = request.PeriodType
@@ -254,7 +254,7 @@ public class LicenceSubstanceMappingsControllerTests
         createdResult.StatusCode.Should().Be(StatusCodes.Status201Created);
         var response = createdResult.Value.Should().BeOfType<LicenceSubstanceMappingResponseDto>().Subject;
         response.LicenceId.Should().Be(request.LicenceId);
-        response.SubstanceId.Should().Be(request.SubstanceId);
+        response.SubstanceCode.Should().Be(request.SubstanceCode);
     }
 
     [Fact]
@@ -264,7 +264,7 @@ public class LicenceSubstanceMappingsControllerTests
         var request = new CreateLicenceSubstanceMappingRequestDto
         {
             LicenceId = Guid.NewGuid(),
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Morphine",
             EffectiveDate = DateOnly.FromDateTime(DateTime.Today)
         };
 
@@ -292,7 +292,7 @@ public class LicenceSubstanceMappingsControllerTests
         var request = new CreateLicenceSubstanceMappingRequestDto
         {
             LicenceId = Guid.NewGuid(),
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Morphine",
             EffectiveDate = DateOnly.FromDateTime(DateTime.Today)
         };
 
@@ -319,7 +319,7 @@ public class LicenceSubstanceMappingsControllerTests
         var request = new CreateLicenceSubstanceMappingRequestDto
         {
             LicenceId = Guid.NewGuid(),
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Morphine",
             EffectiveDate = DateOnly.FromDateTime(DateTime.Today)
         };
 
@@ -346,7 +346,7 @@ public class LicenceSubstanceMappingsControllerTests
         var request = new CreateLicenceSubstanceMappingRequestDto
         {
             LicenceId = Guid.NewGuid(),
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Morphine",
             EffectiveDate = DateOnly.FromDateTime(DateTime.Today),
             ExpiryDate = DateOnly.FromDateTime(DateTime.Today.AddYears(10))
         };
@@ -379,7 +379,7 @@ public class LicenceSubstanceMappingsControllerTests
         var request = new UpdateLicenceSubstanceMappingRequestDto
         {
             LicenceId = Guid.NewGuid(),
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Morphine",
             EffectiveDate = DateOnly.FromDateTime(DateTime.Today),
             MaxQuantityPerTransaction = 200,
             PeriodType = "Annual"
@@ -388,7 +388,7 @@ public class LicenceSubstanceMappingsControllerTests
         {
             MappingId = mappingId,
             LicenceId = request.LicenceId,
-            SubstanceId = request.SubstanceId,
+            SubstanceCode = request.SubstanceCode,
             EffectiveDate = request.EffectiveDate,
             MaxQuantityPerTransaction = request.MaxQuantityPerTransaction,
             PeriodType = request.PeriodType
@@ -419,7 +419,7 @@ public class LicenceSubstanceMappingsControllerTests
         var request = new UpdateLicenceSubstanceMappingRequestDto
         {
             LicenceId = Guid.NewGuid(),
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Morphine",
             EffectiveDate = DateOnly.FromDateTime(DateTime.Today)
         };
 
@@ -447,7 +447,7 @@ public class LicenceSubstanceMappingsControllerTests
         var request = new UpdateLicenceSubstanceMappingRequestDto
         {
             LicenceId = Guid.NewGuid(),
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Morphine",
             EffectiveDate = DateOnly.FromDateTime(DateTime.Today.AddYears(1)),
             ExpiryDate = DateOnly.FromDateTime(DateTime.Today) // Expiry before effective
         };
@@ -522,7 +522,7 @@ public class LicenceSubstanceMappingsControllerTests
         {
             MappingId = Guid.NewGuid(),
             LicenceId = Guid.NewGuid(),
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Morphine",
             MaxQuantityPerTransaction = 500,
             MaxQuantityPerPeriod = 5000,
             PeriodType = "Monthly",
@@ -530,7 +530,7 @@ public class LicenceSubstanceMappingsControllerTests
             EffectiveDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)),
             ExpiryDate = DateOnly.FromDateTime(DateTime.Today.AddYears(1)),
             Licence = new Licence { LicenceId = Guid.NewGuid(), LicenceNumber = "LIC-001", HolderType = "Company", IssuingAuthority = "IGJ", Status = "Valid" },
-            Substance = new ControlledSubstance { SubstanceId = Guid.NewGuid(), SubstanceName = "Morphine", InternalCode = "MOR-001" }
+            Substance = new ControlledSubstance { SubstanceCode = "Morphine", SubstanceName = "Morphine" }
         };
         _mockService
             .Setup(s => s.GetByIdAsync(mapping.MappingId, It.IsAny<CancellationToken>()))
@@ -546,9 +546,8 @@ public class LicenceSubstanceMappingsControllerTests
         response.MappingId.Should().Be(mapping.MappingId);
         response.LicenceId.Should().Be(mapping.LicenceId);
         response.LicenceNumber.Should().Be("LIC-001");
-        response.SubstanceId.Should().Be(mapping.SubstanceId);
+        response.SubstanceCode.Should().Be("Morphine");
         response.SubstanceName.Should().Be("Morphine");
-        response.SubstanceCode.Should().Be("MOR-001");
         response.MaxQuantityPerTransaction.Should().Be(500);
         response.MaxQuantityPerPeriod.Should().Be(5000);
         response.PeriodType.Should().Be("Monthly");
@@ -566,7 +565,7 @@ public class LicenceSubstanceMappingsControllerTests
         {
             MappingId = Guid.NewGuid(),
             LicenceId = Guid.NewGuid(),
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Morphine",
             EffectiveDate = DateOnly.FromDateTime(DateTime.Today.AddYears(-2)),
             ExpiryDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-1)) // Expired yesterday
         };
@@ -591,7 +590,7 @@ public class LicenceSubstanceMappingsControllerTests
         {
             MappingId = Guid.NewGuid(),
             LicenceId = Guid.NewGuid(),
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Morphine",
             EffectiveDate = DateOnly.FromDateTime(DateTime.Today.AddDays(1)) // Starts tomorrow
         };
         _mockService
@@ -617,7 +616,7 @@ public class LicenceSubstanceMappingsControllerTests
         {
             MappingId = Guid.NewGuid(),
             LicenceId = Guid.NewGuid(),
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Morphine",
             MaxQuantityPerTransaction = 100,
             MaxQuantityPerPeriod = 1000,
             PeriodType = "Monthly",
@@ -635,31 +634,31 @@ public class LicenceSubstanceMappingsControllerTests
             {
                 MappingId = Guid.NewGuid(),
                 LicenceId = licenceId,
-                SubstanceId = Guid.NewGuid(),
+                SubstanceCode = "Morphine",
                 MaxQuantityPerTransaction = 100,
                 PeriodType = "Monthly",
                 EffectiveDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)),
                 ExpiryDate = DateOnly.FromDateTime(DateTime.Today.AddYears(1)),
-                Substance = new ControlledSubstance { SubstanceName = "Morphine", InternalCode = "MOR-001" }
+                Substance = new ControlledSubstance { SubstanceCode = "Morphine", SubstanceName = "Morphine" }
             },
             new LicenceSubstanceMapping
             {
                 MappingId = Guid.NewGuid(),
                 LicenceId = licenceId,
-                SubstanceId = Guid.NewGuid(),
+                SubstanceCode = "Fentanyl",
                 MaxQuantityPerTransaction = 50,
                 PeriodType = "Quarterly",
                 EffectiveDate = DateOnly.FromDateTime(DateTime.Today),
-                Substance = new ControlledSubstance { SubstanceName = "Fentanyl", InternalCode = "FEN-001" }
+                Substance = new ControlledSubstance { SubstanceCode = "Fentanyl", SubstanceName = "Fentanyl" }
             },
             new LicenceSubstanceMapping
             {
                 MappingId = Guid.NewGuid(),
                 LicenceId = Guid.NewGuid(), // Different licence
-                SubstanceId = Guid.NewGuid(),
+                SubstanceCode = "Codeine",
                 EffectiveDate = DateOnly.FromDateTime(DateTime.Today.AddYears(-2)),
                 ExpiryDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-1)), // Expired
-                Substance = new ControlledSubstance { SubstanceName = "Codeine", InternalCode = "COD-001" }
+                Substance = new ControlledSubstance { SubstanceCode = "Codeine", SubstanceName = "Codeine" }
             }
         };
     }

@@ -42,7 +42,7 @@ public class LicenceMappingsController : Controller
         {
             MappingId = Guid.NewGuid(),
             LicenceId = model.LicenceId,
-            SubstanceId = model.SubstanceId,
+            SubstanceCode = model.SubstanceCode,
             EffectiveDate = DateOnly.FromDateTime(model.EffectiveDate),
             ExpiryDate = model.ExpiryDate.HasValue ? DateOnly.FromDateTime(model.ExpiryDate.Value) : null,
             MaxQuantityPerTransaction = model.MaxQuantityPerTransaction,
@@ -84,7 +84,7 @@ public class LicenceMappingsController : Controller
         {
             MappingId = model.MappingId,
             LicenceId = model.LicenceId,
-            SubstanceId = model.SubstanceId,
+            SubstanceCode = model.SubstanceCode,
             EffectiveDate = DateOnly.FromDateTime(model.EffectiveDate),
             ExpiryDate = model.ExpiryDate.HasValue ? DateOnly.FromDateTime(model.ExpiryDate.Value) : null,
             MaxQuantityPerTransaction = model.MaxQuantityPerTransaction,
@@ -146,7 +146,7 @@ public class LicenceMappingsController : Controller
         {
             mappingId = mapping.MappingId,
             licenceId = mapping.LicenceId,
-            substanceId = mapping.SubstanceId,
+            substanceCode = mapping.SubstanceCode,
             substanceName = mapping.Substance?.SubstanceName ?? "Unknown",
             effectiveDate = mapping.EffectiveDate.ToString("yyyy-MM-dd"),
             expiryDate = mapping.ExpiryDate?.ToString("yyyy-MM-dd"),
@@ -176,7 +176,7 @@ public class LicenceMappingsController : Controller
 public class MappingCreateViewModel
 {
     public Guid LicenceId { get; set; }
-    public Guid SubstanceId { get; set; }
+    public string SubstanceCode { get; set; } = string.Empty;
     public DateTime EffectiveDate { get; set; } = DateTime.Today;
     public DateTime? ExpiryDate { get; set; }
     public decimal? MaxQuantityPerTransaction { get; set; }
@@ -193,7 +193,7 @@ public class MappingEditViewModel
 {
     public Guid MappingId { get; set; }
     public Guid LicenceId { get; set; }
-    public Guid SubstanceId { get; set; }
+    public string SubstanceCode { get; set; } = string.Empty;
     public DateTime EffectiveDate { get; set; }
     public DateTime? ExpiryDate { get; set; }
     public decimal? MaxQuantityPerTransaction { get; set; }

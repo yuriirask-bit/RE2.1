@@ -26,10 +26,10 @@ public class InMemoryLicenceSubstanceMappingRepository : ILicenceSubstanceMappin
         return Task.FromResult<IEnumerable<LicenceSubstanceMapping>>(mappings);
     }
 
-    public Task<IEnumerable<LicenceSubstanceMapping>> GetBySubstanceIdAsync(Guid substanceId, CancellationToken cancellationToken = default)
+    public Task<IEnumerable<LicenceSubstanceMapping>> GetBySubstanceCodeAsync(string substanceCode, CancellationToken cancellationToken = default)
     {
         var mappings = _mappings.Values
-            .Where(m => m.SubstanceId == substanceId)
+            .Where(m => m.SubstanceCode.Equals(substanceCode, StringComparison.OrdinalIgnoreCase))
             .ToList();
         return Task.FromResult<IEnumerable<LicenceSubstanceMapping>>(mappings);
     }
@@ -47,13 +47,13 @@ public class InMemoryLicenceSubstanceMappingRepository : ILicenceSubstanceMappin
 
     public Task<LicenceSubstanceMapping?> GetByLicenceSubstanceEffectiveDateAsync(
         Guid licenceId,
-        Guid substanceId,
+        string substanceCode,
         DateOnly effectiveDate,
         CancellationToken cancellationToken = default)
     {
         var mapping = _mappings.Values
             .FirstOrDefault(m => m.LicenceId == licenceId &&
-                                m.SubstanceId == substanceId &&
+                                m.SubstanceCode.Equals(substanceCode, StringComparison.OrdinalIgnoreCase) &&
                                 m.EffectiveDate == effectiveDate);
         return Task.FromResult(mapping);
     }

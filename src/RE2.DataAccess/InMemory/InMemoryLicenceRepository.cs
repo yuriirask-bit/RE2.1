@@ -80,13 +80,13 @@ public class InMemoryLicenceRepository : ILicenceRepository
         return Task.CompletedTask;
     }
 
-    public Task<IEnumerable<Licence>> GetBySubstanceIdAsync(Guid substanceId, CancellationToken cancellationToken = default)
+    public Task<IEnumerable<Licence>> GetBySubstanceCodeAsync(string substanceCode, CancellationToken cancellationToken = default)
     {
         // In-memory implementation: filter licences that have substance mappings for this substance
         var licences = _licences.Values
             .Where(l => l.Status == "Valid" &&
                         l.SubstanceMappings != null &&
-                        l.SubstanceMappings.Any(m => m.SubstanceId == substanceId))
+                        l.SubstanceMappings.Any(m => m.SubstanceCode.Equals(substanceCode, StringComparison.OrdinalIgnoreCase)))
             .ToList();
         return Task.FromResult<IEnumerable<Licence>>(licences);
     }

@@ -47,10 +47,10 @@ public class ReportingService : IReportingService
         IEnumerable<Transaction> transactions;
 
         // Filter by specific criteria
-        if (criteria.SubstanceId.HasValue)
+        if (!string.IsNullOrEmpty(criteria.SubstanceCode))
         {
             transactions = await _transactionRepository.GetBySubstanceAsync(
-                criteria.SubstanceId.Value, criteria.FromDate, criteria.ToDate, cancellationToken);
+                criteria.SubstanceCode, criteria.FromDate, criteria.ToDate, cancellationToken);
         }
         else if (!string.IsNullOrEmpty(criteria.CustomerAccount))
         {
@@ -134,7 +134,7 @@ public class ReportingService : IReportingService
             ToDate = criteria.ToDate,
             Transactions = reportItems,
             TotalCount = reportItems.Count,
-            FilteredBySubstance = criteria.SubstanceId,
+            FilteredBySubstanceCode = criteria.SubstanceCode,
             FilteredByCustomerAccount = criteria.CustomerAccount,
             FilteredByCustomerDataAreaId = criteria.CustomerDataAreaId,
             FilteredByCountry = criteria.CountryCode
@@ -306,7 +306,7 @@ public class TransactionAuditReportCriteria
 {
     public DateTime FromDate { get; set; }
     public DateTime ToDate { get; set; }
-    public Guid? SubstanceId { get; set; }
+    public string? SubstanceCode { get; set; }
     public string? CustomerAccount { get; set; }
     public string? CustomerDataAreaId { get; set; }
     public string? CountryCode { get; set; }
@@ -352,7 +352,7 @@ public class TransactionAuditReport
     public DateTime ToDate { get; set; }
     public List<TransactionAuditReportItem> Transactions { get; set; } = new();
     public int TotalCount { get; set; }
-    public Guid? FilteredBySubstance { get; set; }
+    public string? FilteredBySubstanceCode { get; set; }
     public string? FilteredByCustomerAccount { get; set; }
     public string? FilteredByCustomerDataAreaId { get; set; }
     public string? FilteredByCountry { get; set; }

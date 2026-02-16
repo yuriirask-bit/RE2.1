@@ -64,25 +64,25 @@ public class ReportingServiceTests
     }
 
     [Fact]
-    public async Task GenerateTransactionAuditReportAsync_FiltersBySubstance_WhenSubstanceIdProvided()
+    public async Task GenerateTransactionAuditReportAsync_FiltersBySubstance_WhenSubstanceCodeProvided()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "Morphine";
         var criteria = new TransactionAuditReportCriteria
         {
             FromDate = DateTime.UtcNow.AddDays(-30),
             ToDate = DateTime.UtcNow,
-            SubstanceId = substanceId
+            SubstanceCode = substanceCode
         };
 
         var transactions = new List<Transaction>
         {
-            CreateTestTransaction("CUST-001", "nlpd", substanceId),
-            CreateTestTransaction("CUST-002", "nlpd", substanceId)
+            CreateTestTransaction("CUST-001", "nlpd", substanceCode),
+            CreateTestTransaction("CUST-002", "nlpd", substanceCode)
         };
 
         _transactionRepoMock.Setup(r => r.GetBySubstanceAsync(
-                substanceId, criteria.FromDate, criteria.ToDate, It.IsAny<CancellationToken>()))
+                substanceCode, criteria.FromDate, criteria.ToDate, It.IsAny<CancellationToken>()))
             .ReturnsAsync(transactions);
 
         // Act
@@ -92,7 +92,7 @@ public class ReportingServiceTests
         report.TotalCount.Should().Be(2);
         report.Transactions.Should().HaveCount(2);
         _transactionRepoMock.Verify(r => r.GetBySubstanceAsync(
-            substanceId, criteria.FromDate, criteria.ToDate, It.IsAny<CancellationToken>()), Times.Once);
+            substanceCode, criteria.FromDate, criteria.ToDate, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public class ReportingServiceTests
 
         var transactions = new List<Transaction>
         {
-            CreateTestTransaction("CUST-001", "nlpd", Guid.NewGuid())
+            CreateTestTransaction("CUST-001", "nlpd", "Morphine")
         };
 
         _transactionRepoMock.Setup(r => r.GetByDateRangeAsync(
@@ -135,7 +135,7 @@ public class ReportingServiceTests
             IncludeLicenceDetails = true
         };
 
-        var transaction = CreateTestTransaction("CUST-001", "nlpd", Guid.NewGuid());
+        var transaction = CreateTestTransaction("CUST-001", "nlpd", "Morphine");
         transaction.LicenceUsages = new List<TransactionLicenceUsage>
         {
             new() { LicenceId = licenceId, TransactionId = transaction.Id }
@@ -401,7 +401,7 @@ public class ReportingServiceTests
 
     #region Helper Methods
 
-    private static Transaction CreateTestTransaction(string customerAccount, string customerDataAreaId, Guid substanceId)
+    private static Transaction CreateTestTransaction(string customerAccount, string customerDataAreaId, string substanceCode)
     {
         var transactionId = Guid.NewGuid();
         return new Transaction
@@ -419,7 +419,9 @@ public class ReportingServiceTests
                 {
                     Id = Guid.NewGuid(),
                     TransactionId = transactionId,
-                    SubstanceId = substanceId,
+                    ItemNumber = "ITEM-001",
+                    DataAreaId = customerDataAreaId,
+                    SubstanceCode = substanceCode,
                     Quantity = 100
                 }
             }

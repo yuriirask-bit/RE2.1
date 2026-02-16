@@ -5,19 +5,14 @@ namespace RE2.ComplianceCore.Interfaces;
 
 /// <summary>
 /// Interface for controlled substance management service.
-/// T073a: Enables management of the controlled substance master list per FR-003.
+/// Substances are discovered from D365 product attributes; compliance extensions managed in Dataverse.
 /// </summary>
 public interface IControlledSubstanceService
 {
     /// <summary>
-    /// Gets a controlled substance by ID.
+    /// Gets a controlled substance by substance code (business key).
     /// </summary>
-    Task<ControlledSubstance?> GetByIdAsync(Guid substanceId, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Gets a controlled substance by internal code.
-    /// </summary>
-    Task<ControlledSubstance?> GetByInternalCodeAsync(string internalCode, CancellationToken cancellationToken = default);
+    Task<ControlledSubstance?> GetBySubstanceCodeAsync(string substanceCode, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets all controlled substances.
@@ -31,7 +26,6 @@ public interface IControlledSubstanceService
 
     /// <summary>
     /// Gets controlled substances by Opium Act classification.
-    /// Per FR-003: Master list mapped to Dutch Opium Act lists.
     /// </summary>
     Task<IEnumerable<ControlledSubstance>> GetByOpiumActListAsync(
         SubstanceCategories.OpiumActList opiumActList,
@@ -39,44 +33,34 @@ public interface IControlledSubstanceService
 
     /// <summary>
     /// Gets controlled substances by precursor category.
-    /// Per FR-003: Master list mapped to precursor categories.
     /// </summary>
     Task<IEnumerable<ControlledSubstance>> GetByPrecursorCategoryAsync(
         SubstanceCategories.PrecursorCategory precursorCategory,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Searches controlled substances by name or internal code.
+    /// Searches controlled substances by name or substance code.
     /// </summary>
     Task<IEnumerable<ControlledSubstance>> SearchAsync(
         string searchTerm,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Creates a new controlled substance after validation.
-    /// Validates: unique InternalCode, valid classification combination.
+    /// Configures a compliance extension in Dataverse for a D365-discovered substance.
     /// </summary>
-    Task<(Guid? Id, ValidationResult Result)> CreateAsync(
+    Task<ValidationResult> ConfigureComplianceAsync(
         ControlledSubstance substance,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Updates an existing controlled substance after validation.
+    /// Updates an existing compliance extension in Dataverse.
     /// </summary>
-    Task<ValidationResult> UpdateAsync(
+    Task<ValidationResult> UpdateComplianceAsync(
         ControlledSubstance substance,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Deletes a controlled substance.
-    /// </summary>
-    Task<ValidationResult> DeleteAsync(
-        Guid substanceId,
         CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Validates a controlled substance meets business rules.
-    /// Per data-model.md: InternalCode unique, at least one classification required.
     /// </summary>
     Task<ValidationResult> ValidateSubstanceAsync(
         ControlledSubstance substance,
@@ -84,16 +68,15 @@ public interface IControlledSubstanceService
 
     /// <summary>
     /// Deactivates a controlled substance (soft delete).
-    /// Sets IsActive = false instead of physical deletion.
     /// </summary>
     Task<ValidationResult> DeactivateAsync(
-        Guid substanceId,
+        string substanceCode,
         CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Reactivates a previously deactivated controlled substance.
     /// </summary>
     Task<ValidationResult> ReactivateAsync(
-        Guid substanceId,
+        string substanceCode,
         CancellationToken cancellationToken = default);
 }

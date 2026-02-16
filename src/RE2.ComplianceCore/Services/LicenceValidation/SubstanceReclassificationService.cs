@@ -38,16 +38,16 @@ public class SubstanceReclassificationService : ISubstanceReclassificationServic
         var reclassification = await _reclassificationRepository.GetByIdAsync(reclassificationId, cancellationToken);
         if (reclassification != null)
         {
-            reclassification.Substance = await _substanceRepository.GetByIdAsync(reclassification.SubstanceId, cancellationToken);
+            reclassification.Substance = await _substanceRepository.GetBySubstanceCodeAsync(reclassification.SubstanceCode, cancellationToken);
             reclassification.AffectedCustomers = (await _reclassificationRepository.GetCustomerImpactsAsync(reclassificationId, cancellationToken)).ToList();
         }
         return reclassification;
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<SubstanceReclassification>> GetBySubstanceIdAsync(Guid substanceId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<SubstanceReclassification>> GetBySubstanceCodeAsync(string substanceCode, CancellationToken cancellationToken = default)
     {
-        return await _reclassificationRepository.GetBySubstanceIdAsync(substanceId, cancellationToken);
+        return await _reclassificationRepository.GetBySubstanceCodeAsync(substanceCode, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -61,7 +61,7 @@ public class SubstanceReclassificationService : ISubstanceReclassificationServic
         SubstanceReclassification reclassification,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Creating reclassification for substance {SubstanceId}", reclassification.SubstanceId);
+        _logger.LogInformation("Creating reclassification for substance {SubstanceCode}", reclassification.SubstanceCode);
 
         // Validate the reclassification
         var validationResult = reclassification.Validate();
@@ -71,7 +71,7 @@ public class SubstanceReclassificationService : ISubstanceReclassificationServic
         }
 
         // Verify substance exists
-        var substance = await _substanceRepository.GetByIdAsync(reclassification.SubstanceId, cancellationToken);
+        var substance = await _substanceRepository.GetBySubstanceCodeAsync(reclassification.SubstanceCode, cancellationToken);
         if (substance == null)
         {
             return (null, ValidationResult.Failure(new[]
@@ -79,7 +79,7 @@ public class SubstanceReclassificationService : ISubstanceReclassificationServic
                 new ValidationViolation
                 {
                     ErrorCode = ErrorCodes.VALIDATION_ERROR,
-                    Message = $"Substance with ID '{reclassification.SubstanceId}' not found"
+                    Message = $"Substance with code '{reclassification.SubstanceCode}' not found"
                 }
             }));
         }
@@ -121,7 +121,7 @@ public class SubstanceReclassificationService : ISubstanceReclassificationServic
             throw new InvalidOperationException($"Reclassification {reclassificationId} not found");
         }
 
-        var substance = await _substanceRepository.GetByIdAsync(reclassification.SubstanceId, cancellationToken);
+        var substance = await _substanceRepository.GetBySubstanceCodeAsync(reclassification.SubstanceCode, cancellationToken);
         reclassification.Substance = substance;
 
         var analysis = new ReclassificationImpactAnalysis
@@ -130,7 +130,7 @@ public class SubstanceReclassificationService : ISubstanceReclassificationServic
         };
 
         // Get all licences that currently cover this substance
-        var affectedLicences = await _licenceRepository.GetBySubstanceIdAsync(reclassification.SubstanceId, cancellationToken);
+        var affectedLicences = await _licenceRepository.GetBySubstanceCodeAsync(reclassification.SubstanceCode, cancellationToken);
         var licencesList = affectedLicences.ToList();
 
         // Group by customer (holder)
@@ -403,13 +403,13 @@ public class SubstanceReclassificationService : ISubstanceReclassificationServic
                 cancellationToken);
 
             // Update substance classification
-            var substance = await _substanceRepository.GetByIdAsync(reclassification.SubstanceId, cancellationToken);
+            var substance = await _substanceRepository.GetBySubstanceCodeAsync(reclassification.SubstanceCode, cancellationToken);
             if (substance != null)
             {
                 substance.OpiumActList = reclassification.NewOpiumActList;
                 substance.PrecursorCategory = reclassification.NewPrecursorCategory;
                 substance.ClassificationEffectiveDate = reclassification.EffectiveDate;
-                await _substanceRepository.UpdateAsync(substance, cancellationToken);
+                await _substanceRepository.UpdateComplianceExtensionAsync(substance, cancellationToken);
             }
 
             // Update reclassification with results
@@ -491,25 +491,25 @@ public class SubstanceReclassificationService : ISubstanceReclassificationServic
 
     /// <inheritdoc />
     public async Task<SubstanceClassification> GetEffectiveClassificationAsync(
-        Guid substanceId,
+        string substanceCode,
         DateOnly asOfDate,
         CancellationToken cancellationToken = default)
     {
         // T080m: Historical transaction validation support
-        var substance = await _substanceRepository.GetByIdAsync(substanceId, cancellationToken);
+        var substance = await _substanceRepository.GetBySubstanceCodeAsync(substanceCode, cancellationToken);
         if (substance == null)
         {
-            throw new InvalidOperationException($"Substance {substanceId} not found");
+            throw new InvalidOperationException($"Substance '{substanceCode}' not found");
         }
 
         var reclassification = await _reclassificationRepository.GetEffectiveReclassificationAsync(
-            substanceId, asOfDate, cancellationToken);
+            substanceCode, asOfDate, cancellationToken);
 
         if (reclassification != null)
         {
             return new SubstanceClassification
             {
-                SubstanceId = substanceId,
+                SubstanceCode = substanceCode,
                 AsOfDate = asOfDate,
                 OpiumActList = reclassification.NewOpiumActList,
                 PrecursorCategory = reclassification.NewPrecursorCategory,
@@ -519,7 +519,7 @@ public class SubstanceReclassificationService : ISubstanceReclassificationServic
 
         // No reclassification found for this date - use original classification
         // or find the first reclassification to get the "before" values
-        var allReclassifications = await _reclassificationRepository.GetBySubstanceIdAsync(substanceId, cancellationToken);
+        var allReclassifications = await _reclassificationRepository.GetBySubstanceCodeAsync(substanceCode, cancellationToken);
         var firstReclassification = allReclassifications
             .Where(r => r.Status == ReclassificationStatus.Completed)
             .OrderBy(r => r.EffectiveDate)
@@ -530,7 +530,7 @@ public class SubstanceReclassificationService : ISubstanceReclassificationServic
             // The date is before any reclassification - use previous values
             return new SubstanceClassification
             {
-                SubstanceId = substanceId,
+                SubstanceCode = substanceCode,
                 AsOfDate = asOfDate,
                 OpiumActList = firstReclassification.PreviousOpiumActList,
                 PrecursorCategory = firstReclassification.PreviousPrecursorCategory,
@@ -541,7 +541,7 @@ public class SubstanceReclassificationService : ISubstanceReclassificationServic
         // Use current substance classification
         return new SubstanceClassification
         {
-            SubstanceId = substanceId,
+            SubstanceCode = substanceCode,
             AsOfDate = asOfDate,
             OpiumActList = substance.OpiumActList,
             PrecursorCategory = substance.PrecursorCategory,
@@ -561,7 +561,7 @@ public class SubstanceReclassificationService : ISubstanceReclassificationServic
             throw new InvalidOperationException($"Reclassification {reclassificationId} not found");
         }
 
-        var substance = await _substanceRepository.GetByIdAsync(reclassification.SubstanceId, cancellationToken);
+        var substance = await _substanceRepository.GetBySubstanceCodeAsync(reclassification.SubstanceCode, cancellationToken);
         var impacts = await _reclassificationRepository.GetCustomerImpactsAsync(reclassificationId, cancellationToken);
         var impactList = impacts.ToList();
 

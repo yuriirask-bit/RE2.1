@@ -19,10 +19,10 @@ public class InMemorySubstanceReclassificationRepository : ISubstanceReclassific
         return Task.FromResult(reclassification);
     }
 
-    public Task<IEnumerable<SubstanceReclassification>> GetBySubstanceIdAsync(Guid substanceId, CancellationToken cancellationToken = default)
+    public Task<IEnumerable<SubstanceReclassification>> GetBySubstanceCodeAsync(string substanceCode, CancellationToken cancellationToken = default)
     {
         var results = _reclassifications.Values
-            .Where(r => r.SubstanceId == substanceId)
+            .Where(r => r.SubstanceCode.Equals(substanceCode, StringComparison.OrdinalIgnoreCase))
             .OrderByDescending(r => r.EffectiveDate)
             .ToList();
         return Task.FromResult<IEnumerable<SubstanceReclassification>>(results);
@@ -56,10 +56,10 @@ public class InMemorySubstanceReclassificationRepository : ISubstanceReclassific
         return Task.FromResult<IEnumerable<SubstanceReclassification>>(results);
     }
 
-    public Task<SubstanceReclassification?> GetEffectiveReclassificationAsync(Guid substanceId, DateOnly asOfDate, CancellationToken cancellationToken = default)
+    public Task<SubstanceReclassification?> GetEffectiveReclassificationAsync(string substanceCode, DateOnly asOfDate, CancellationToken cancellationToken = default)
     {
         var result = _reclassifications.Values
-            .Where(r => r.SubstanceId == substanceId &&
+            .Where(r => r.SubstanceCode.Equals(substanceCode, StringComparison.OrdinalIgnoreCase) &&
                         r.EffectiveDate <= asOfDate &&
                         r.Status == ReclassificationStatus.Completed)
             .OrderByDescending(r => r.EffectiveDate)

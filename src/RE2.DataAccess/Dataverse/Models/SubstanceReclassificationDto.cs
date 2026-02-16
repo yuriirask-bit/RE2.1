@@ -15,9 +15,9 @@ public class SubstanceReclassificationDto
     public Guid phr_substancereclassificationid { get; set; }
 
     /// <summary>
-    /// Foreign key to substance - maps to phr_substanceid.
+    /// Substance code business key - maps to phr_substancecode.
     /// </summary>
-    public Guid phr_substanceid { get; set; }
+    public string phr_substancecode { get; set; } = string.Empty;
 
     /// <summary>
     /// Previous Opium Act list value.
@@ -102,7 +102,7 @@ public class SubstanceReclassificationDto
         return new SubstanceReclassification
         {
             ReclassificationId = phr_substancereclassificationid,
-            SubstanceId = phr_substanceid,
+            SubstanceCode = phr_substancecode,
             PreviousOpiumActList = phr_previousopiumactlist.HasValue
                 ? (SubstanceCategories.OpiumActList)phr_previousopiumactlist.Value
                 : SubstanceCategories.OpiumActList.None,
@@ -139,7 +139,7 @@ public class SubstanceReclassificationDto
         return new SubstanceReclassificationDto
         {
             phr_substancereclassificationid = model.ReclassificationId,
-            phr_substanceid = model.SubstanceId,
+            phr_substancecode = model.SubstanceCode,
             phr_previousopiumactlist = (int)model.PreviousOpiumActList,
             phr_newopiumactlist = (int)model.NewOpiumActList,
             phr_previousprecursorcategory = (int)model.PreviousPrecursorCategory,

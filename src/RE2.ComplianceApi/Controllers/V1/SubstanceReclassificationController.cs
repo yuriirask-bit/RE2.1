@@ -35,33 +35,33 @@ public class SubstanceReclassificationController : ControllerBase
     /// Creates a reclassification for a substance.
     /// Per FR-066: Records the new classification with effective date.
     /// </summary>
-    /// <param name="substanceId">Substance ID.</param>
+    /// <param name="substanceCode">Substance code.</param>
     /// <param name="request">Reclassification request.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Created reclassification details.</returns>
-    [HttpPost("substances/{substanceId:guid}/reclassify")]
+    [HttpPost("substances/{substanceCode}/reclassify")]
     [Authorize(Roles = "ComplianceManager")]
     [ProducesResponseType(typeof(ReclassificationResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CreateReclassification(
-        Guid substanceId,
+        string substanceCode,
         [FromBody] CreateReclassificationRequestDto request,
         CancellationToken cancellationToken = default)
     {
         // Verify substance exists
-        var substance = await _substanceRepository.GetByIdAsync(substanceId, cancellationToken);
+        var substance = await _substanceRepository.GetBySubstanceCodeAsync(substanceCode, cancellationToken);
         if (substance == null)
         {
             return NotFound(new ErrorResponseDto
             {
                 ErrorCode = ErrorCodes.NOT_FOUND,
-                Message = $"Substance with ID '{substanceId}' not found",
+                Message = $"Substance with code '{substanceCode}' not found",
                 TraceId = HttpContext.TraceIdentifier
             });
         }
 
-        var reclassification = request.ToDomainModel(substanceId, substance);
+        var reclassification = request.ToDomainModel(substanceCode, substance);
         var (id, result) = await _reclassificationService.CreateReclassificationAsync(reclassification, cancellationToken);
 
         if (!result.IsValid)
@@ -76,7 +76,7 @@ public class SubstanceReclassificationController : ControllerBase
         }
 
         var created = await _reclassificationService.GetByIdAsync(id!.Value, cancellationToken);
-        _logger.LogInformation("Created reclassification {Id} for substance {SubstanceId}", id, substanceId);
+        _logger.LogInformation("Created reclassification {Id} for substance {SubstanceCode}", id, substanceCode);
 
         return CreatedAtAction(
             nameof(GetReclassification),
@@ -113,16 +113,16 @@ public class SubstanceReclassificationController : ControllerBase
     /// <summary>
     /// Gets all reclassifications for a substance.
     /// </summary>
-    /// <param name="substanceId">Substance ID.</param>
+    /// <param name="substanceCode">Substance code.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of reclassifications.</returns>
-    [HttpGet("substances/{substanceId:guid}/reclassifications")]
+    [HttpGet("substances/{substanceCode}/reclassifications")]
     [ProducesResponseType(typeof(IEnumerable<ReclassificationResponseDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSubstanceReclassifications(
-        Guid substanceId,
+        string substanceCode,
         CancellationToken cancellationToken = default)
     {
-        var reclassifications = await _reclassificationService.GetBySubstanceIdAsync(substanceId, cancellationToken);
+        var reclassifications = await _reclassificationService.GetBySubstanceCodeAsync(substanceCode, cancellationToken);
         var response = reclassifications.Select(ReclassificationResponseDto.FromDomainModel);
         return Ok(response);
     }
@@ -304,22 +304,22 @@ public class SubstanceReclassificationController : ControllerBase
     /// Gets the effective classification for a substance at a specific date.
     /// Per FR-066 (T080m): Historical transaction validation support.
     /// </summary>
-    /// <param name="substanceId">Substance ID.</param>
+    /// <param name="substanceCode">Substance code.</param>
     /// <param name="asOfDate">Date to check classification for.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Classification effective at that date.</returns>
-    [HttpGet("substances/{substanceId:guid}/classification")]
+    [HttpGet("substances/{substanceCode}/classification")]
     [ProducesResponseType(typeof(SubstanceClassification), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetEffectiveClassification(
-        Guid substanceId,
+        string substanceCode,
         [FromQuery] DateOnly? asOfDate = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
             var date = asOfDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
-            var classification = await _reclassificationService.GetEffectiveClassificationAsync(substanceId, date, cancellationToken);
+            var classification = await _reclassificationService.GetEffectiveClassificationAsync(substanceCode, date, cancellationToken);
             return Ok(classification);
         }
         catch (InvalidOperationException ex)
@@ -348,11 +348,11 @@ public class CreateReclassificationRequestDto
     public required string RegulatoryAuthority { get; set; }
     public string? Reason { get; set; }
 
-    public SubstanceReclassification ToDomainModel(Guid substanceId, ControlledSubstance substance)
+    public SubstanceReclassification ToDomainModel(string substanceCode, ControlledSubstance substance)
     {
         return new SubstanceReclassification
         {
-            SubstanceId = substanceId,
+            SubstanceCode = substanceCode,
             PreviousOpiumActList = substance.OpiumActList,
             NewOpiumActList = (SubstanceCategories.OpiumActList)NewOpiumActList,
             PreviousPrecursorCategory = substance.PrecursorCategory,
@@ -371,7 +371,7 @@ public class CreateReclassificationRequestDto
 public class ReclassificationResponseDto
 {
     public Guid ReclassificationId { get; set; }
-    public Guid SubstanceId { get; set; }
+    public string SubstanceCode { get; set; } = string.Empty;
     public string? SubstanceName { get; set; }
     public int PreviousOpiumActList { get; set; }
     public int NewOpiumActList { get; set; }
@@ -394,7 +394,7 @@ public class ReclassificationResponseDto
         return new ReclassificationResponseDto
         {
             ReclassificationId = reclassification.ReclassificationId,
-            SubstanceId = reclassification.SubstanceId,
+            SubstanceCode = reclassification.SubstanceCode,
             SubstanceName = reclassification.Substance?.SubstanceName,
             PreviousOpiumActList = (int)reclassification.PreviousOpiumActList,
             NewOpiumActList = (int)reclassification.NewOpiumActList,

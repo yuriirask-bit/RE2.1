@@ -507,7 +507,8 @@ public class TransactionsControllerTests
             {
                 new TransactionLineDto
                 {
-                    SubstanceId = Guid.NewGuid(),
+                    ItemNumber = "ITEM-001",
+                    DataAreaId = "DAT",
                     SubstanceCode = "MORPH-001",
                     Quantity = 100,
                     BaseUnitQuantity = 100,

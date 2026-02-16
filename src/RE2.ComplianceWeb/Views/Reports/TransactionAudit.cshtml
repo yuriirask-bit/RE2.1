@@ -47,12 +47,12 @@
 
                 <div class="row mb-3">
                     <div class="col-md-4">
-                        <label asp-for="SubstanceId" class="form-label">Filter by Substance</label>
-                        <select asp-for="SubstanceId" class="form-select">
+                        <label asp-for="SubstanceCode" class="form-label">Filter by Substance</label>
+                        <select asp-for="SubstanceCode" class="form-select">
                             <option value="">All Substances</option>
-                            @foreach (var substance in substances.OrderBy(s => s.InternalCode))
+                            @foreach (var substance in substances.OrderBy(s => s.SubstanceCode))
                             {
-                                <option value="@substance.SubstanceId">@substance.InternalCode - @substance.SubstanceName</option>
+                                <option value="@substance.SubstanceCode">@substance.SubstanceCode - @substance.SubstanceName</option>
                             }
                         </select>
                     </div>

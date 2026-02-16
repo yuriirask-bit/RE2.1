@@ -138,7 +138,7 @@
                                     {
                                         <span class="badge bg-light text-dark">@threshold.OpiumActList</span>
                                     }
-                                    @if (!threshold.SubstanceId.HasValue && !threshold.CustomerCategory.HasValue && string.IsNullOrEmpty(threshold.OpiumActList))
+                                    @if (string.IsNullOrEmpty(threshold.SubstanceCode) && !threshold.CustomerCategory.HasValue && string.IsNullOrEmpty(threshold.OpiumActList))
                                     {
                                         <span class="text-muted">All</span>
                                     }

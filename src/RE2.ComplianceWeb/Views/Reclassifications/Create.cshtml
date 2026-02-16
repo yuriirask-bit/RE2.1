@@ -19,11 +19,11 @@
                         <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
                         <div class="mb-3">
-                            <label asp-for="SubstanceId" class="form-label">Substance</label>
-                            <select asp-for="SubstanceId" asp-items="ViewBag.Substances" class="form-select">
+                            <label asp-for="SubstanceCode" class="form-label">Substance</label>
+                            <select asp-for="SubstanceCode" asp-items="ViewBag.Substances" class="form-select">
                                 <option value="">-- Select Substance --</option>
                             </select>
-                            <span asp-validation-for="SubstanceId" class="text-danger"></span>
+                            <span asp-validation-for="SubstanceCode" class="text-danger"></span>
                         </div>
 
                         <hr class="my-4"/>

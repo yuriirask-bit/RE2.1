@@ -36,12 +36,7 @@ public class Threshold
     #region Scope
 
     /// <summary>
-    /// Substance ID this threshold applies to (null = all substances).
-    /// </summary>
-    public Guid? SubstanceId { get; set; }
-
-    /// <summary>
-    /// Substance code (denormalized).
+    /// Substance code this threshold applies to (null = all substances).
     /// </summary>
     public string? SubstanceCode { get; set; }
 
@@ -226,10 +221,11 @@ public class Threshold
     /// <summary>
     /// Checks if this threshold applies to the given substance.
     /// </summary>
-    public bool AppliesToSubstance(Guid substanceId)
+    public bool AppliesToSubstance(string substanceCode)
     {
-        // If SubstanceId is null, applies to all substances
-        return !SubstanceId.HasValue || SubstanceId.Value == substanceId;
+        // If SubstanceCode is null, applies to all substances
+        return string.IsNullOrEmpty(SubstanceCode) ||
+               SubstanceCode.Equals(substanceCode, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

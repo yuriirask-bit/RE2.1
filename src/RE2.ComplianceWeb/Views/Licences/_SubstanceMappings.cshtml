@@ -165,14 +165,14 @@
                         <input type="hidden" name="ReturnUrl" value="@Context.Request.Path" />
 
                         <div class="mb-3">
-                            <label for="SubstanceId" class="form-label">Substance *</label>
-                            <select class="form-select" id="SubstanceId" name="SubstanceId" required>
+                            <label for="SubstanceCode" class="form-label">Substance *</label>
+                            <select class="form-select" id="SubstanceCode" name="SubstanceCode" required>
                                 <option value="">-- Select Substance --</option>
                                 @if (ViewBag.Substances != null)
                                 {
                                     foreach (RE2.ComplianceCore.Models.ControlledSubstance substance in ViewBag.Substances)
                                     {
-                                        <option value="@substance.SubstanceId">@substance.SubstanceName (@substance.InternalCode)</option>
+                                        <option value="@substance.SubstanceCode">@substance.SubstanceName (@substance.InternalCode)</option>
                                     }
                                 }
                             </select>
@@ -255,7 +255,7 @@
                         <div class="mb-3">
                             <label class="form-label">Substance</label>
                             <input type="text" class="form-control" id="editSubstanceName" readonly />
-                            <input type="hidden" id="editSubstanceId" name="SubstanceId" />
+                            <input type="hidden" id="editSubstanceCode" name="SubstanceCode" />
                         </div>
 
                         <div class="row">

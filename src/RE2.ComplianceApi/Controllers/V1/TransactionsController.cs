@@ -386,6 +386,7 @@ public class TransactionsController : ControllerBase
 
 /// <summary>
 /// Transaction validation request DTO.
+/// External systems send ItemNumber + DataAreaId per line; substance resolution happens server-side.
 /// </summary>
 public class TransactionValidationRequestDto
 {
@@ -480,9 +481,9 @@ public class TransactionValidationRequestDto
                 Id = Guid.NewGuid(),
                 TransactionId = transaction.Id,
                 LineNumber = lineNumber++,
-                SubstanceId = lineDto.SubstanceId,
-                SubstanceCode = lineDto.SubstanceCode ?? string.Empty,
-                ProductCode = lineDto.ProductCode,
+                ItemNumber = lineDto.ItemNumber,
+                DataAreaId = lineDto.DataAreaId,
+                // SubstanceCode is resolved by the system during validation
                 ProductDescription = lineDto.ProductDescription,
                 BatchNumber = lineDto.BatchNumber,
                 Quantity = lineDto.Quantity,
@@ -503,23 +504,29 @@ public class TransactionValidationRequestDto
 
 /// <summary>
 /// Transaction line DTO.
+/// External systems send ItemNumber + DataAreaId; SubstanceCode is resolved by the system.
 /// </summary>
 public class TransactionLineDto
 {
     /// <summary>
-    /// Controlled substance ID.
+    /// D365 product item number.
     /// </summary>
-    public required Guid SubstanceId { get; set; }
+    public required string ItemNumber { get; set; }
 
     /// <summary>
-    /// Substance internal code.
+    /// D365 legal entity (data area ID).
+    /// </summary>
+    public required string DataAreaId { get; set; }
+
+    /// <summary>
+    /// Substance code (resolved by the system, read-only in responses).
     /// </summary>
     public string? SubstanceCode { get; set; }
 
     /// <summary>
-    /// Product/item number from ERP.
+    /// Substance name (resolved by the system, read-only in responses).
     /// </summary>
-    public string? ProductCode { get; set; }
+    public string? SubstanceName { get; set; }
 
     /// <summary>
     /// Product description.
@@ -565,9 +572,10 @@ public class TransactionLineDto
     {
         return new TransactionLineDto
         {
-            SubstanceId = line.SubstanceId,
+            ItemNumber = line.ItemNumber,
+            DataAreaId = line.DataAreaId,
             SubstanceCode = line.SubstanceCode,
-            ProductCode = line.ProductCode,
+            SubstanceName = line.SubstanceName,
             ProductDescription = line.ProductDescription,
             BatchNumber = line.BatchNumber,
             Quantity = line.Quantity,
@@ -658,6 +666,7 @@ public class TransactionValidationResultDto
                     LicenceNumber = u.LicenceNumber,
                     LicenceTypeName = u.LicenceTypeName,
                     CoveredLineNumbers = u.CoveredLineNumbers,
+                    CoveredSubstanceCodes = u.CoveredSubstanceCodes,
                     CoveredQuantity = u.CoveredQuantity,
                     CoveredQuantityUnit = u.CoveredQuantityUnit
                 }).ToList()
@@ -687,6 +696,7 @@ public class LicenceUsageDto
     public string LicenceNumber { get; set; } = string.Empty;
     public string? LicenceTypeName { get; set; }
     public List<int> CoveredLineNumbers { get; set; } = new();
+    public List<string> CoveredSubstanceCodes { get; set; } = new();
     public decimal CoveredQuantity { get; set; }
     public string CoveredQuantityUnit { get; set; } = string.Empty;
 }
