@@ -13,6 +13,7 @@ using RE2.ComplianceCore.Services.RiskMonitoring;
 using RE2.ComplianceCore.Services.TransactionValidation;
 using RE2.ComplianceCore.Services.Notifications;
 using RE2.ComplianceCore.Services.Reporting;
+using RE2.ComplianceCore.Services.GdpCompliance;
 using RE2.DataAccess.BlobStorage;
 using RE2.DataAccess.D365FinanceOperations;
 using RE2.DataAccess.D365FinanceOperations.Repositories;
@@ -58,11 +59,17 @@ public static class InfrastructureExtensions
         services.AddScoped<ISubstanceReclassificationRepository, DataverseSubstanceReclassificationRepository>();
         services.AddScoped<ILicenceSubstanceMappingRepository, DataverseLicenceSubstanceMappingRepository>();
 
+        // Register GDP site repository (T189)
+        services.AddScoped<IGdpSiteRepository, DataverseGdpSiteRepository>();
+
         // Register business services
         services.AddScoped<ILicenceService, LicenceService>();
         services.AddScoped<ISubstanceReclassificationService, SubstanceReclassificationService>();
         services.AddScoped<IControlledSubstanceService, ControlledSubstanceService>();
         services.AddScoped<ILicenceSubstanceMappingService, LicenceSubstanceMappingService>();
+
+        // Register GDP compliance service (T190)
+        services.AddScoped<IGdpComplianceService, GdpComplianceService>();
 
         return services;
     }
@@ -203,10 +210,12 @@ public static class InfrastructureExtensions
         var transactionRepo = new InMemoryTransactionRepository();
         var thresholdRepo = new InMemoryThresholdRepository();
 
+        var gdpSiteRepo = new InMemoryGdpSiteRepository();
+
         // Seed test data if requested
         if (seedData)
         {
-            InMemorySeedData.SeedAll(licenceTypeRepo, substanceRepo, licenceRepo, customerRepo, thresholdRepo);
+            InMemorySeedData.SeedAll(licenceTypeRepo, substanceRepo, licenceRepo, customerRepo, thresholdRepo, gdpSiteRepo);
         }
 
         // Register as singletons
@@ -219,6 +228,9 @@ public static class InfrastructureExtensions
         services.AddSingleton<ICustomerRepository>(customerRepo);
         services.AddSingleton<ITransactionRepository>(transactionRepo);
         services.AddSingleton<IThresholdRepository>(thresholdRepo);
+
+        // Register in-memory GDP site repository (T189)
+        services.AddSingleton<IGdpSiteRepository>(gdpSiteRepo);
 
         // Register in-memory document storage for local development
         services.AddSingleton<IDocumentStorage, InMemoryDocumentStorage>();
@@ -269,6 +281,9 @@ public static class InfrastructureExtensions
 
         // Register licence correction impact service (T163a-T163c)
         services.AddScoped<ILicenceCorrectionImpactService, LicenceCorrectionImpactService>();
+
+        // Register GDP compliance service (T190)
+        services.AddScoped<IGdpComplianceService, GdpComplianceService>();
 
         return services;
     }

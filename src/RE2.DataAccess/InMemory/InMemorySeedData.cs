@@ -40,6 +40,26 @@ public static class InMemorySeedData
 
     /// <summary>
     /// Seeds all repositories with test data.
+    /// Extended overload for User Story 7 including GDP site data.
+    /// </summary>
+    public static void SeedAll(
+        InMemoryLicenceTypeRepository licenceTypeRepo,
+        InMemoryControlledSubstanceRepository substanceRepo,
+        InMemoryLicenceRepository licenceRepo,
+        InMemoryCustomerRepository customerRepo,
+        InMemoryThresholdRepository thresholdRepo,
+        InMemoryGdpSiteRepository gdpSiteRepo)
+    {
+        licenceTypeRepo.Seed(GetLicenceTypes());
+        substanceRepo.Seed(GetControlledSubstances());
+        licenceRepo.Seed(GetLicences());
+        customerRepo.Seed(GetCustomers());
+        thresholdRepo.Seed(GetThresholds());
+        SeedGdpData(gdpSiteRepo);
+    }
+
+    /// <summary>
+    /// Seeds all repositories with test data.
     /// Extended overload for User Story 4 including customers and thresholds.
     /// </summary>
     public static void SeedAll(
@@ -544,5 +564,155 @@ public static class InMemorySeedData
                 CreatedDate = DateTime.UtcNow.AddMonths(-6)
             }
         };
+    }
+
+    /// <summary>
+    /// Seeds GDP site data for User Story 7 testing.
+    /// Creates mock D365FO warehouses and GDP extensions.
+    /// </summary>
+    public static void SeedGdpData(InMemoryGdpSiteRepository gdpSiteRepo)
+    {
+        // Mock D365FO warehouses
+        var warehouses = new List<GdpSite>
+        {
+            new()
+            {
+                WarehouseId = "WH-AMS-01",
+                WarehouseName = "Amsterdam Central Warehouse",
+                OperationalSiteId = "SITE-AMS",
+                OperationalSiteName = "Amsterdam Operations",
+                DataAreaId = "nlpd",
+                WarehouseType = "Standard",
+                Street = "Pharmaweg",
+                StreetNumber = "42",
+                City = "Amsterdam",
+                ZipCode = "1012 AB",
+                CountryRegionId = "NL",
+                StateId = "NH",
+                FormattedAddress = "Pharmaweg 42, 1012 AB Amsterdam, Netherlands"
+            },
+            new()
+            {
+                WarehouseId = "WH-RTD-01",
+                WarehouseName = "Rotterdam Distribution Hub",
+                OperationalSiteId = "SITE-RTD",
+                OperationalSiteName = "Rotterdam Operations",
+                DataAreaId = "nlpd",
+                WarehouseType = "Standard",
+                Street = "Havenstraat",
+                StreetNumber = "15",
+                City = "Rotterdam",
+                ZipCode = "3011 AA",
+                CountryRegionId = "NL",
+                StateId = "ZH",
+                FormattedAddress = "Havenstraat 15, 3011 AA Rotterdam, Netherlands"
+            },
+            new()
+            {
+                WarehouseId = "WH-UTR-01",
+                WarehouseName = "Utrecht Cold Storage",
+                OperationalSiteId = "SITE-UTR",
+                OperationalSiteName = "Utrecht Operations",
+                DataAreaId = "nlpd",
+                WarehouseType = "Standard",
+                Street = "Koelweg",
+                StreetNumber = "8",
+                City = "Utrecht",
+                ZipCode = "3500 AA",
+                CountryRegionId = "NL",
+                StateId = "UT",
+                FormattedAddress = "Koelweg 8, 3500 AA Utrecht, Netherlands"
+            },
+            new()
+            {
+                WarehouseId = "WH-QRN-01",
+                WarehouseName = "Amsterdam Quarantine Area",
+                OperationalSiteId = "SITE-AMS",
+                OperationalSiteName = "Amsterdam Operations",
+                DataAreaId = "nlpd",
+                WarehouseType = "Quarantine",
+                Street = "Pharmaweg",
+                StreetNumber = "42B",
+                City = "Amsterdam",
+                ZipCode = "1012 AB",
+                CountryRegionId = "NL",
+                StateId = "NH",
+                FormattedAddress = "Pharmaweg 42B, 1012 AB Amsterdam, Netherlands"
+            },
+            new()
+            {
+                WarehouseId = "WH-TRN-01",
+                WarehouseName = "Schiphol Transit Hub",
+                OperationalSiteId = "SITE-AMS",
+                OperationalSiteName = "Amsterdam Operations",
+                DataAreaId = "nlpd",
+                WarehouseType = "Transit",
+                Street = "Schipholweg",
+                StreetNumber = "1",
+                City = "Schiphol",
+                ZipCode = "1118 AA",
+                CountryRegionId = "NL",
+                StateId = "NH",
+                FormattedAddress = "Schipholweg 1, 1118 AA Schiphol, Netherlands"
+            }
+        };
+
+        gdpSiteRepo.SeedWarehouses(warehouses);
+
+        // GDP extensions for some warehouses
+        var gdpExtensions = new List<GdpSite>
+        {
+            new()
+            {
+                WarehouseId = "WH-AMS-01",
+                DataAreaId = "nlpd",
+                GdpExtensionId = Guid.Parse("50000000-0000-0000-0000-000000000001"),
+                GdpSiteType = GdpSiteType.Warehouse,
+                PermittedActivities = GdpSiteActivity.StorageOver72h | GdpSiteActivity.TemperatureControlled,
+                IsGdpActive = true,
+                CreatedDate = DateTime.UtcNow.AddMonths(-6),
+                ModifiedDate = DateTime.UtcNow.AddMonths(-1)
+            },
+            new()
+            {
+                WarehouseId = "WH-RTD-01",
+                DataAreaId = "nlpd",
+                GdpExtensionId = Guid.Parse("50000000-0000-0000-0000-000000000002"),
+                GdpSiteType = GdpSiteType.CrossDock,
+                PermittedActivities = GdpSiteActivity.TransportOnly,
+                IsGdpActive = true,
+                CreatedDate = DateTime.UtcNow.AddMonths(-3),
+                ModifiedDate = DateTime.UtcNow.AddMonths(-1)
+            },
+            new()
+            {
+                WarehouseId = "WH-TRN-01",
+                DataAreaId = "nlpd",
+                GdpExtensionId = Guid.Parse("50000000-0000-0000-0000-000000000003"),
+                GdpSiteType = GdpSiteType.TransportHub,
+                PermittedActivities = GdpSiteActivity.TransportOnly,
+                IsGdpActive = true,
+                CreatedDate = DateTime.UtcNow.AddMonths(-2),
+                ModifiedDate = DateTime.UtcNow
+            }
+        };
+
+        gdpSiteRepo.SeedGdpExtensions(gdpExtensions);
+
+        // WDA coverage for Amsterdam warehouse (linked to the company WDA licence)
+        var wdaCoverages = new List<GdpSiteWdaCoverage>
+        {
+            new()
+            {
+                CoverageId = Guid.Parse("60000000-0000-0000-0000-000000000001"),
+                WarehouseId = "WH-AMS-01",
+                DataAreaId = "nlpd",
+                LicenceId = Guid.Parse("30000000-0000-0000-0000-000000000001"), // Company WDA licence
+                EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-2)),
+                ExpiryDate = null // No expiry
+            }
+        };
+
+        gdpSiteRepo.SeedWdaCoverages(wdaCoverages);
     }
 }
