@@ -1,0 +1,85 @@
+@model RE2.ComplianceWeb.Controllers.CustomerConfigureViewModel
+@{
+    ViewData["Title"] = "Configure Customer Compliance";
+}
+
+<div class="container">
+    <h1>Configure Customer Compliance</h1>
+    <p>Configure compliance extension for D365FO customer <strong>@Model.CustomerAccount</strong> in data area <code>@Model.DataAreaId</code>.</p>
+
+    <div asp-validation-summary="All" class="alert alert-danger" style="display:none;"></div>
+
+    <form asp-action="Configure" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="CustomerAccount" />
+        <input type="hidden" asp-for="DataAreaId" />
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">D365FO Customer (Read-Only)</h5>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row">
+                            <dt class="col-sm-5">Customer Account</dt>
+                            <dd class="col-sm-7"><code>@Model.CustomerAccount</code></dd>
+
+                            <dt class="col-sm-5">Data Area</dt>
+                            <dd class="col-sm-7"><code>@Model.DataAreaId</code></dd>
+
+                            <dt class="col-sm-5">Organization Name</dt>
+                            <dd class="col-sm-7">@(ViewBag.OrganizationName ?? "-")</dd>
+
+                            <dt class="col-sm-5">Country</dt>
+                            <dd class="col-sm-7">@(ViewBag.Country ?? "-")</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Compliance Configuration</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label asp-for="BusinessCategory" class="form-label">Business Category *</label>
+                            <select asp-for="BusinessCategory" class="form-select" asp-items="@ViewBag.BusinessCategories" required>
+                                <option value="">Select category...</option>
+                            </select>
+                            <span asp-validation-for="BusinessCategory" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="GdpQualificationStatus" class="form-label">GDP Qualification Status</label>
+                            <select asp-for="GdpQualificationStatus" class="form-select" asp-items="@ViewBag.GdpStatuses">
+                            </select>
+                            <span asp-validation-for="GdpQualificationStatus" class="text-danger"></span>
+                        </div>
+
+                        <!-- OnboardingDate and NextReVerificationDate are set during the Edit workflow -->
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    New compliance configurations are created with <strong>Pending</strong> approval status.
+                    They must be reviewed and approved before transactions can be processed.
+                </div>
+            </div>
+        </div>
+
+        <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i> Configure Compliance
+            </button>
+            <a asp-action="Browse" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

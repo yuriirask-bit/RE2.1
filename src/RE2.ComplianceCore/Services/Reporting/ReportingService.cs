@@ -52,12 +52,15 @@ public class ReportingService : IReportingService
             transactions = await _transactionRepository.GetBySubstanceAsync(
                 criteria.SubstanceId.Value, criteria.FromDate, criteria.ToDate, cancellationToken);
         }
-        else if (criteria.CustomerId.HasValue)
+        else if (!string.IsNullOrEmpty(criteria.CustomerAccount))
         {
-            var allCustomerTransactions = await _transactionRepository.GetByCustomerAsync(
-                criteria.CustomerId.Value, cancellationToken);
-            transactions = allCustomerTransactions.Where(t =>
-                t.TransactionDate >= criteria.FromDate && t.TransactionDate <= criteria.ToDate);
+            // Filter by customer account: get all transactions in range and filter by composite key
+            var allTransactions = await _transactionRepository.GetByDateRangeAsync(
+                criteria.FromDate, criteria.ToDate, cancellationToken);
+            transactions = allTransactions.Where(t =>
+                t.CustomerAccount.Equals(criteria.CustomerAccount, StringComparison.OrdinalIgnoreCase) &&
+                (string.IsNullOrEmpty(criteria.CustomerDataAreaId) ||
+                 t.CustomerDataAreaId.Equals(criteria.CustomerDataAreaId, StringComparison.OrdinalIgnoreCase)));
         }
         else if (!string.IsNullOrEmpty(criteria.CountryCode))
         {
@@ -65,11 +68,10 @@ public class ReportingService : IReportingService
                 criteria.FromDate, criteria.ToDate, cancellationToken);
             // Filter by country would require additional customer lookup
             // For now, return all and filter in memory
-            var customerIds = transactions.Select(t => t.CustomerId).Distinct().ToList();
             var countryFiltered = new List<Transaction>();
             foreach (var transaction in transactions)
             {
-                var customer = await _customerRepository.GetByIdAsync(transaction.CustomerId, cancellationToken);
+                var customer = await _customerRepository.GetByAccountAsync(transaction.CustomerAccount, transaction.CustomerDataAreaId, cancellationToken);
                 if (customer?.Country?.Equals(criteria.CountryCode, StringComparison.OrdinalIgnoreCase) == true)
                 {
                     countryFiltered.Add(transaction);
@@ -94,7 +96,8 @@ public class ReportingService : IReportingService
                 TransactionId = transaction.Id,
                 ExternalTransactionId = transaction.ExternalId,
                 TransactionDate = transaction.TransactionDate,
-                CustomerId = transaction.CustomerId,
+                CustomerAccount = transaction.CustomerAccount,
+                CustomerDataAreaId = transaction.CustomerDataAreaId,
                 TransactionType = transaction.TransactionType.ToString(),
                 ValidationStatus = transaction.ValidationStatus.ToString(),
                 TotalQuantity = transaction.Lines?.Sum(l => l.Quantity) ?? 0
@@ -132,7 +135,8 @@ public class ReportingService : IReportingService
             Transactions = reportItems,
             TotalCount = reportItems.Count,
             FilteredBySubstance = criteria.SubstanceId,
-            FilteredByCustomer = criteria.CustomerId,
+            FilteredByCustomerAccount = criteria.CustomerAccount,
+            FilteredByCustomerDataAreaId = criteria.CustomerDataAreaId,
             FilteredByCountry = criteria.CountryCode
         };
 
@@ -232,18 +236,20 @@ public class ReportingService : IReportingService
         CustomerComplianceHistoryCriteria criteria,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Generating compliance history for customer {CustomerId}", criteria.CustomerId);
+        _logger.LogInformation("Generating compliance history for customer {CustomerAccount}/{DataAreaId}",
+            criteria.CustomerAccount, criteria.DataAreaId);
 
-        var customer = await _customerRepository.GetByIdAsync(criteria.CustomerId, cancellationToken);
+        var customer = await _customerRepository.GetByAccountAsync(criteria.CustomerAccount, criteria.DataAreaId, cancellationToken);
         if (customer == null)
         {
-            _logger.LogWarning("Customer {CustomerId} not found", criteria.CustomerId);
+            _logger.LogWarning("Customer {CustomerAccount}/{DataAreaId} not found",
+                criteria.CustomerAccount, criteria.DataAreaId);
             return null;
         }
 
-        // Get audit events
+        // Get audit events using ComplianceExtensionId (Guid key for audit repository)
         var auditEvents = await _auditRepository.GetCustomerComplianceHistoryAsync(
-            criteria.CustomerId,
+            customer.ComplianceExtensionId,
             criteria.FromDate,
             criteria.ToDate,
             cancellationToken);
@@ -251,7 +257,8 @@ public class ReportingService : IReportingService
         var report = new CustomerComplianceHistoryReport
         {
             GeneratedDate = DateTime.UtcNow,
-            CustomerId = customer.CustomerId,
+            CustomerAccount = customer.CustomerAccount,
+            DataAreaId = customer.DataAreaId,
             CustomerName = customer.BusinessName,
             BusinessCategory = customer.BusinessCategory.ToString(),
             ApprovalStatus = customer.ApprovalStatus.ToString(),
@@ -269,7 +276,7 @@ public class ReportingService : IReportingService
         if (criteria.IncludeLicenceStatus)
         {
             var licences = await _licenceRepository.GetByHolderAsync(
-                criteria.CustomerId, "Customer", cancellationToken);
+                customer.ComplianceExtensionId, "Customer", cancellationToken);
 
             report.CurrentLicences = licences.Select(l => new LicenceStatusItem
             {
@@ -300,7 +307,8 @@ public class TransactionAuditReportCriteria
     public DateTime FromDate { get; set; }
     public DateTime ToDate { get; set; }
     public Guid? SubstanceId { get; set; }
-    public Guid? CustomerId { get; set; }
+    public string? CustomerAccount { get; set; }
+    public string? CustomerDataAreaId { get; set; }
     public string? CountryCode { get; set; }
     public bool IncludeLicenceDetails { get; set; }
 }
@@ -319,10 +327,12 @@ public class LicenceUsageReportCriteria
 
 /// <summary>
 /// Criteria for generating customer compliance history.
+/// Uses composite key (CustomerAccount + DataAreaId) per D365FO pattern.
 /// </summary>
 public class CustomerComplianceHistoryCriteria
 {
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+    public string DataAreaId { get; set; } = string.Empty;
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
     public bool IncludeLicenceStatus { get; set; }
@@ -343,7 +353,8 @@ public class TransactionAuditReport
     public List<TransactionAuditReportItem> Transactions { get; set; } = new();
     public int TotalCount { get; set; }
     public Guid? FilteredBySubstance { get; set; }
-    public Guid? FilteredByCustomer { get; set; }
+    public string? FilteredByCustomerAccount { get; set; }
+    public string? FilteredByCustomerDataAreaId { get; set; }
     public string? FilteredByCountry { get; set; }
 }
 
@@ -355,7 +366,8 @@ public class TransactionAuditReportItem
     public Guid TransactionId { get; set; }
     public string ExternalTransactionId { get; set; } = string.Empty;
     public DateTime TransactionDate { get; set; }
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+    public string CustomerDataAreaId { get; set; } = string.Empty;
     public string TransactionType { get; set; } = string.Empty;
     public string ValidationStatus { get; set; } = string.Empty;
     public decimal TotalQuantity { get; set; }
@@ -407,7 +419,8 @@ public class LicenceUsageReportItem
 public class CustomerComplianceHistoryReport
 {
     public DateTime GeneratedDate { get; set; }
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+    public string DataAreaId { get; set; } = string.Empty;
     public string CustomerName { get; set; } = string.Empty;
     public string BusinessCategory { get; set; } = string.Empty;
     public string ApprovalStatus { get; set; } = string.Empty;

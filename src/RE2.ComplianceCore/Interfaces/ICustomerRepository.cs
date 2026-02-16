@@ -4,27 +4,31 @@ namespace RE2.ComplianceCore.Interfaces;
 
 /// <summary>
 /// Repository interface for Customer entity operations.
-/// T088: Repository interface for customer CRUD operations.
+/// Supports composite D365FO + Dataverse pattern with CustomerAccount/DataAreaId composite key.
 /// </summary>
 public interface ICustomerRepository
 {
-    /// <summary>
-    /// Gets a customer by ID.
-    /// </summary>
-    Task<Customer?> GetByIdAsync(Guid customerId, CancellationToken cancellationToken = default);
+    // D365FO customer queries (read-only master data)
 
     /// <summary>
-    /// Gets a customer by business name.
+    /// Gets all customers from D365FO (master data).
     /// </summary>
-    Task<Customer?> GetByBusinessNameAsync(string businessName, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Customer>> GetAllD365CustomersAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets a customer by registration number.
+    /// Gets a single D365FO customer by composite key.
     /// </summary>
-    Task<Customer?> GetByRegistrationNumberAsync(string registrationNumber, CancellationToken cancellationToken = default);
+    Task<Customer?> GetD365CustomerAsync(string customerAccount, string dataAreaId, CancellationToken cancellationToken = default);
+
+    // Composite queries (D365FO + compliance extension merged)
 
     /// <summary>
-    /// Gets all customers.
+    /// Gets a customer by composite key with compliance extension merged.
+    /// </summary>
+    Task<Customer?> GetByAccountAsync(string customerAccount, string dataAreaId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all compliance-configured customers (with extensions).
     /// </summary>
     Task<IEnumerable<Customer>> GetAllAsync(CancellationToken cancellationToken = default);
 
@@ -37,11 +41,6 @@ public interface ICustomerRepository
     /// Gets customers by business category.
     /// </summary>
     Task<IEnumerable<Customer>> GetByBusinessCategoryAsync(BusinessCategory category, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Gets customers by country.
-    /// </summary>
-    Task<IEnumerable<Customer>> GetByCountryAsync(string country, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets suspended customers.
@@ -59,28 +58,30 @@ public interface ICustomerRepository
     /// </summary>
     Task<IEnumerable<Customer>> GetCanTransactAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Creates a new customer.
-    /// </summary>
-    Task<Guid> CreateAsync(Customer customer, CancellationToken cancellationToken = default);
+    // Compliance extension CRUD
 
     /// <summary>
-    /// Updates an existing customer.
+    /// Saves a new compliance extension for a customer.
     /// </summary>
-    Task UpdateAsync(Customer customer, CancellationToken cancellationToken = default);
+    Task<Guid> SaveComplianceExtensionAsync(Customer customer, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Deletes a customer.
+    /// Updates an existing compliance extension.
     /// </summary>
-    Task DeleteAsync(Guid customerId, CancellationToken cancellationToken = default);
+    Task UpdateComplianceExtensionAsync(Customer customer, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Checks if a customer exists by ID.
+    /// Deletes a compliance extension by composite key.
     /// </summary>
-    Task<bool> ExistsAsync(Guid customerId, CancellationToken cancellationToken = default);
+    Task DeleteComplianceExtensionAsync(string customerAccount, string dataAreaId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Searches customers by business name (partial match).
+    /// Checks if a customer exists by composite key (in D365FO or compliance extensions).
+    /// </summary>
+    Task<bool> ExistsAsync(string customerAccount, string dataAreaId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Searches customers by organization name (partial match).
     /// </summary>
     Task<IEnumerable<Customer>> SearchByNameAsync(string searchTerm, CancellationToken cancellationToken = default);
 }

@@ -5,26 +5,26 @@ using RE2.DataAccess.Dataverse.Models;
 namespace RE2.Contract.Tests;
 
 /// <summary>
-/// Contract tests for Dataverse Customer entity.
+/// Contract tests for Dataverse CustomerComplianceExtension entity.
 /// T083: Verifies DTO-to-domain and domain-to-DTO mapping contracts.
+/// Uses CustomerComplianceExtensionDto with composite key: phr_customeraccount + phr_dataareaid.
 /// </summary>
 public class DataverseCustomerContractTests
 {
     #region DTO Field Naming Convention Tests
 
     [Fact]
-    public void CustomerDto_ShouldHave_DataverseFieldNamingConvention()
+    public void CustomerComplianceExtensionDto_ShouldHave_DataverseFieldNamingConvention()
     {
         // Arrange & Act
-        var dtoType = typeof(CustomerDto);
+        var dtoType = typeof(CustomerComplianceExtensionDto);
         var properties = dtoType.GetProperties();
 
         // Assert - all properties should follow phr_ prefix convention for Dataverse
-        properties.Should().Contain(p => p.Name == "phr_customerid");
-        properties.Should().Contain(p => p.Name == "phr_businessname");
-        properties.Should().Contain(p => p.Name == "phr_registrationnumber");
+        properties.Should().Contain(p => p.Name == "phr_complianceextensionid");
+        properties.Should().Contain(p => p.Name == "phr_customeraccount");
+        properties.Should().Contain(p => p.Name == "phr_dataareaid");
         properties.Should().Contain(p => p.Name == "phr_businesscategory");
-        properties.Should().Contain(p => p.Name == "phr_country");
         properties.Should().Contain(p => p.Name == "phr_approvalstatus");
         properties.Should().Contain(p => p.Name == "phr_onboardingdate");
         properties.Should().Contain(p => p.Name == "phr_nextreverificationdate");
@@ -37,15 +37,30 @@ public class DataverseCustomerContractTests
     }
 
     [Fact]
-    public void CustomerDto_PrimaryKey_ShouldBeGuid()
+    public void CustomerComplianceExtensionDto_PrimaryKey_ShouldBeGuid()
     {
         // Arrange
-        var dtoType = typeof(CustomerDto);
-        var primaryKeyProperty = dtoType.GetProperty("phr_customerid");
+        var dtoType = typeof(CustomerComplianceExtensionDto);
+        var primaryKeyProperty = dtoType.GetProperty("phr_complianceextensionid");
 
         // Assert
         primaryKeyProperty.Should().NotBeNull();
         primaryKeyProperty!.PropertyType.Should().Be(typeof(Guid));
+    }
+
+    [Fact]
+    public void CustomerComplianceExtensionDto_CompositeKey_ShouldBeStrings()
+    {
+        // Arrange
+        var dtoType = typeof(CustomerComplianceExtensionDto);
+        var accountProperty = dtoType.GetProperty("phr_customeraccount");
+        var dataAreaProperty = dtoType.GetProperty("phr_dataareaid");
+
+        // Assert
+        accountProperty.Should().NotBeNull();
+        accountProperty!.PropertyType.Should().Be(typeof(string));
+        dataAreaProperty.Should().NotBeNull();
+        dataAreaProperty!.PropertyType.Should().Be(typeof(string));
     }
 
     #endregion
@@ -56,20 +71,19 @@ public class DataverseCustomerContractTests
     public void ToDomainModel_ShouldMapAllFields_WhenAllFieldsPopulated()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
+        var complianceExtensionId = Guid.NewGuid();
         var onboardingDate = DateTime.Now.AddMonths(-6);
         var reVerificationDate = DateTime.Now.AddYears(2).AddMonths(6);
         var createdDate = DateTime.UtcNow.AddMonths(-6);
         var modifiedDate = DateTime.UtcNow;
         var rowVersion = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 };
 
-        var dto = new CustomerDto
+        var dto = new CustomerComplianceExtensionDto
         {
-            phr_customerid = customerId,
-            phr_businessname = "Ziekenhuis St. Elisabeth",
-            phr_registrationnumber = "KVK-12345678",
+            phr_complianceextensionid = complianceExtensionId,
+            phr_customeraccount = "CUST-001",
+            phr_dataareaid = "nlpd",
             phr_businesscategory = (int)BusinessCategory.HospitalPharmacy,
-            phr_country = "NL",
             phr_approvalstatus = (int)ApprovalStatus.Approved,
             phr_onboardingdate = onboardingDate,
             phr_nextreverificationdate = reVerificationDate,
@@ -85,11 +99,10 @@ public class DataverseCustomerContractTests
         var domainModel = dto.ToDomainModel();
 
         // Assert
-        domainModel.CustomerId.Should().Be(customerId);
-        domainModel.BusinessName.Should().Be("Ziekenhuis St. Elisabeth");
-        domainModel.RegistrationNumber.Should().Be("KVK-12345678");
+        domainModel.ComplianceExtensionId.Should().Be(complianceExtensionId);
+        domainModel.CustomerAccount.Should().Be("CUST-001");
+        domainModel.DataAreaId.Should().Be("nlpd");
         domainModel.BusinessCategory.Should().Be(BusinessCategory.HospitalPharmacy);
-        domainModel.Country.Should().Be("NL");
         domainModel.ApprovalStatus.Should().Be(ApprovalStatus.Approved);
         domainModel.OnboardingDate.Should().Be(DateOnly.FromDateTime(onboardingDate));
         domainModel.NextReVerificationDate.Should().Be(DateOnly.FromDateTime(reVerificationDate));
@@ -105,13 +118,12 @@ public class DataverseCustomerContractTests
     public void ToDomainModel_ShouldHandleNullableFields_WhenFieldsAreNull()
     {
         // Arrange
-        var dto = new CustomerDto
+        var dto = new CustomerComplianceExtensionDto
         {
-            phr_customerid = Guid.NewGuid(),
-            phr_businessname = null,
-            phr_registrationnumber = null,
+            phr_complianceextensionid = Guid.NewGuid(),
+            phr_customeraccount = null,
+            phr_dataareaid = null,
             phr_businesscategory = 0,
-            phr_country = null,
             phr_approvalstatus = 0,
             phr_onboardingdate = null,
             phr_nextreverificationdate = null,
@@ -127,9 +139,8 @@ public class DataverseCustomerContractTests
         var domainModel = dto.ToDomainModel();
 
         // Assert
-        domainModel.BusinessName.Should().BeEmpty();
-        domainModel.RegistrationNumber.Should().BeNull();
-        domainModel.Country.Should().BeEmpty();
+        domainModel.CustomerAccount.Should().BeEmpty();
+        domainModel.DataAreaId.Should().BeEmpty();
         domainModel.OnboardingDate.Should().BeNull();
         domainModel.NextReVerificationDate.Should().BeNull();
         domainModel.SuspensionReason.Should().BeNull();
@@ -147,12 +158,12 @@ public class DataverseCustomerContractTests
     public void ToDomainModel_ShouldMapBusinessCategory_Correctly(int dtoValue, BusinessCategory expected)
     {
         // Arrange
-        var dto = new CustomerDto
+        var dto = new CustomerComplianceExtensionDto
         {
-            phr_customerid = Guid.NewGuid(),
-            phr_businessname = "Test",
+            phr_complianceextensionid = Guid.NewGuid(),
+            phr_customeraccount = "CUST-001",
+            phr_dataareaid = "nlpd",
             phr_businesscategory = dtoValue,
-            phr_country = "NL",
             phr_approvalstatus = 0,
             phr_gdpqualificationstatus = 0,
             phr_issuspended = false,
@@ -176,12 +187,12 @@ public class DataverseCustomerContractTests
     public void ToDomainModel_ShouldMapApprovalStatus_Correctly(int dtoValue, ApprovalStatus expected)
     {
         // Arrange
-        var dto = new CustomerDto
+        var dto = new CustomerComplianceExtensionDto
         {
-            phr_customerid = Guid.NewGuid(),
-            phr_businessname = "Test",
+            phr_complianceextensionid = Guid.NewGuid(),
+            phr_customeraccount = "CUST-001",
+            phr_dataareaid = "nlpd",
             phr_businesscategory = 0,
-            phr_country = "NL",
             phr_approvalstatus = dtoValue,
             phr_gdpqualificationstatus = 0,
             phr_issuspended = false,
@@ -206,12 +217,12 @@ public class DataverseCustomerContractTests
     public void ToDomainModel_ShouldMapGdpQualificationStatus_Correctly(int dtoValue, GdpQualificationStatus expected)
     {
         // Arrange
-        var dto = new CustomerDto
+        var dto = new CustomerComplianceExtensionDto
         {
-            phr_customerid = Guid.NewGuid(),
-            phr_businessname = "Test",
+            phr_complianceextensionid = Guid.NewGuid(),
+            phr_customeraccount = "CUST-001",
+            phr_dataareaid = "nlpd",
             phr_businesscategory = 0,
-            phr_country = "NL",
             phr_approvalstatus = 0,
             phr_gdpqualificationstatus = dtoValue,
             phr_issuspended = false,
@@ -234,7 +245,7 @@ public class DataverseCustomerContractTests
     public void FromDomainModel_ShouldMapAllFields_WhenAllFieldsPopulated()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
+        var complianceExtensionId = Guid.NewGuid();
         var onboardingDate = DateOnly.FromDateTime(DateTime.Now.AddMonths(-6));
         var reVerificationDate = DateOnly.FromDateTime(DateTime.Now.AddYears(2).AddMonths(6));
         var createdDate = DateTime.UtcNow.AddMonths(-6);
@@ -243,11 +254,12 @@ public class DataverseCustomerContractTests
 
         var domainModel = new Customer
         {
-            CustomerId = customerId,
-            BusinessName = "Apotheek Van der Berg",
-            RegistrationNumber = "KVK-87654321",
+            CustomerAccount = "CUST-001",
+            DataAreaId = "nlpd",
+            OrganizationName = "Apotheek Van der Berg",
+            AddressCountryRegionId = "NL",
+            ComplianceExtensionId = complianceExtensionId,
             BusinessCategory = BusinessCategory.CommunityPharmacy,
-            Country = "NL",
             ApprovalStatus = ApprovalStatus.Approved,
             OnboardingDate = onboardingDate,
             NextReVerificationDate = reVerificationDate,
@@ -260,14 +272,13 @@ public class DataverseCustomerContractTests
         };
 
         // Act
-        var dto = CustomerDto.FromDomainModel(domainModel);
+        var dto = CustomerComplianceExtensionDto.FromDomainModel(domainModel);
 
         // Assert
-        dto.phr_customerid.Should().Be(customerId);
-        dto.phr_businessname.Should().Be("Apotheek Van der Berg");
-        dto.phr_registrationnumber.Should().Be("KVK-87654321");
+        dto.phr_complianceextensionid.Should().Be(complianceExtensionId);
+        dto.phr_customeraccount.Should().Be("CUST-001");
+        dto.phr_dataareaid.Should().Be("nlpd");
         dto.phr_businesscategory.Should().Be((int)BusinessCategory.CommunityPharmacy);
-        dto.phr_country.Should().Be("NL");
         dto.phr_approvalstatus.Should().Be((int)ApprovalStatus.Approved);
         dto.phr_onboardingdate.Should().Be(onboardingDate.ToDateTime(TimeOnly.MinValue));
         dto.phr_nextreverificationdate.Should().Be(reVerificationDate.ToDateTime(TimeOnly.MinValue));
@@ -285,10 +296,11 @@ public class DataverseCustomerContractTests
         // Arrange
         var domainModel = new Customer
         {
-            CustomerId = Guid.NewGuid(),
-            BusinessName = "Minimal Customer",
+            CustomerAccount = "CUST-002",
+            DataAreaId = "nlpd",
+            OrganizationName = "Minimal Customer",
+            AddressCountryRegionId = "DE",
             BusinessCategory = BusinessCategory.ResearchInstitution,
-            Country = "DE",
             ApprovalStatus = ApprovalStatus.Pending,
             OnboardingDate = null,
             NextReVerificationDate = null,
@@ -300,7 +312,7 @@ public class DataverseCustomerContractTests
         };
 
         // Act
-        var dto = CustomerDto.FromDomainModel(domainModel);
+        var dto = CustomerComplianceExtensionDto.FromDomainModel(domainModel);
 
         // Assert
         dto.phr_onboardingdate.Should().BeNull();
@@ -314,10 +326,12 @@ public class DataverseCustomerContractTests
         // Arrange
         var domainModel = new Customer
         {
-            CustomerId = Guid.NewGuid(),
-            BusinessName = "Suspended Veterinary Clinic",
+            CustomerAccount = "CUST-003",
+            DataAreaId = "nlpd",
+            OrganizationName = "Suspended Veterinary Clinic",
+            AddressCountryRegionId = "NL",
+            ComplianceExtensionId = Guid.NewGuid(),
             BusinessCategory = BusinessCategory.Veterinarian,
-            Country = "NL",
             ApprovalStatus = ApprovalStatus.Approved,
             GdpQualificationStatus = GdpQualificationStatus.NotRequired,
             IsSuspended = true,
@@ -327,7 +341,7 @@ public class DataverseCustomerContractTests
         };
 
         // Act
-        var dto = CustomerDto.FromDomainModel(domainModel);
+        var dto = CustomerComplianceExtensionDto.FromDomainModel(domainModel);
 
         // Assert
         dto.phr_issuspended.Should().BeTrue();
@@ -344,11 +358,12 @@ public class DataverseCustomerContractTests
         // Arrange
         var original = new Customer
         {
-            CustomerId = Guid.NewGuid(),
-            BusinessName = "Wholesaler EU Partner",
-            RegistrationNumber = "VAT-EU123456789",
+            CustomerAccount = "CUST-004",
+            DataAreaId = "nlpd",
+            OrganizationName = "Wholesaler EU Partner",
+            AddressCountryRegionId = "BE",
+            ComplianceExtensionId = Guid.NewGuid(),
             BusinessCategory = BusinessCategory.WholesalerEU,
-            Country = "BE",
             ApprovalStatus = ApprovalStatus.ConditionallyApproved,
             OnboardingDate = DateOnly.FromDateTime(DateTime.Now.AddMonths(-3)),
             NextReVerificationDate = DateOnly.FromDateTime(DateTime.Now.AddYears(3).AddMonths(-3)),
@@ -360,15 +375,14 @@ public class DataverseCustomerContractTests
         };
 
         // Act
-        var dto = CustomerDto.FromDomainModel(original);
+        var dto = CustomerComplianceExtensionDto.FromDomainModel(original);
         var roundTripped = dto.ToDomainModel();
 
         // Assert
-        roundTripped.CustomerId.Should().Be(original.CustomerId);
-        roundTripped.BusinessName.Should().Be(original.BusinessName);
-        roundTripped.RegistrationNumber.Should().Be(original.RegistrationNumber);
+        roundTripped.ComplianceExtensionId.Should().Be(original.ComplianceExtensionId);
+        roundTripped.CustomerAccount.Should().Be(original.CustomerAccount);
+        roundTripped.DataAreaId.Should().Be(original.DataAreaId);
         roundTripped.BusinessCategory.Should().Be(original.BusinessCategory);
-        roundTripped.Country.Should().Be(original.Country);
         roundTripped.ApprovalStatus.Should().Be(original.ApprovalStatus);
         roundTripped.OnboardingDate.Should().Be(original.OnboardingDate);
         roundTripped.NextReVerificationDate.Should().Be(original.NextReVerificationDate);
@@ -386,10 +400,12 @@ public class DataverseCustomerContractTests
         // Arrange
         var original = new Customer
         {
-            CustomerId = Guid.NewGuid(),
-            BusinessName = "Previously Active Customer",
+            CustomerAccount = "CUST-005",
+            DataAreaId = "nlpd",
+            OrganizationName = "Previously Active Customer",
+            AddressCountryRegionId = "FR",
+            ComplianceExtensionId = Guid.NewGuid(),
             BusinessCategory = BusinessCategory.Manufacturer,
-            Country = "FR",
             ApprovalStatus = ApprovalStatus.Approved,
             GdpQualificationStatus = GdpQualificationStatus.Approved,
             IsSuspended = true,
@@ -399,7 +415,7 @@ public class DataverseCustomerContractTests
         };
 
         // Act
-        var dto = CustomerDto.FromDomainModel(original);
+        var dto = CustomerComplianceExtensionDto.FromDomainModel(original);
         var roundTripped = dto.ToDomainModel();
 
         // Assert
@@ -415,12 +431,12 @@ public class DataverseCustomerContractTests
     public void ToDomainModel_CanTransact_ReturnsCorrectValue()
     {
         // Arrange - Approved, not suspended customer
-        var dto = new CustomerDto
+        var dto = new CustomerComplianceExtensionDto
         {
-            phr_customerid = Guid.NewGuid(),
-            phr_businessname = "Active Pharmacy",
+            phr_complianceextensionid = Guid.NewGuid(),
+            phr_customeraccount = "CUST-001",
+            phr_dataareaid = "nlpd",
             phr_businesscategory = (int)BusinessCategory.CommunityPharmacy,
-            phr_country = "NL",
             phr_approvalstatus = (int)ApprovalStatus.Approved,
             phr_gdpqualificationstatus = (int)GdpQualificationStatus.NotRequired,
             phr_issuspended = false,
@@ -439,12 +455,12 @@ public class DataverseCustomerContractTests
     public void ToDomainModel_CanTransact_ReturnsFalseForSuspended()
     {
         // Arrange - Approved but suspended customer
-        var dto = new CustomerDto
+        var dto = new CustomerComplianceExtensionDto
         {
-            phr_customerid = Guid.NewGuid(),
-            phr_businessname = "Suspended Pharmacy",
+            phr_complianceextensionid = Guid.NewGuid(),
+            phr_customeraccount = "CUST-002",
+            phr_dataareaid = "nlpd",
             phr_businesscategory = (int)BusinessCategory.CommunityPharmacy,
-            phr_country = "NL",
             phr_approvalstatus = (int)ApprovalStatus.Approved,
             phr_gdpqualificationstatus = (int)GdpQualificationStatus.NotRequired,
             phr_issuspended = true,

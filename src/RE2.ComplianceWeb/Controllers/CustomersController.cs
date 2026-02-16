@@ -8,7 +8,8 @@ namespace RE2.ComplianceWeb.Controllers;
 
 /// <summary>
 /// MVC controller for customer management web UI.
-/// T093: Web UI controller for customer CRUD operations.
+/// T093: Web UI controller for customer compliance operations.
+/// Composite key: CustomerAccount (string) + DataAreaId (string) per D365FO + Dataverse pattern.
 /// </summary>
 [Authorize]
 public class CustomersController : Controller
@@ -25,7 +26,7 @@ public class CustomersController : Controller
     }
 
     /// <summary>
-    /// Displays the customer list page.
+    /// Displays compliance-configured customers.
     /// T092: Customer listing with filtering.
     /// </summary>
     public async Task<IActionResult> Index(
@@ -63,11 +64,24 @@ public class CustomersController : Controller
     }
 
     /// <summary>
-    /// Displays customer details.
+    /// Browses all D365FO customers (master data).
+    /// Similar to GdpSites Browse - shows all customers from D365FO regardless of compliance configuration.
     /// </summary>
-    public async Task<IActionResult> Details(Guid id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Browse(CancellationToken cancellationToken = default)
     {
-        var customer = await _customerService.GetByIdAsync(id, cancellationToken);
+        var customers = await _customerService.GetAllD365CustomersAsync(cancellationToken);
+        return View(customers);
+    }
+
+    /// <summary>
+    /// Displays customer details by composite key.
+    /// </summary>
+    public async Task<IActionResult> Details(
+        string customerAccount,
+        string dataAreaId,
+        CancellationToken cancellationToken = default)
+    {
+        var customer = await _customerService.GetByAccountAsync(customerAccount, dataAreaId, cancellationToken);
 
         if (customer == null)
         {
@@ -75,57 +89,70 @@ public class CustomersController : Controller
         }
 
         // Get compliance status for additional details
-        var complianceStatus = await _customerService.GetComplianceStatusAsync(id, cancellationToken);
+        var complianceStatus = await _customerService.GetComplianceStatusAsync(customerAccount, dataAreaId, cancellationToken);
         ViewBag.ComplianceStatus = complianceStatus;
 
         return View(customer);
     }
 
     /// <summary>
-    /// Displays the create customer form.
+    /// Displays the configure compliance form for a D365FO customer.
     /// </summary>
     [Authorize(Policy = "SalesAdmin")]
-    public IActionResult Create()
+    public async Task<IActionResult> Configure(
+        string customerAccount,
+        string dataAreaId,
+        CancellationToken cancellationToken = default)
     {
+        var customer = await _customerService.GetByAccountAsync(customerAccount, dataAreaId, cancellationToken);
+        if (customer == null)
+        {
+            return NotFound();
+        }
+
+        var model = new CustomerConfigureViewModel
+        {
+            CustomerAccount = customer.CustomerAccount,
+            DataAreaId = customer.DataAreaId,
+            OrganizationName = customer.OrganizationName,
+            AddressCountryRegionId = customer.AddressCountryRegionId
+        };
+
         ViewBag.BusinessCategories = GetBusinessCategorySelectList();
-        ViewBag.ApprovalStatuses = GetApprovalStatusSelectList();
         ViewBag.GdpStatuses = GetGdpStatusSelectList();
 
-        return View(new CustomerCreateViewModel());
+        return View(model);
     }
 
     /// <summary>
-    /// Handles customer creation form submission.
+    /// Handles configure compliance form submission.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = "SalesAdmin")]
-    public async Task<IActionResult> Create(CustomerCreateViewModel model, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Configure(
+        CustomerConfigureViewModel model,
+        CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
             ViewBag.BusinessCategories = GetBusinessCategorySelectList(model.BusinessCategory.ToString());
-            ViewBag.ApprovalStatuses = GetApprovalStatusSelectList();
             ViewBag.GdpStatuses = GetGdpStatusSelectList();
             return View(model);
         }
 
         var customer = new Customer
         {
-            CustomerId = Guid.NewGuid(),
-            BusinessName = model.BusinessName,
-            RegistrationNumber = model.RegistrationNumber,
+            CustomerAccount = model.CustomerAccount,
+            DataAreaId = model.DataAreaId,
             BusinessCategory = model.BusinessCategory,
-            Country = model.Country,
             ApprovalStatus = ApprovalStatus.Pending,
             GdpQualificationStatus = model.GdpQualificationStatus,
-            OnboardingDate = model.OnboardingDate.HasValue ? DateOnly.FromDateTime(model.OnboardingDate.Value) : null,
-            NextReVerificationDate = model.NextReVerificationDate.HasValue ? DateOnly.FromDateTime(model.NextReVerificationDate.Value) : null,
             CreatedDate = DateTime.UtcNow,
             ModifiedDate = DateTime.UtcNow
         };
 
-        var (id, result) = await _customerService.CreateAsync(customer, cancellationToken);
+        var (id, result) = await _customerService.ConfigureComplianceAsync(customer, cancellationToken);
 
         if (!result.IsValid)
         {
@@ -134,24 +161,28 @@ public class CustomersController : Controller
                 ModelState.AddModelError(string.Empty, violation.Message);
             }
             ViewBag.BusinessCategories = GetBusinessCategorySelectList(model.BusinessCategory.ToString());
-            ViewBag.ApprovalStatuses = GetApprovalStatusSelectList();
             ViewBag.GdpStatuses = GetGdpStatusSelectList();
             return View(model);
         }
 
-        _logger.LogInformation("Created customer {BusinessName} via web UI", customer.BusinessName);
-        TempData["SuccessMessage"] = $"Customer '{customer.BusinessName}' created successfully.";
+        _logger.LogInformation(
+            "Configured compliance for customer {CustomerAccount}/{DataAreaId} via web UI",
+            customer.CustomerAccount, customer.DataAreaId);
+        TempData["SuccessMessage"] = $"Compliance configured for customer '{model.CustomerAccount}'.";
 
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Details), new { customerAccount = model.CustomerAccount, dataAreaId = model.DataAreaId });
     }
 
     /// <summary>
-    /// Displays the edit customer form.
+    /// Displays the edit compliance form.
     /// </summary>
     [Authorize(Policy = "SalesAdmin")]
-    public async Task<IActionResult> Edit(Guid id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Edit(
+        string customerAccount,
+        string dataAreaId,
+        CancellationToken cancellationToken = default)
     {
-        var customer = await _customerService.GetByIdAsync(id, cancellationToken);
+        var customer = await _customerService.GetByAccountAsync(customerAccount, dataAreaId, cancellationToken);
 
         if (customer == null)
         {
@@ -160,11 +191,9 @@ public class CustomersController : Controller
 
         var model = new CustomerEditViewModel
         {
-            CustomerId = customer.CustomerId,
-            BusinessName = customer.BusinessName,
-            RegistrationNumber = customer.RegistrationNumber,
+            CustomerAccount = customer.CustomerAccount,
+            DataAreaId = customer.DataAreaId,
             BusinessCategory = customer.BusinessCategory,
-            Country = customer.Country,
             ApprovalStatus = customer.ApprovalStatus,
             GdpQualificationStatus = customer.GdpQualificationStatus,
             OnboardingDate = customer.OnboardingDate?.ToDateTime(TimeOnly.MinValue),
@@ -181,14 +210,18 @@ public class CustomersController : Controller
     }
 
     /// <summary>
-    /// Handles customer edit form submission.
+    /// Handles edit compliance form submission.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = "SalesAdmin")]
-    public async Task<IActionResult> Edit(Guid id, CustomerEditViewModel model, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Edit(
+        string customerAccount,
+        string dataAreaId,
+        CustomerEditViewModel model,
+        CancellationToken cancellationToken = default)
     {
-        if (id != model.CustomerId)
+        if (customerAccount != model.CustomerAccount || dataAreaId != model.DataAreaId)
         {
             return BadRequest();
         }
@@ -203,11 +236,9 @@ public class CustomersController : Controller
 
         var customer = new Customer
         {
-            CustomerId = model.CustomerId,
-            BusinessName = model.BusinessName,
-            RegistrationNumber = model.RegistrationNumber,
+            CustomerAccount = model.CustomerAccount,
+            DataAreaId = model.DataAreaId,
             BusinessCategory = model.BusinessCategory,
-            Country = model.Country,
             ApprovalStatus = model.ApprovalStatus,
             GdpQualificationStatus = model.GdpQualificationStatus,
             OnboardingDate = model.OnboardingDate.HasValue ? DateOnly.FromDateTime(model.OnboardingDate.Value) : null,
@@ -217,7 +248,7 @@ public class CustomersController : Controller
             ModifiedDate = DateTime.UtcNow
         };
 
-        var result = await _customerService.UpdateAsync(customer, cancellationToken);
+        var result = await _customerService.UpdateComplianceAsync(customer, cancellationToken);
 
         if (!result.IsValid)
         {
@@ -231,30 +262,10 @@ public class CustomersController : Controller
             return View(model);
         }
 
-        _logger.LogInformation("Updated customer {BusinessName} via web UI", customer.BusinessName);
-        TempData["SuccessMessage"] = $"Customer '{customer.BusinessName}' updated successfully.";
-
-        return RedirectToAction(nameof(Index));
-    }
-
-    /// <summary>
-    /// Handles customer deletion.
-    /// </summary>
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    [Authorize(Policy = "SalesAdmin")]
-    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken = default)
-    {
-        var result = await _customerService.DeleteAsync(id, cancellationToken);
-
-        if (!result.IsValid)
-        {
-            TempData["ErrorMessage"] = "Failed to delete customer.";
-            return RedirectToAction(nameof(Index));
-        }
-
-        _logger.LogInformation("Deleted customer {Id} via web UI", id);
-        TempData["SuccessMessage"] = "Customer deleted successfully.";
+        _logger.LogInformation(
+            "Updated compliance for customer {CustomerAccount}/{DataAreaId} via web UI",
+            customer.CustomerAccount, customer.DataAreaId);
+        TempData["SuccessMessage"] = $"Compliance updated for customer '{model.CustomerAccount}'.";
 
         return RedirectToAction(nameof(Index));
     }
@@ -265,26 +276,32 @@ public class CustomersController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = "ComplianceManager")]
-    public async Task<IActionResult> Suspend(Guid id, string reason, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Suspend(
+        string customerAccount,
+        string dataAreaId,
+        string reason,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(reason))
         {
             TempData["ErrorMessage"] = "Suspension reason is required.";
-            return RedirectToAction(nameof(Details), new { id });
+            return RedirectToAction(nameof(Details), new { customerAccount, dataAreaId });
         }
 
-        var result = await _customerService.SuspendCustomerAsync(id, reason, cancellationToken);
+        var result = await _customerService.SuspendCustomerAsync(customerAccount, dataAreaId, reason, cancellationToken);
 
         if (!result.IsValid)
         {
             TempData["ErrorMessage"] = "Failed to suspend customer.";
-            return RedirectToAction(nameof(Details), new { id });
+            return RedirectToAction(nameof(Details), new { customerAccount, dataAreaId });
         }
 
-        _logger.LogInformation("Suspended customer {Id} with reason: {Reason}", id, reason);
+        _logger.LogInformation(
+            "Suspended customer {CustomerAccount}/{DataAreaId} with reason: {Reason}",
+            customerAccount, dataAreaId, reason);
         TempData["SuccessMessage"] = "Customer suspended successfully.";
 
-        return RedirectToAction(nameof(Details), new { id });
+        return RedirectToAction(nameof(Details), new { customerAccount, dataAreaId });
     }
 
     /// <summary>
@@ -293,20 +310,25 @@ public class CustomersController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = "ComplianceManager")]
-    public async Task<IActionResult> Reinstate(Guid id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Reinstate(
+        string customerAccount,
+        string dataAreaId,
+        CancellationToken cancellationToken = default)
     {
-        var result = await _customerService.ReinstateCustomerAsync(id, cancellationToken);
+        var result = await _customerService.ReinstateCustomerAsync(customerAccount, dataAreaId, cancellationToken);
 
         if (!result.IsValid)
         {
             TempData["ErrorMessage"] = "Failed to reinstate customer.";
-            return RedirectToAction(nameof(Details), new { id });
+            return RedirectToAction(nameof(Details), new { customerAccount, dataAreaId });
         }
 
-        _logger.LogInformation("Reinstated customer {Id}", id);
+        _logger.LogInformation(
+            "Reinstated customer {CustomerAccount}/{DataAreaId}",
+            customerAccount, dataAreaId);
         TempData["SuccessMessage"] = "Customer reinstated successfully.";
 
-        return RedirectToAction(nameof(Details), new { id });
+        return RedirectToAction(nameof(Details), new { customerAccount, dataAreaId });
     }
 
     /// <summary>
@@ -368,29 +390,28 @@ public class CustomersController : Controller
 #region View Models
 
 /// <summary>
-/// View model for creating a new customer.
+/// View model for configuring compliance for a D365FO customer.
+/// D365FO fields (OrganizationName, AddressCountryRegionId) are display-only.
 /// </summary>
-public class CustomerCreateViewModel
+public class CustomerConfigureViewModel
 {
-    public string BusinessName { get; set; } = string.Empty;
-    public string? RegistrationNumber { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+    public string DataAreaId { get; set; } = string.Empty;
+    public string OrganizationName { get; set; } = string.Empty;
+    public string AddressCountryRegionId { get; set; } = string.Empty;
     public BusinessCategory BusinessCategory { get; set; }
-    public string Country { get; set; } = string.Empty;
     public GdpQualificationStatus GdpQualificationStatus { get; set; } = GdpQualificationStatus.NotRequired;
-    public DateTime? OnboardingDate { get; set; }
-    public DateTime? NextReVerificationDate { get; set; }
 }
 
 /// <summary>
-/// View model for editing a customer.
+/// View model for editing compliance extensions.
+/// Only compliance-specific fields are editable. D365FO master data is read-only.
 /// </summary>
 public class CustomerEditViewModel
 {
-    public Guid CustomerId { get; set; }
-    public string BusinessName { get; set; } = string.Empty;
-    public string? RegistrationNumber { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+    public string DataAreaId { get; set; } = string.Empty;
     public BusinessCategory BusinessCategory { get; set; }
-    public string Country { get; set; } = string.Empty;
     public ApprovalStatus ApprovalStatus { get; set; }
     public GdpQualificationStatus GdpQualificationStatus { get; set; }
     public DateTime? OnboardingDate { get; set; }

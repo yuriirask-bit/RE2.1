@@ -47,14 +47,13 @@ public class TransactionComplianceServiceTests
     public async Task ValidateTransactionAsync_PassesValidation_WhenAllRequirementsMet()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
         var substanceId = Guid.NewGuid();
         var licenceId = Guid.NewGuid();
 
-        var customer = CreateApprovedCustomer(customerId);
+        var customer = CreateApprovedCustomer();
         var substance = CreateControlledSubstance(substanceId);
-        var licence = CreateValidLicence(licenceId, customerId);
-        var transaction = CreateTransaction(customerId, substanceId);
+        var licence = CreateValidLicence(licenceId, customer.ComplianceExtensionId);
+        var transaction = CreateTransaction(customer.CustomerAccount, customer.DataAreaId, substanceId);
 
         SetupMocks(customer, substance, licence);
 
@@ -71,11 +70,10 @@ public class TransactionComplianceServiceTests
     public async Task ValidateTransactionAsync_FailsValidation_WhenCustomerNotFound()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
         var substanceId = Guid.NewGuid();
-        var transaction = CreateTransaction(customerId, substanceId);
+        var transaction = CreateTransaction("CUST-NOTFOUND", "nlpd", substanceId);
 
-        _customerRepoMock.Setup(r => r.GetByIdAsync(customerId, It.IsAny<CancellationToken>()))
+        _customerRepoMock.Setup(r => r.GetByAccountAsync("CUST-NOTFOUND", "nlpd", It.IsAny<CancellationToken>()))
             .ReturnsAsync((Customer?)null);
 
         // Act
@@ -90,14 +88,13 @@ public class TransactionComplianceServiceTests
     public async Task ValidateTransactionAsync_FailsValidation_WhenCustomerSuspended()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
         var substanceId = Guid.NewGuid();
-        var customer = CreateApprovedCustomer(customerId);
+        var customer = CreateApprovedCustomer();
         customer.IsSuspended = true;
         customer.SuspensionReason = "Compliance violation";
 
         var substance = CreateControlledSubstance(substanceId);
-        var transaction = CreateTransaction(customerId, substanceId);
+        var transaction = CreateTransaction(customer.CustomerAccount, customer.DataAreaId, substanceId);
 
         SetupMocks(customer, substance, null);
 
@@ -114,13 +111,12 @@ public class TransactionComplianceServiceTests
     public async Task ValidateTransactionAsync_FailsValidation_WhenCustomerNotApproved()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
         var substanceId = Guid.NewGuid();
-        var customer = CreateApprovedCustomer(customerId);
+        var customer = CreateApprovedCustomer();
         customer.ApprovalStatus = ApprovalStatus.Pending;
 
         var substance = CreateControlledSubstance(substanceId);
-        var transaction = CreateTransaction(customerId, substanceId);
+        var transaction = CreateTransaction(customer.CustomerAccount, customer.DataAreaId, substanceId);
 
         SetupMocks(customer, substance, null);
 
@@ -136,11 +132,10 @@ public class TransactionComplianceServiceTests
     public async Task ValidateTransactionAsync_FailsValidation_WhenNoLicenceCoverage()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
         var substanceId = Guid.NewGuid();
-        var customer = CreateApprovedCustomer(customerId);
+        var customer = CreateApprovedCustomer();
         var substance = CreateControlledSubstance(substanceId);
-        var transaction = CreateTransaction(customerId, substanceId);
+        var transaction = CreateTransaction(customer.CustomerAccount, customer.DataAreaId, substanceId);
 
         SetupMocks(customer, substance, null); // No licence
 
@@ -157,17 +152,16 @@ public class TransactionComplianceServiceTests
     public async Task ValidateTransactionAsync_FailsValidation_WhenLicenceExpired()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
         var substanceId = Guid.NewGuid();
         var licenceId = Guid.NewGuid();
 
-        var customer = CreateApprovedCustomer(customerId);
+        var customer = CreateApprovedCustomer();
         var substance = CreateControlledSubstance(substanceId);
-        var licence = CreateValidLicence(licenceId, customerId);
+        var licence = CreateValidLicence(licenceId, customer.ComplianceExtensionId);
         licence.Status = "Expired";
         licence.ExpiryDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
 
-        var transaction = CreateTransaction(customerId, substanceId);
+        var transaction = CreateTransaction(customer.CustomerAccount, customer.DataAreaId, substanceId);
 
         SetupMocks(customer, substance, licence);
 
@@ -183,16 +177,15 @@ public class TransactionComplianceServiceTests
     public async Task ValidateTransactionAsync_FailsValidation_WhenLicenceSuspended()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
         var substanceId = Guid.NewGuid();
         var licenceId = Guid.NewGuid();
 
-        var customer = CreateApprovedCustomer(customerId);
+        var customer = CreateApprovedCustomer();
         var substance = CreateControlledSubstance(substanceId);
-        var licence = CreateValidLicence(licenceId, customerId);
+        var licence = CreateValidLicence(licenceId, customer.ComplianceExtensionId);
         licence.Status = "Suspended";
 
-        var transaction = CreateTransaction(customerId, substanceId);
+        var transaction = CreateTransaction(customer.CustomerAccount, customer.DataAreaId, substanceId);
 
         SetupMocks(customer, substance, licence);
 
@@ -209,12 +202,11 @@ public class TransactionComplianceServiceTests
     public async Task ValidateTransactionAsync_FailsValidation_WhenSubstanceNotFound()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
         var substanceId = Guid.NewGuid();
-        var customer = CreateApprovedCustomer(customerId);
-        var transaction = CreateTransaction(customerId, substanceId);
+        var customer = CreateApprovedCustomer();
+        var transaction = CreateTransaction(customer.CustomerAccount, customer.DataAreaId, substanceId);
 
-        _customerRepoMock.Setup(r => r.GetByIdAsync(customerId, It.IsAny<CancellationToken>()))
+        _customerRepoMock.Setup(r => r.GetByAccountAsync(customer.CustomerAccount, customer.DataAreaId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(customer);
         _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ControlledSubstance?)null);
@@ -436,7 +428,7 @@ public class TransactionComplianceServiceTests
     {
         // Arrange
         var transactionId = Guid.NewGuid();
-        var transaction = CreateTransaction(Guid.NewGuid(), Guid.NewGuid());
+        var transaction = CreateTransaction("CUST-001", "nlpd", Guid.NewGuid());
         transaction.Id = transactionId;
 
         _transactionRepoMock.Setup(r => r.GetByIdAsync(transactionId, It.IsAny<CancellationToken>()))
@@ -474,7 +466,7 @@ public class TransactionComplianceServiceTests
     {
         if (customer != null)
         {
-            _customerRepoMock.Setup(r => r.GetByIdAsync(customer.CustomerId, It.IsAny<CancellationToken>()))
+            _customerRepoMock.Setup(r => r.GetByAccountAsync(customer.CustomerAccount, customer.DataAreaId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(customer);
         }
 
@@ -494,17 +486,19 @@ public class TransactionComplianceServiceTests
             .ReturnsAsync(Enumerable.Empty<Threshold>());
     }
 
-    private static Customer CreateApprovedCustomer(Guid customerId)
+    private static Customer CreateApprovedCustomer(string customerAccount = "CUST-001", string dataAreaId = "nlpd")
     {
         return new Customer
         {
-            CustomerId = customerId,
-            BusinessName = "Test Pharmacy",
+            CustomerAccount = customerAccount,
+            DataAreaId = dataAreaId,
+            ComplianceExtensionId = Guid.NewGuid(),
+            OrganizationName = "Test Pharmacy",
             BusinessCategory = BusinessCategory.CommunityPharmacy,
             ApprovalStatus = ApprovalStatus.Approved,
             GdpQualificationStatus = GdpQualificationStatus.Approved,
             IsSuspended = false,
-            Country = "NL"
+            AddressCountryRegionId = "NL"
         };
     }
 
@@ -540,7 +534,7 @@ public class TransactionComplianceServiceTests
         };
     }
 
-    private static Transaction CreateTransaction(Guid customerId, Guid substanceId)
+    private static Transaction CreateTransaction(string customerAccount, string customerDataAreaId, Guid substanceId)
     {
         var transaction = new Transaction
         {
@@ -548,7 +542,8 @@ public class TransactionComplianceServiceTests
             ExternalId = "ORD-2024-001",
             TransactionType = TransactionType.Order,
             Direction = TransactionDirection.Internal,
-            CustomerId = customerId,
+            CustomerAccount = customerAccount,
+            CustomerDataAreaId = customerDataAreaId,
             OriginCountry = "NL",
             TransactionDate = DateTime.UtcNow,
             Status = "Pending",
@@ -576,7 +571,7 @@ public class TransactionComplianceServiceTests
 
     private static Transaction CreateFailedTransaction(Guid transactionId)
     {
-        var transaction = CreateTransaction(Guid.NewGuid(), Guid.NewGuid());
+        var transaction = CreateTransaction("CUST-001", "nlpd", Guid.NewGuid());
         transaction.Id = transactionId;
         transaction.ValidationStatus = ValidationStatus.Failed;
         return transaction;

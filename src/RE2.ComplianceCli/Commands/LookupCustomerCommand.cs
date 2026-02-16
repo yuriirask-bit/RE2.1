@@ -7,7 +7,8 @@ namespace RE2.ComplianceCli.Commands;
 
 /// <summary>
 /// T052c: Lookup customer command implementation.
-/// Accepts customer ID via args, returns compliance status JSON to stdout.
+/// Accepts customer account + data area via args, returns compliance status JSON to stdout.
+/// Uses composite key (CustomerAccount + DataAreaId) per D365FO pattern.
 /// </summary>
 public class LookupCustomerCommand
 {
@@ -22,9 +23,9 @@ public class LookupCustomerCommand
 
     public async Task<int> ExecuteAsync(LookupCustomerOptions options)
     {
-        if (string.IsNullOrEmpty(options.CustomerId) && string.IsNullOrEmpty(options.BusinessName))
+        if (string.IsNullOrEmpty(options.CustomerAccount) && string.IsNullOrEmpty(options.Name))
         {
-            OutputError("Either --id or --name must be provided.");
+            OutputError("Either --account or --name must be provided.");
             return 1;
         }
 
@@ -33,26 +34,20 @@ public class LookupCustomerCommand
 
         Customer? customer = null;
 
-        // Lookup by ID
-        if (!string.IsNullOrEmpty(options.CustomerId))
+        // Lookup by composite key (CustomerAccount + DataAreaId)
+        if (!string.IsNullOrEmpty(options.CustomerAccount))
         {
-            if (!Guid.TryParse(options.CustomerId, out var customerId))
-            {
-                OutputError($"Invalid customer ID format: {options.CustomerId}");
-                return 1;
-            }
-
-            customer = await customerService.GetByIdAsync(customerId);
+            customer = await customerService.GetByAccountAsync(options.CustomerAccount, options.DataAreaId);
         }
         // Lookup by name
-        else if (!string.IsNullOrEmpty(options.BusinessName))
+        else if (!string.IsNullOrEmpty(options.Name))
         {
-            var matches = await customerService.SearchByNameAsync(options.BusinessName);
+            var matches = await customerService.SearchByNameAsync(options.Name);
             var matchList = matches.ToList();
 
             if (matchList.Count == 0)
             {
-                OutputError($"No customers found matching: {options.BusinessName}");
+                OutputError($"No customers found matching: {options.Name}");
                 return 1;
             }
 
@@ -61,10 +56,11 @@ public class LookupCustomerCommand
                 // Return list of matches for user to choose
                 var matchOutput = new CustomerSearchOutput
                 {
-                    Message = $"Multiple customers found ({matchList.Count}). Please use --id with specific customer ID.",
+                    Message = $"Multiple customers found ({matchList.Count}). Please use --account with specific customer account.",
                     Matches = matchList.Select(c => new CustomerMatch
                     {
-                        CustomerId = c.CustomerId,
+                        CustomerAccount = c.CustomerAccount,
+                        DataAreaId = c.DataAreaId,
                         BusinessName = c.BusinessName,
                         Country = c.Country,
                         ApprovalStatus = c.ApprovalStatus.ToString()
@@ -84,14 +80,14 @@ public class LookupCustomerCommand
         }
 
         // Get compliance status
-        var complianceStatus = await customerService.GetComplianceStatusAsync(customer.CustomerId);
+        var complianceStatus = await customerService.GetComplianceStatusAsync(customer.CustomerAccount, customer.DataAreaId);
 
         // Build output
         var output = new CustomerOutput
         {
-            CustomerId = customer.CustomerId,
+            CustomerAccount = customer.CustomerAccount,
+            DataAreaId = customer.DataAreaId,
             BusinessName = customer.BusinessName,
-            RegistrationNumber = customer.RegistrationNumber,
             Country = customer.Country,
             BusinessCategory = customer.BusinessCategory.ToString(),
             ApprovalStatus = customer.ApprovalStatus.ToString(),
@@ -119,7 +115,7 @@ public class LookupCustomerCommand
         // Include licences if requested
         if (options.IncludeLicences && licenceService != null)
         {
-            var licences = await licenceService.GetByHolderAsync(customer.CustomerId, "Customer");
+            var licences = await licenceService.GetByHolderAsync(customer.ComplianceExtensionId, "Customer");
             output.Licences = licences.Select(l => new LicenceOutput
             {
                 LicenceId = l.LicenceId,
@@ -154,7 +150,8 @@ public class CustomerSearchOutput
 
 public class CustomerMatch
 {
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+    public string DataAreaId { get; set; } = string.Empty;
     public string BusinessName { get; set; } = string.Empty;
     public string Country { get; set; } = string.Empty;
     public string ApprovalStatus { get; set; } = string.Empty;
@@ -162,9 +159,9 @@ public class CustomerMatch
 
 public class CustomerOutput
 {
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+    public string DataAreaId { get; set; } = string.Empty;
     public string BusinessName { get; set; } = string.Empty;
-    public string? RegistrationNumber { get; set; }
     public string Country { get; set; } = string.Empty;
     public string BusinessCategory { get; set; } = string.Empty;
     public string ApprovalStatus { get; set; } = string.Empty;

@@ -59,7 +59,7 @@ public interface ITransactionRepository
     /// <summary>
     /// Gets transactions for a specific customer.
     /// </summary>
-    Task<IEnumerable<Transaction>> GetByCustomerIdAsync(Guid customerId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Transaction>> GetByCustomerAccountAsync(string customerAccount, string customerDataAreaId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets transactions within a date range.
@@ -70,16 +70,17 @@ public interface ITransactionRepository
     /// Gets transactions for a customer within a date range (for threshold calculation).
     /// </summary>
     Task<IEnumerable<Transaction>> GetCustomerTransactionsInPeriodAsync(
-        Guid customerId,
+        string customerAccount,
+        string customerDataAreaId,
         DateTime fromDate,
         DateTime toDate,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets transactions for a specific customer (alias for GetByCustomerIdAsync).
+    /// Gets transactions for a specific customer (alias for GetByCustomerAccountAsync).
     /// T161: Used for reporting queries per FR-026.
     /// </summary>
-    Task<IEnumerable<Transaction>> GetByCustomerAsync(Guid customerId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Transaction>> GetByCustomerAsync(string customerAccount, string customerDataAreaId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets transactions involving a specific substance within a date range.
@@ -115,7 +116,8 @@ public interface ITransactionRepository
     /// Used for customer-substance threshold calculation.
     /// </summary>
     Task<IEnumerable<TransactionLine>> GetCustomerSubstanceLinesInPeriodAsync(
-        Guid customerId,
+        string customerAccount,
+        string customerDataAreaId,
         Guid substanceId,
         DateTime fromDate,
         DateTime toDate,

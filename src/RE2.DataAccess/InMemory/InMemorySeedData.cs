@@ -13,10 +13,12 @@ public static class InMemorySeedData
 {
     // Re-export well-known IDs for backward compatibility and convenience
     public static readonly Guid CompanyHolderId = WellKnownIds.CompanyHolderId;
-    public static readonly Guid CustomerHospitalId = WellKnownIds.CustomerHospitalId;
-    public static readonly Guid CustomerPharmacyId = WellKnownIds.CustomerPharmacyId;
-    public static readonly Guid CustomerVeterinarianId = WellKnownIds.CustomerVeterinarianId;
-    public static readonly Guid CustomerSuspendedId = WellKnownIds.CustomerSuspendedId;
+
+    // ComplianceExtensionIds (repurposed from old CustomerId Guids for backward compatibility)
+    public static readonly Guid CustomerHospitalComplianceExtensionId = WellKnownIds.CustomerHospitalId;
+    public static readonly Guid CustomerPharmacyComplianceExtensionId = WellKnownIds.CustomerPharmacyId;
+    public static readonly Guid CustomerVeterinarianComplianceExtensionId = WellKnownIds.CustomerVeterinarianId;
+    public static readonly Guid CustomerSuspendedComplianceExtensionId = WellKnownIds.CustomerSuspendedId;
 
     public static readonly Guid WholesaleLicenceTypeId = WellKnownIds.WholesaleLicenceTypeId;
     public static readonly Guid OpiumExemptionTypeId = WellKnownIds.OpiumExemptionTypeId;
@@ -53,7 +55,8 @@ public static class InMemorySeedData
         licenceTypeRepo.Seed(GetLicenceTypes());
         substanceRepo.Seed(GetControlledSubstances());
         licenceRepo.Seed(GetLicences());
-        customerRepo.Seed(GetCustomers());
+        customerRepo.SeedD365Customers(GetD365Customers());
+        customerRepo.SeedComplianceExtensions(GetCustomerComplianceExtensions());
         thresholdRepo.Seed(GetThresholds());
         SeedGdpData(gdpSiteRepo);
     }
@@ -72,7 +75,8 @@ public static class InMemorySeedData
         licenceTypeRepo.Seed(GetLicenceTypes());
         substanceRepo.Seed(GetControlledSubstances());
         licenceRepo.Seed(GetLicences());
-        customerRepo.Seed(GetCustomers());
+        customerRepo.SeedD365Customers(GetD365Customers());
+        customerRepo.SeedComplianceExtensions(GetCustomerComplianceExtensions());
         thresholdRepo.Seed(GetThresholds());
     }
 
@@ -302,7 +306,7 @@ public static class InMemorySeedData
                 LicenceNumber = "PHARM-AMC-2022-001",
                 LicenceTypeId = PharmacyLicenceTypeId,
                 HolderType = "Customer",
-                HolderId = CustomerHospitalId,
+                HolderId = CustomerHospitalComplianceExtensionId,
                 IssuingAuthority = "IGJ",
                 IssueDate = today.AddYears(-3),
                 ExpiryDate = null,
@@ -318,7 +322,7 @@ public static class InMemorySeedData
                 LicenceNumber = "OPW-AMC-2023-112",
                 LicenceTypeId = OpiumExemptionTypeId,
                 HolderType = "Customer",
-                HolderId = CustomerHospitalId,
+                HolderId = CustomerHospitalComplianceExtensionId,
                 IssuingAuthority = "Farmatec/CIBG",
                 IssueDate = today.AddYears(-1),
                 ExpiryDate = today.AddYears(4),
@@ -334,7 +338,7 @@ public static class InMemorySeedData
                 LicenceNumber = "PHARM-UTR-2021-045",
                 LicenceTypeId = PharmacyLicenceTypeId,
                 HolderType = "Customer",
-                HolderId = CustomerPharmacyId,
+                HolderId = CustomerPharmacyComplianceExtensionId,
                 IssuingAuthority = "IGJ",
                 IssueDate = today.AddYears(-4),
                 ExpiryDate = null,
@@ -351,7 +355,7 @@ public static class InMemorySeedData
                 LicenceNumber = "OPW-VET-2020-033",
                 LicenceTypeId = OpiumExemptionTypeId,
                 HolderType = "Customer",
-                HolderId = CustomerVeterinarianId,
+                HolderId = CustomerVeterinarianComplianceExtensionId,
                 IssuingAuthority = "Farmatec/CIBG",
                 IssueDate = today.AddYears(-5),
                 ExpiryDate = today.AddDays(-30), // Expired 30 days ago
@@ -381,9 +385,54 @@ public static class InMemorySeedData
     }
 
     /// <summary>
-    /// Gets sample customers for User Story 4 transaction validation testing.
+    /// Gets mock D365FO customer master data (read-only fields).
+    /// Contains CustomerAccount, DataAreaId, OrganizationName, and AddressCountryRegionId.
     /// </summary>
-    public static IEnumerable<Customer> GetCustomers()
+    public static IEnumerable<Customer> GetD365Customers()
+    {
+        return new List<Customer>
+        {
+            // Hospital
+            new()
+            {
+                CustomerAccount = "CUST-001",
+                DataAreaId = "nlpd",
+                OrganizationName = "Amsterdam Medical Center",
+                AddressCountryRegionId = "NL"
+            },
+            // Community Pharmacy
+            new()
+            {
+                CustomerAccount = "CUST-002",
+                DataAreaId = "nlpd",
+                OrganizationName = "Utrecht Central Pharmacy",
+                AddressCountryRegionId = "NL"
+            },
+            // Veterinary Clinic
+            new()
+            {
+                CustomerAccount = "CUST-003",
+                DataAreaId = "nlpd",
+                OrganizationName = "Rotterdam Veterinary Clinic",
+                AddressCountryRegionId = "NL"
+            },
+            // Suspended Wholesale
+            new()
+            {
+                CustomerAccount = "CUST-004",
+                DataAreaId = "nlpd",
+                OrganizationName = "Suspended Wholesale BV",
+                AddressCountryRegionId = "NL"
+            }
+        };
+    }
+
+    /// <summary>
+    /// Gets compliance extension data for customers (Dataverse-side).
+    /// Contains ComplianceExtensionId, BusinessCategory, ApprovalStatus, etc.
+    /// CustomerAccount/DataAreaId must match D365FO customers for merging.
+    /// </summary>
+    public static IEnumerable<Customer> GetCustomerComplianceExtensions()
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
@@ -392,11 +441,10 @@ public static class InMemorySeedData
             // Hospital - approved, GDP qualified
             new()
             {
-                CustomerId = CustomerHospitalId,
-                BusinessName = "Amsterdam Medical Center",
-                RegistrationNumber = "NL-AMC-12345",
+                CustomerAccount = "CUST-001",
+                DataAreaId = "nlpd",
+                ComplianceExtensionId = CustomerHospitalComplianceExtensionId,
                 BusinessCategory = BusinessCategory.HospitalPharmacy,
-                Country = "NL",
                 ApprovalStatus = ApprovalStatus.Approved,
                 GdpQualificationStatus = GdpQualificationStatus.Approved,
                 OnboardingDate = today.AddYears(-2),
@@ -408,11 +456,10 @@ public static class InMemorySeedData
             // Community Pharmacy - approved, GDP qualified
             new()
             {
-                CustomerId = CustomerPharmacyId,
-                BusinessName = "Utrecht Central Pharmacy",
-                RegistrationNumber = "NL-UCP-67890",
+                CustomerAccount = "CUST-002",
+                DataAreaId = "nlpd",
+                ComplianceExtensionId = CustomerPharmacyComplianceExtensionId,
                 BusinessCategory = BusinessCategory.CommunityPharmacy,
-                Country = "NL",
                 ApprovalStatus = ApprovalStatus.Approved,
                 GdpQualificationStatus = GdpQualificationStatus.Approved,
                 OnboardingDate = today.AddYears(-3),
@@ -424,11 +471,10 @@ public static class InMemorySeedData
             // Veterinarian - approved but GDP not required
             new()
             {
-                CustomerId = CustomerVeterinarianId,
-                BusinessName = "Rotterdam Veterinary Clinic",
-                RegistrationNumber = "NL-RVC-11111",
+                CustomerAccount = "CUST-003",
+                DataAreaId = "nlpd",
+                ComplianceExtensionId = CustomerVeterinarianComplianceExtensionId,
                 BusinessCategory = BusinessCategory.Veterinarian,
-                Country = "NL",
                 ApprovalStatus = ApprovalStatus.Approved,
                 GdpQualificationStatus = GdpQualificationStatus.NotRequired,
                 OnboardingDate = today.AddYears(-1),
@@ -440,11 +486,10 @@ public static class InMemorySeedData
             // Suspended customer - for testing blocked transactions
             new()
             {
-                CustomerId = CustomerSuspendedId,
-                BusinessName = "Suspended Wholesale BV",
-                RegistrationNumber = "NL-SWB-99999",
+                CustomerAccount = "CUST-004",
+                DataAreaId = "nlpd",
+                ComplianceExtensionId = CustomerSuspendedComplianceExtensionId,
                 BusinessCategory = BusinessCategory.WholesalerEU,
-                Country = "NL",
                 ApprovalStatus = ApprovalStatus.Approved,
                 GdpQualificationStatus = GdpQualificationStatus.Approved,
                 OnboardingDate = today.AddYears(-4),

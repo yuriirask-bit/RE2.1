@@ -110,7 +110,8 @@ public class ValidateTransactionCommand
         {
             Id = input.TransactionId ?? Guid.NewGuid(),
             ExternalId = input.ExternalTransactionId ?? string.Empty,
-            CustomerId = input.CustomerId,
+            CustomerAccount = input.CustomerAccount,
+            CustomerDataAreaId = input.CustomerDataAreaId,
             TransactionType = Enum.Parse<TransactionType>(input.TransactionType, ignoreCase: true),
             Direction = Enum.Parse<TransactionDirection>(input.TransactionDirection, ignoreCase: true),
             TransactionDate = input.TransactionDate ?? DateTime.UtcNow,
@@ -143,7 +144,8 @@ public class TransactionInput
 {
     public Guid? TransactionId { get; set; }
     public string? ExternalTransactionId { get; set; }
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+    public string CustomerDataAreaId { get; set; } = string.Empty;
     public string TransactionType { get; set; } = "Order";
     public string TransactionDirection { get; set; } = "Outbound";
     public DateTime? TransactionDate { get; set; }

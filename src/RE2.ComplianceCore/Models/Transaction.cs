@@ -33,9 +33,14 @@ public class Transaction
     #region Parties
 
     /// <summary>
-    /// Customer ID for the transaction.
+    /// Customer account number (D365FO composite key part 1).
     /// </summary>
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Customer data area ID (D365FO composite key part 2).
+    /// </summary>
+    public string CustomerDataAreaId { get; set; } = string.Empty;
 
     /// <summary>
     /// Customer name (denormalized for display).

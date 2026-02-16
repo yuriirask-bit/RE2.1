@@ -185,10 +185,10 @@ public class InMemoryTransactionRepository : ITransactionRepository
         return Task.FromResult<IEnumerable<Transaction>>(transactions);
     }
 
-    public Task<IEnumerable<Transaction>> GetByCustomerIdAsync(Guid customerId, CancellationToken cancellationToken = default)
+    public Task<IEnumerable<Transaction>> GetByCustomerAccountAsync(string customerAccount, string customerDataAreaId, CancellationToken cancellationToken = default)
     {
         var transactions = _transactions.Values
-            .Where(t => t.CustomerId == customerId)
+            .Where(t => t.CustomerAccount == customerAccount && t.CustomerDataAreaId == customerDataAreaId)
             .OrderByDescending(t => t.TransactionDate)
             .ToList();
 
@@ -206,13 +206,15 @@ public class InMemoryTransactionRepository : ITransactionRepository
     }
 
     public Task<IEnumerable<Transaction>> GetCustomerTransactionsInPeriodAsync(
-        Guid customerId,
+        string customerAccount,
+        string customerDataAreaId,
         DateTime fromDate,
         DateTime toDate,
         CancellationToken cancellationToken = default)
     {
         var transactions = _transactions.Values
-            .Where(t => t.CustomerId == customerId &&
+            .Where(t => t.CustomerAccount == customerAccount &&
+                        t.CustomerDataAreaId == customerDataAreaId &&
                         t.TransactionDate >= fromDate &&
                         t.TransactionDate <= toDate &&
                         t.CanProceed()) // Only include approved transactions
@@ -230,9 +232,9 @@ public class InMemoryTransactionRepository : ITransactionRepository
         return Task.FromResult<IEnumerable<Transaction>>(transactions);
     }
 
-    public Task<IEnumerable<Transaction>> GetByCustomerAsync(Guid customerId, CancellationToken cancellationToken = default)
+    public Task<IEnumerable<Transaction>> GetByCustomerAsync(string customerAccount, string customerDataAreaId, CancellationToken cancellationToken = default)
     {
-        return GetByCustomerIdAsync(customerId, cancellationToken);
+        return GetByCustomerAccountAsync(customerAccount, customerDataAreaId, cancellationToken);
     }
 
     public Task<IEnumerable<Transaction>> GetBySubstanceAsync(
@@ -306,14 +308,16 @@ public class InMemoryTransactionRepository : ITransactionRepository
     }
 
     public Task<IEnumerable<TransactionLine>> GetCustomerSubstanceLinesInPeriodAsync(
-        Guid customerId,
+        string customerAccount,
+        string customerDataAreaId,
         Guid substanceId,
         DateTime fromDate,
         DateTime toDate,
         CancellationToken cancellationToken = default)
     {
         var transactionIdsInPeriod = _transactions.Values
-            .Where(t => t.CustomerId == customerId &&
+            .Where(t => t.CustomerAccount == customerAccount &&
+                        t.CustomerDataAreaId == customerDataAreaId &&
                         t.TransactionDate >= fromDate &&
                         t.TransactionDate <= toDate &&
                         t.CanProceed())

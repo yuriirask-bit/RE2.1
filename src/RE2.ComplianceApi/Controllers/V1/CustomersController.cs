@@ -8,9 +8,10 @@ using RE2.Shared.Models;
 namespace RE2.ComplianceApi.Controllers.V1;
 
 /// <summary>
-/// Customer compliance API endpoints
-/// T091: CustomersController v1 with compliance status endpoint (FR-060)
-/// T098: Route authorization - SalesAdmin and ComplianceManager can create/modify customers
+/// Customer compliance API endpoints.
+/// T091: CustomersController v1 with compliance status endpoint (FR-060).
+/// T098: Route authorization - SalesAdmin and ComplianceManager can create/modify customers.
+/// Composite key: CustomerAccount (string) + DataAreaId (string) per D365FO + Dataverse pattern.
 /// </summary>
 [ApiController]
 [Route("api/v1/[controller]")]
@@ -30,12 +31,15 @@ public class CustomersController : ControllerBase
     /// Gets customer compliance status.
     /// Per FR-060: Customer compliance status lookup.
     /// </summary>
-    [HttpGet("{id}/compliance-status")]
+    [HttpGet("{customerAccount}/compliance-status")]
     [ProducesResponseType(typeof(CustomerComplianceStatusResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetComplianceStatus(Guid id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetComplianceStatus(
+        string customerAccount,
+        [FromQuery] string dataAreaId,
+        CancellationToken cancellationToken = default)
     {
-        var status = await _customerService.GetComplianceStatusAsync(id, cancellationToken);
+        var status = await _customerService.GetComplianceStatusAsync(customerAccount, dataAreaId, cancellationToken);
 
         // Check if customer was not found
         if (status.Warnings.Any(w => w.WarningCode == ErrorCodes.NOT_FOUND))
@@ -43,7 +47,7 @@ public class CustomersController : ControllerBase
             return NotFound(new ErrorResponseDto
             {
                 ErrorCode = ErrorCodes.NOT_FOUND,
-                Message = $"Customer with ID '{id}' not found"
+                Message = $"Customer '{customerAccount}' in data area '{dataAreaId}' not found"
             });
         }
 
@@ -51,7 +55,7 @@ public class CustomersController : ControllerBase
     }
 
     /// <summary>
-    /// Gets all customers.
+    /// Gets all compliance-configured customers.
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<CustomerResponseDto>), StatusCodes.Status200OK)]
@@ -86,20 +90,34 @@ public class CustomersController : ControllerBase
     }
 
     /// <summary>
-    /// Gets a customer by ID.
+    /// Gets all D365FO customers (master data browse).
     /// </summary>
-    [HttpGet("{id}")]
+    [HttpGet("d365")]
+    [ProducesResponseType(typeof(IEnumerable<CustomerResponseDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetD365Customers(CancellationToken cancellationToken = default)
+    {
+        var customers = await _customerService.GetAllD365CustomersAsync(cancellationToken);
+        return Ok(customers.Select(CustomerResponseDto.FromDomain));
+    }
+
+    /// <summary>
+    /// Gets a customer by composite key.
+    /// </summary>
+    [HttpGet("{customerAccount}")]
     [ProducesResponseType(typeof(CustomerResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetCustomer(Guid id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetCustomer(
+        string customerAccount,
+        [FromQuery] string dataAreaId,
+        CancellationToken cancellationToken = default)
     {
-        var customer = await _customerService.GetByIdAsync(id, cancellationToken);
+        var customer = await _customerService.GetByAccountAsync(customerAccount, dataAreaId, cancellationToken);
         if (customer == null)
         {
             return NotFound(new ErrorResponseDto
             {
                 ErrorCode = ErrorCodes.NOT_FOUND,
-                Message = $"Customer with ID '{id}' not found"
+                Message = $"Customer '{customerAccount}' in data area '{dataAreaId}' not found"
             });
         }
 
@@ -107,17 +125,19 @@ public class CustomersController : ControllerBase
     }
 
     /// <summary>
-    /// Creates a new customer.
-    /// T098: SalesAdmin or ComplianceManager can create customers.
+    /// Configures compliance extension for a D365FO customer.
+    /// T098: SalesAdmin or ComplianceManager can configure compliance.
     /// </summary>
     [HttpPost]
     [Authorize(Roles = "SalesAdmin,ComplianceManager")]
     [ProducesResponseType(typeof(CustomerResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateCustomer([FromBody] CreateCustomerRequestDto request, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> ConfigureCompliance(
+        [FromBody] ConfigureComplianceRequestDto request,
+        CancellationToken cancellationToken = default)
     {
         var customer = request.ToDomain();
-        var (id, result) = await _customerService.CreateAsync(customer, cancellationToken);
+        var (id, result) = await _customerService.ConfigureComplianceAsync(customer, cancellationToken);
 
         if (!result.IsValid)
         {
@@ -128,28 +148,33 @@ public class CustomersController : ControllerBase
             });
         }
 
-        customer.CustomerId = id!.Value;
-        var createdCustomer = await _customerService.GetByIdAsync(id.Value, cancellationToken);
+        customer.ComplianceExtensionId = id!.Value;
+        var configuredCustomer = await _customerService.GetByAccountAsync(
+            customer.CustomerAccount, customer.DataAreaId, cancellationToken);
 
         return CreatedAtAction(
             nameof(GetCustomer),
-            new { id = id.Value },
-            CustomerResponseDto.FromDomain(createdCustomer!));
+            new { customerAccount = customer.CustomerAccount, dataAreaId = customer.DataAreaId },
+            CustomerResponseDto.FromDomain(configuredCustomer!));
     }
 
     /// <summary>
-    /// Updates an existing customer.
-    /// T098: SalesAdmin or ComplianceManager can modify customers.
+    /// Updates an existing compliance extension.
+    /// T098: SalesAdmin or ComplianceManager can modify compliance.
     /// </summary>
-    [HttpPut("{id}")]
+    [HttpPut("{customerAccount}")]
     [Authorize(Roles = "SalesAdmin,ComplianceManager")]
     [ProducesResponseType(typeof(CustomerResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateCustomer(Guid id, [FromBody] UpdateCustomerRequestDto request, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> UpdateCompliance(
+        string customerAccount,
+        [FromQuery] string dataAreaId,
+        [FromBody] UpdateComplianceRequestDto request,
+        CancellationToken cancellationToken = default)
     {
-        var customer = request.ToDomain(id);
-        var result = await _customerService.UpdateAsync(customer, cancellationToken);
+        var customer = request.ToDomain(customerAccount, dataAreaId);
+        var result = await _customerService.UpdateComplianceAsync(customer, cancellationToken);
 
         if (!result.IsValid)
         {
@@ -170,21 +195,24 @@ public class CustomersController : ControllerBase
             });
         }
 
-        var updatedCustomer = await _customerService.GetByIdAsync(id, cancellationToken);
+        var updatedCustomer = await _customerService.GetByAccountAsync(customerAccount, dataAreaId, cancellationToken);
         return Ok(CustomerResponseDto.FromDomain(updatedCustomer!));
     }
 
     /// <summary>
-    /// Deletes a customer.
-    /// T098: SalesAdmin or ComplianceManager can delete customers.
+    /// Removes compliance extension for a customer.
+    /// T098: SalesAdmin or ComplianceManager can remove compliance configuration.
     /// </summary>
-    [HttpDelete("{id}")]
+    [HttpDelete("{customerAccount}")]
     [Authorize(Roles = "SalesAdmin,ComplianceManager")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteCustomer(Guid id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> RemoveCompliance(
+        string customerAccount,
+        [FromQuery] string dataAreaId,
+        CancellationToken cancellationToken = default)
     {
-        var result = await _customerService.DeleteAsync(id, cancellationToken);
+        var result = await _customerService.RemoveComplianceAsync(customerAccount, dataAreaId, cancellationToken);
 
         if (!result.IsValid)
         {
@@ -203,13 +231,17 @@ public class CustomersController : ControllerBase
     /// Per FR-015: Compliance managers can mark a customer as suspended.
     /// T098: Only ComplianceManager role can suspend customers.
     /// </summary>
-    [HttpPost("{id}/suspend")]
+    [HttpPost("{customerAccount}/suspend")]
     [Authorize(Roles = "ComplianceManager")]
     [ProducesResponseType(typeof(CustomerComplianceStatusResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> SuspendCustomer(Guid id, [FromBody] SuspendCustomerRequestDto request, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> SuspendCustomer(
+        string customerAccount,
+        [FromQuery] string dataAreaId,
+        [FromBody] SuspendCustomerRequestDto request,
+        CancellationToken cancellationToken = default)
     {
-        var result = await _customerService.SuspendCustomerAsync(id, request.Reason, cancellationToken);
+        var result = await _customerService.SuspendCustomerAsync(customerAccount, dataAreaId, request.Reason, cancellationToken);
 
         if (!result.IsValid)
         {
@@ -220,7 +252,7 @@ public class CustomersController : ControllerBase
             });
         }
 
-        var status = await _customerService.GetComplianceStatusAsync(id, cancellationToken);
+        var status = await _customerService.GetComplianceStatusAsync(customerAccount, dataAreaId, cancellationToken);
         return Ok(CustomerComplianceStatusResponse.FromDomain(status));
     }
 
@@ -228,13 +260,16 @@ public class CustomersController : ControllerBase
     /// Reinstates a suspended customer.
     /// T098: Only ComplianceManager role can reinstate customers.
     /// </summary>
-    [HttpPost("{id}/reinstate")]
+    [HttpPost("{customerAccount}/reinstate")]
     [Authorize(Roles = "ComplianceManager")]
     [ProducesResponseType(typeof(CustomerComplianceStatusResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> ReinstateCustomer(Guid id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> ReinstateCustomer(
+        string customerAccount,
+        [FromQuery] string dataAreaId,
+        CancellationToken cancellationToken = default)
     {
-        var result = await _customerService.ReinstateCustomerAsync(id, cancellationToken);
+        var result = await _customerService.ReinstateCustomerAsync(customerAccount, dataAreaId, cancellationToken);
 
         if (!result.IsValid)
         {
@@ -245,7 +280,7 @@ public class CustomersController : ControllerBase
             });
         }
 
-        var status = await _customerService.GetComplianceStatusAsync(id, cancellationToken);
+        var status = await _customerService.GetComplianceStatusAsync(customerAccount, dataAreaId, cancellationToken);
         return Ok(CustomerComplianceStatusResponse.FromDomain(status));
     }
 
@@ -282,12 +317,13 @@ public class CustomersController : ControllerBase
 
 /// <summary>
 /// Customer response DTO.
+/// Composite key: CustomerAccount + DataAreaId.
 /// </summary>
 public class CustomerResponseDto
 {
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+    public string DataAreaId { get; set; } = string.Empty;
     public string BusinessName { get; set; } = string.Empty;
-    public string? RegistrationNumber { get; set; }
     public string BusinessCategory { get; set; } = string.Empty;
     public string Country { get; set; } = string.Empty;
     public string ApprovalStatus { get; set; } = string.Empty;
@@ -297,14 +333,15 @@ public class CustomerResponseDto
     public bool IsSuspended { get; set; }
     public string? SuspensionReason { get; set; }
     public bool CanTransact { get; set; }
+    public bool IsComplianceConfigured { get; set; }
 
     public static CustomerResponseDto FromDomain(Customer customer)
     {
         return new CustomerResponseDto
         {
-            CustomerId = customer.CustomerId,
+            CustomerAccount = customer.CustomerAccount,
+            DataAreaId = customer.DataAreaId,
             BusinessName = customer.BusinessName,
-            RegistrationNumber = customer.RegistrationNumber,
             BusinessCategory = customer.BusinessCategory.ToString(),
             Country = customer.Country,
             ApprovalStatus = customer.ApprovalStatus.ToString(),
@@ -313,7 +350,8 @@ public class CustomerResponseDto
             GdpQualificationStatus = customer.GdpQualificationStatus.ToString(),
             IsSuspended = customer.IsSuspended,
             SuspensionReason = customer.SuspensionReason,
-            CanTransact = customer.CanTransact()
+            CanTransact = customer.CanTransact(),
+            IsComplianceConfigured = customer.IsComplianceConfigured
         };
     }
 }
@@ -323,7 +361,8 @@ public class CustomerResponseDto
 /// </summary>
 public class CustomerComplianceStatusResponse
 {
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+    public string DataAreaId { get; set; } = string.Empty;
     public string BusinessName { get; set; } = string.Empty;
     public string ApprovalStatus { get; set; } = string.Empty;
     public string GdpQualificationStatus { get; set; } = string.Empty;
@@ -338,7 +377,8 @@ public class CustomerComplianceStatusResponse
     {
         return new CustomerComplianceStatusResponse
         {
-            CustomerId = status.CustomerId,
+            CustomerAccount = status.CustomerAccount,
+            DataAreaId = status.DataAreaId,
             BusinessName = status.BusinessName,
             ApprovalStatus = status.ApprovalStatus.ToString(),
             GdpQualificationStatus = status.GdpQualificationStatus.ToString(),
@@ -368,14 +408,15 @@ public class ComplianceWarningDto
 }
 
 /// <summary>
-/// Create customer request DTO.
+/// Configure compliance request DTO.
+/// Used to set up compliance extension for a D365FO customer.
+/// BusinessName and Country come from D365FO master data, not from this request.
 /// </summary>
-public class CreateCustomerRequestDto
+public class ConfigureComplianceRequestDto
 {
-    public required string BusinessName { get; set; }
-    public string? RegistrationNumber { get; set; }
+    public required string CustomerAccount { get; set; }
+    public required string DataAreaId { get; set; }
     public required string BusinessCategory { get; set; }
-    public required string Country { get; set; }
     public string ApprovalStatus { get; set; } = "Pending";
     public string? OnboardingDate { get; set; }
     public string? NextReVerificationDate { get; set; }
@@ -385,11 +426,9 @@ public class CreateCustomerRequestDto
     {
         return new Customer
         {
-            CustomerId = Guid.NewGuid(),
-            BusinessName = BusinessName,
-            RegistrationNumber = RegistrationNumber,
+            CustomerAccount = CustomerAccount,
+            DataAreaId = DataAreaId,
             BusinessCategory = Enum.Parse<BusinessCategory>(BusinessCategory, true),
-            Country = Country,
             ApprovalStatus = Enum.Parse<ApprovalStatus>(ApprovalStatus, true),
             OnboardingDate = string.IsNullOrEmpty(OnboardingDate) ? null : DateOnly.Parse(OnboardingDate),
             NextReVerificationDate = string.IsNullOrEmpty(NextReVerificationDate) ? null : DateOnly.Parse(NextReVerificationDate),
@@ -400,28 +439,24 @@ public class CreateCustomerRequestDto
 }
 
 /// <summary>
-/// Update customer request DTO.
+/// Update compliance request DTO.
+/// Updates compliance extension fields only. Master data fields are read-only from D365FO.
 /// </summary>
-public class UpdateCustomerRequestDto
+public class UpdateComplianceRequestDto
 {
-    public required string BusinessName { get; set; }
-    public string? RegistrationNumber { get; set; }
     public required string BusinessCategory { get; set; }
-    public required string Country { get; set; }
     public required string ApprovalStatus { get; set; }
     public string? OnboardingDate { get; set; }
     public string? NextReVerificationDate { get; set; }
     public required string GdpQualificationStatus { get; set; }
 
-    public Customer ToDomain(Guid customerId)
+    public Customer ToDomain(string customerAccount, string dataAreaId)
     {
         return new Customer
         {
-            CustomerId = customerId,
-            BusinessName = BusinessName,
-            RegistrationNumber = RegistrationNumber,
+            CustomerAccount = customerAccount,
+            DataAreaId = dataAreaId,
             BusinessCategory = Enum.Parse<BusinessCategory>(BusinessCategory, true),
-            Country = Country,
             ApprovalStatus = Enum.Parse<ApprovalStatus>(ApprovalStatus, true),
             OnboardingDate = string.IsNullOrEmpty(OnboardingDate) ? null : DateOnly.Parse(OnboardingDate),
             NextReVerificationDate = string.IsNullOrEmpty(NextReVerificationDate) ? null : DateOnly.Parse(NextReVerificationDate),

@@ -61,7 +61,8 @@ paths:
                 summary: Domestic order with controlled substances
                 value:
                   externalTransactionId: "SO-2026-0012345"
-                  customerId: "c7f3a1b2-8d4e-4a9c-b5e6-1f2a3b4c5d6e"
+                  customerAccount: "CUST-001"
+                  customerDataAreaId: "nlpd"
                   transactionType: "DomesticSale"
                   transactionDate: "2026-01-09T14:30:00Z"
                   externalUserId: "erp.user@hospital.nl"
@@ -78,7 +79,8 @@ paths:
                 summary: Cross-border export to Germany
                 value:
                   externalTransactionId: "SO-2026-0012346"
-                  customerId: "c8f4b2c3-9e5f-5b0d-c6f7-2g3b4c5d6e7f"
+                  customerAccount: "CUST-002"
+                  customerDataAreaId: "nlpd"
                   transactionType: "EUCrossBorder"
                   transactionDate: "2026-01-09T15:45:00Z"
                   externalUserId: "erp.user@wholesaler.de"
@@ -337,13 +339,16 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /customers/{customerId}/compliance-status:
+  /customers/{customerAccount}/compliance-status:
     get:
       summary: Customer compliance lookup
       description: |
         Retrieves comprehensive compliance status for a customer, including active licences, approval status,
         suspension status, and expiring licences. Used by external order management systems during customer
         selection to display compliance warnings before order entry.
+
+        Customer is identified by composite key: CustomerAccount (path) + DataAreaId (query).
+        Master data sourced from D365 F&O CustomersV3; compliance extensions from Dataverse.
 
         **FR-060**: Customer master data synchronization API
 
@@ -352,14 +357,20 @@ paths:
       tags:
         - Customer Compliance
       parameters:
-        - name: customerId
+        - name: customerAccount
           in: path
           required: true
-          description: Customer ID (GUID)
+          description: Customer account code from D365 F&O (e.g., "CUST-001")
           schema:
             type: string
-            format: uuid
-            example: "c7f3a1b2-8d4e-4a9c-b5e6-1f2a3b4c5d6e"
+            example: "CUST-001"
+        - name: dataAreaId
+          in: query
+          required: false
+          description: D365 F&O data area / legal entity ID (defaults to configured primary)
+          schema:
+            type: string
+            example: "nlpd"
       responses:
         '200':
           description: Customer compliance status retrieved successfully
@@ -378,7 +389,8 @@ paths:
                 compliantCustomer:
                   summary: Fully compliant customer
                   value:
-                    customerId: "c7f3a1b2-8d4e-4a9c-b5e6-1f2a3b4c5d6e"
+                    customerAccount: "CUST-001"
+                    dataAreaId: "nlpd"
                     businessName: "Ziekenhuis St. Elisabeth"
                     businessCategory: "HospitalPharmacy"
                     country: "NL"
@@ -402,7 +414,8 @@ paths:
                 customerWithWarnings:
                   summary: Customer with expiring licence
                   value:
-                    customerId: "c8f4b2c3-9e5f-5b0d-c6f7-2g3b4c5d6e7f"
+                    customerAccount: "CUST-002"
+                    dataAreaId: "nlpd"
                     businessName: "Apotheek Van der Berg"
                     businessCategory: "CommunityPharmacy"
                     country: "NL"
@@ -429,7 +442,8 @@ paths:
                 suspendedCustomer:
                   summary: Suspended customer
                   value:
-                    customerId: "c9g5c3d4-0f6g-6c1e-d7g8-3h4c5d6e7f8g"
+                    customerAccount: "CUST-003"
+                    dataAreaId: "nlpd"
                     businessName: "Veterinary Clinic Amsterdam"
                     businessCategory: "Veterinarian"
                     country: "NL"
@@ -571,7 +585,7 @@ components:
       type: object
       required:
         - externalTransactionId
-        - customerId
+        - customerAccount
         - transactionType
         - transactionDate
         - lines
@@ -580,11 +594,14 @@ components:
           type: string
           description: Unique transaction ID from calling system (e.g., sales order number)
           example: "SO-2026-0012345"
-        customerId:
+        customerAccount:
           type: string
-          format: uuid
-          description: Customer ID (GUID)
-          example: "c7f3a1b2-8d4e-4a9c-b5e6-1f2a3b4c5d6e"
+          description: Customer account code from D365 F&O CustomersV3 entity
+          example: "CUST-001"
+        customerDataAreaId:
+          type: string
+          description: D365 F&O data area / legal entity ID
+          example: "nlpd"
         transactionType:
           type: string
           enum: [DomesticSale, EUCrossBorder, NonEUInternational]
@@ -882,7 +899,8 @@ components:
     CustomerComplianceStatusResponse:
       type: object
       required:
-        - customerId
+        - customerAccount
+        - dataAreaId
         - businessName
         - businessCategory
         - country
@@ -892,11 +910,14 @@ components:
         - licences
         - complianceWarnings
       properties:
-        customerId:
+        customerAccount:
           type: string
-          format: uuid
-          description: Customer ID (GUID)
-          example: "c7f3a1b2-8d4e-4a9c-b5e6-1f2a3b4c5d6e"
+          description: Customer account code from D365 F&O
+          example: "CUST-001"
+        dataAreaId:
+          type: string
+          description: D365 F&O data area / legal entity ID
+          example: "nlpd"
         businessName:
           type: string
           description: Customer business name
@@ -1097,10 +1118,10 @@ components:
                 properties:
                   field:
                     type: string
-                    example: "customerId"
+                    example: "customerAccount"
                   message:
                     type: string
-                    example: "customerId must be a valid UUID"
+                    example: "customerAccount is required"
 
   responses:
     BadRequest:
@@ -1115,8 +1136,8 @@ components:
               message: "Invalid request parameters"
               timestamp: "2026-01-09T14:30:00Z"
               details:
-                - field: "customerId"
-                  message: "customerId must be a valid UUID"
+                - field: "customerAccount"
+                  message: "customerAccount is required"
 
     Unauthorized:
       description: Authentication required or invalid credentials

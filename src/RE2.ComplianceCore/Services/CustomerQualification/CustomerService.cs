@@ -7,7 +7,7 @@ namespace RE2.ComplianceCore.Services.CustomerQualification;
 
 /// <summary>
 /// Service for customer qualification management business logic.
-/// T090: Business logic for customer qualification including validation and compliance status.
+/// Uses composite key (CustomerAccount + DataAreaId) per D365FO + Dataverse pattern.
 /// </summary>
 public class CustomerService : ICustomerService
 {
@@ -25,19 +25,19 @@ public class CustomerService : ICustomerService
         _logger = logger;
     }
 
-    public async Task<Customer?> GetByIdAsync(Guid customerId, CancellationToken cancellationToken = default)
+    public async Task<Customer?> GetByAccountAsync(string customerAccount, string dataAreaId, CancellationToken cancellationToken = default)
     {
-        return await _customerRepository.GetByIdAsync(customerId, cancellationToken);
-    }
-
-    public async Task<Customer?> GetByRegistrationNumberAsync(string registrationNumber, CancellationToken cancellationToken = default)
-    {
-        return await _customerRepository.GetByRegistrationNumberAsync(registrationNumber, cancellationToken);
+        return await _customerRepository.GetByAccountAsync(customerAccount, dataAreaId, cancellationToken);
     }
 
     public async Task<IEnumerable<Customer>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await _customerRepository.GetAllAsync(cancellationToken);
+    }
+
+    public async Task<IEnumerable<Customer>> GetAllD365CustomersAsync(CancellationToken cancellationToken = default)
+    {
+        return await _customerRepository.GetAllD365CustomersAsync(cancellationToken);
     }
 
     public async Task<IEnumerable<Customer>> GetByApprovalStatusAsync(ApprovalStatus status, CancellationToken cancellationToken = default)
@@ -55,7 +55,7 @@ public class CustomerService : ICustomerService
         return await _customerRepository.GetReVerificationDueAsync(daysAhead, cancellationToken);
     }
 
-    public async Task<(Guid? Id, ValidationResult Result)> CreateAsync(Customer customer, CancellationToken cancellationToken = default)
+    public async Task<(Guid? Id, ValidationResult Result)> ConfigureComplianceAsync(Customer customer, CancellationToken cancellationToken = default)
     {
         // Validate the customer
         var validationResult = await ValidateCustomerAsync(customer, cancellationToken);
@@ -64,37 +64,53 @@ public class CustomerService : ICustomerService
             return (null, validationResult);
         }
 
-        // Check for duplicate registration number
-        if (!string.IsNullOrEmpty(customer.RegistrationNumber))
+        // Verify customer exists in D365FO
+        var d365Customer = await _customerRepository.GetD365CustomerAsync(
+            customer.CustomerAccount, customer.DataAreaId, cancellationToken);
+
+        if (d365Customer == null)
         {
-            var existing = await _customerRepository.GetByRegistrationNumberAsync(customer.RegistrationNumber, cancellationToken);
-            if (existing != null)
+            return (null, ValidationResult.Failure(new[]
             {
-                return (null, ValidationResult.Failure(new[]
+                new ValidationViolation
                 {
-                    new ValidationViolation
-                    {
-                        ErrorCode = ErrorCodes.VALIDATION_ERROR,
-                        Message = $"Customer with registration number '{customer.RegistrationNumber}' already exists"
-                    }
-                }));
-            }
+                    ErrorCode = ErrorCodes.NOT_FOUND,
+                    Message = $"Customer '{customer.CustomerAccount}' not found in D365FO for data area '{customer.DataAreaId}'"
+                }
+            }));
+        }
+
+        // Check if compliance extension already exists
+        var existing = await _customerRepository.GetByAccountAsync(
+            customer.CustomerAccount, customer.DataAreaId, cancellationToken);
+        if (existing != null)
+        {
+            return (null, ValidationResult.Failure(new[]
+            {
+                new ValidationViolation
+                {
+                    ErrorCode = ErrorCodes.VALIDATION_ERROR,
+                    Message = $"Compliance extension already configured for customer '{customer.CustomerAccount}'"
+                }
+            }));
         }
 
         // Set timestamps
         customer.CreatedDate = DateTime.UtcNow;
         customer.ModifiedDate = DateTime.UtcNow;
 
-        var id = await _customerRepository.CreateAsync(customer, cancellationToken);
-        _logger.LogInformation("Created customer {BusinessName} with ID {Id}", customer.BusinessName, id);
+        var id = await _customerRepository.SaveComplianceExtensionAsync(customer, cancellationToken);
+        _logger.LogInformation("Configured compliance for customer {Account}/{DataArea} with extension ID {Id}",
+            customer.CustomerAccount, customer.DataAreaId, id);
 
         return (id, ValidationResult.Success());
     }
 
-    public async Task<ValidationResult> UpdateAsync(Customer customer, CancellationToken cancellationToken = default)
+    public async Task<ValidationResult> UpdateComplianceAsync(Customer customer, CancellationToken cancellationToken = default)
     {
-        // Check customer exists
-        var existing = await _customerRepository.GetByIdAsync(customer.CustomerId, cancellationToken);
+        // Check compliance extension exists
+        var existing = await _customerRepository.GetByAccountAsync(
+            customer.CustomerAccount, customer.DataAreaId, cancellationToken);
         if (existing == null)
         {
             return ValidationResult.Failure(new[]
@@ -102,7 +118,7 @@ public class CustomerService : ICustomerService
                 new ValidationViolation
                 {
                     ErrorCode = ErrorCodes.NOT_FOUND,
-                    Message = $"Customer with ID '{customer.CustomerId}' not found"
+                    Message = $"Compliance extension not found for customer '{customer.CustomerAccount}' in data area '{customer.DataAreaId}'"
                 }
             });
         }
@@ -114,36 +130,20 @@ public class CustomerService : ICustomerService
             return validationResult;
         }
 
-        // Check for duplicate registration number (if changed)
-        if (!string.IsNullOrEmpty(customer.RegistrationNumber) &&
-            existing.RegistrationNumber != customer.RegistrationNumber)
-        {
-            var duplicate = await _customerRepository.GetByRegistrationNumberAsync(customer.RegistrationNumber, cancellationToken);
-            if (duplicate != null)
-            {
-                return ValidationResult.Failure(new[]
-                {
-                    new ValidationViolation
-                    {
-                        ErrorCode = ErrorCodes.VALIDATION_ERROR,
-                        Message = $"Customer with registration number '{customer.RegistrationNumber}' already exists"
-                    }
-                });
-            }
-        }
-
-        // Update timestamp
+        // Preserve the extension ID
+        customer.ComplianceExtensionId = existing.ComplianceExtensionId;
         customer.ModifiedDate = DateTime.UtcNow;
 
-        await _customerRepository.UpdateAsync(customer, cancellationToken);
-        _logger.LogInformation("Updated customer {BusinessName} with ID {Id}", customer.BusinessName, customer.CustomerId);
+        await _customerRepository.UpdateComplianceExtensionAsync(customer, cancellationToken);
+        _logger.LogInformation("Updated compliance for customer {Account}/{DataArea}",
+            customer.CustomerAccount, customer.DataAreaId);
 
         return ValidationResult.Success();
     }
 
-    public async Task<ValidationResult> DeleteAsync(Guid customerId, CancellationToken cancellationToken = default)
+    public async Task<ValidationResult> RemoveComplianceAsync(string customerAccount, string dataAreaId, CancellationToken cancellationToken = default)
     {
-        var existing = await _customerRepository.GetByIdAsync(customerId, cancellationToken);
+        var existing = await _customerRepository.GetByAccountAsync(customerAccount, dataAreaId, cancellationToken);
         if (existing == null)
         {
             return ValidationResult.Failure(new[]
@@ -151,27 +151,27 @@ public class CustomerService : ICustomerService
                 new ValidationViolation
                 {
                     ErrorCode = ErrorCodes.NOT_FOUND,
-                    Message = $"Customer with ID '{customerId}' not found"
+                    Message = $"Compliance extension not found for customer '{customerAccount}' in data area '{dataAreaId}'"
                 }
             });
         }
 
-        await _customerRepository.DeleteAsync(customerId, cancellationToken);
-        _logger.LogInformation("Deleted customer {Id}", customerId);
+        await _customerRepository.DeleteComplianceExtensionAsync(customerAccount, dataAreaId, cancellationToken);
+        _logger.LogInformation("Removed compliance extension for customer {Account}/{DataArea}",
+            customerAccount, dataAreaId);
 
         return ValidationResult.Success();
     }
 
     public Task<ValidationResult> ValidateCustomerAsync(Customer customer, CancellationToken cancellationToken = default)
     {
-        // Use model validation
         var result = customer.Validate();
         return Task.FromResult(result);
     }
 
-    public async Task<ValidationResult> SuspendCustomerAsync(Guid customerId, string reason, CancellationToken cancellationToken = default)
+    public async Task<ValidationResult> SuspendCustomerAsync(string customerAccount, string dataAreaId, string reason, CancellationToken cancellationToken = default)
     {
-        var customer = await _customerRepository.GetByIdAsync(customerId, cancellationToken);
+        var customer = await _customerRepository.GetByAccountAsync(customerAccount, dataAreaId, cancellationToken);
         if (customer == null)
         {
             return ValidationResult.Failure(new[]
@@ -179,23 +179,23 @@ public class CustomerService : ICustomerService
                 new ValidationViolation
                 {
                     ErrorCode = ErrorCodes.NOT_FOUND,
-                    Message = $"Customer with ID '{customerId}' not found"
+                    Message = $"Customer '{customerAccount}' not found in data area '{dataAreaId}'"
                 }
             });
         }
 
         customer.Suspend(reason);
-        await _customerRepository.UpdateAsync(customer, cancellationToken);
+        await _customerRepository.UpdateComplianceExtensionAsync(customer, cancellationToken);
 
-        _logger.LogWarning("Suspended customer {CustomerId} ({BusinessName}): {Reason}",
-            customerId, customer.BusinessName, reason);
+        _logger.LogWarning("Suspended customer {Account}/{DataArea} ({BusinessName}): {Reason}",
+            customerAccount, dataAreaId, customer.BusinessName, reason);
 
         return ValidationResult.Success();
     }
 
-    public async Task<ValidationResult> ReinstateCustomerAsync(Guid customerId, CancellationToken cancellationToken = default)
+    public async Task<ValidationResult> ReinstateCustomerAsync(string customerAccount, string dataAreaId, CancellationToken cancellationToken = default)
     {
-        var customer = await _customerRepository.GetByIdAsync(customerId, cancellationToken);
+        var customer = await _customerRepository.GetByAccountAsync(customerAccount, dataAreaId, cancellationToken);
         if (customer == null)
         {
             return ValidationResult.Failure(new[]
@@ -203,28 +203,29 @@ public class CustomerService : ICustomerService
                 new ValidationViolation
                 {
                     ErrorCode = ErrorCodes.NOT_FOUND,
-                    Message = $"Customer with ID '{customerId}' not found"
+                    Message = $"Customer '{customerAccount}' not found in data area '{dataAreaId}'"
                 }
             });
         }
 
         customer.Reinstate();
-        await _customerRepository.UpdateAsync(customer, cancellationToken);
+        await _customerRepository.UpdateComplianceExtensionAsync(customer, cancellationToken);
 
-        _logger.LogInformation("Reinstated customer {CustomerId} ({BusinessName})",
-            customerId, customer.BusinessName);
+        _logger.LogInformation("Reinstated customer {Account}/{DataArea} ({BusinessName})",
+            customerAccount, dataAreaId, customer.BusinessName);
 
         return ValidationResult.Success();
     }
 
-    public async Task<CustomerComplianceStatus> GetComplianceStatusAsync(Guid customerId, CancellationToken cancellationToken = default)
+    public async Task<CustomerComplianceStatus> GetComplianceStatusAsync(string customerAccount, string dataAreaId, CancellationToken cancellationToken = default)
     {
-        var customer = await _customerRepository.GetByIdAsync(customerId, cancellationToken);
+        var customer = await _customerRepository.GetByAccountAsync(customerAccount, dataAreaId, cancellationToken);
         if (customer == null)
         {
             return new CustomerComplianceStatus
             {
-                CustomerId = customerId,
+                CustomerAccount = customerAccount,
+                DataAreaId = dataAreaId,
                 BusinessName = "Unknown",
                 ApprovalStatus = ApprovalStatus.Rejected,
                 CanTransact = false,
@@ -320,7 +321,8 @@ public class CustomerService : ICustomerService
 
         return new CustomerComplianceStatus
         {
-            CustomerId = customer.CustomerId,
+            CustomerAccount = customer.CustomerAccount,
+            DataAreaId = customer.DataAreaId,
             BusinessName = customer.BusinessName,
             ApprovalStatus = customer.ApprovalStatus,
             GdpQualificationStatus = customer.GdpQualificationStatus,

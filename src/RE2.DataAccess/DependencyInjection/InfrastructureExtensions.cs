@@ -59,6 +59,9 @@ public static class InfrastructureExtensions
         services.AddScoped<ISubstanceReclassificationRepository, DataverseSubstanceReclassificationRepository>();
         services.AddScoped<ILicenceSubstanceMappingRepository, DataverseLicenceSubstanceMappingRepository>();
 
+        // Register customer repository (composite: Dataverse + D365FO via ID365FoClient)
+        services.AddScoped<ICustomerRepository, DataverseCustomerRepository>();
+
         // Register GDP site repository (T189)
         services.AddScoped<IGdpSiteRepository, DataverseGdpSiteRepository>();
 

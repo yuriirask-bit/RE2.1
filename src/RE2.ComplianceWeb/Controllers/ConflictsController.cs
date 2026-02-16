@@ -244,20 +244,26 @@ public class ConflictsController : Controller
     }
 
     private async Task<ConflictResolutionResult> ResolveCustomerConflictAsync(
-        Guid customerId,
+        Guid complianceExtensionId,
         string resolution,
         Dictionary<string, string>? fieldChoices)
     {
+        // Look up customer by ComplianceExtensionId (the Guid entity ID used in conflict resolution)
+        var allCustomers = await _customerService.GetAllAsync();
+        var customer = allCustomers.FirstOrDefault(c => c.ComplianceExtensionId == complianceExtensionId);
+
         if (resolution == "database")
         {
             return new ConflictResolutionResult
             {
                 Success = true,
-                RedirectUrl = Url.Action("Details", "Customers", new { id = customerId })
+                RedirectUrl = customer != null
+                    ? Url.Action("Details", "Customers", new { customerAccount = customer.CustomerAccount, dataAreaId = customer.DataAreaId })
+                    : Url.Action("Index", "Customers")
             };
         }
 
-        var userValues = TempData.Get<Dictionary<string, object?>>("UserValues_" + customerId);
+        var userValues = TempData.Get<Dictionary<string, object?>>("UserValues_" + complianceExtensionId);
 
         if (userValues == null)
         {
@@ -270,8 +276,6 @@ public class ConflictsController : Controller
 
         try
         {
-            var customer = await _customerService.GetByIdAsync(customerId);
-
             if (customer == null)
             {
                 return new ConflictResolutionResult
@@ -299,12 +303,12 @@ public class ConflictsController : Controller
                 }
             }
 
-            await _customerService.UpdateAsync(customer);
+            await _customerService.UpdateComplianceAsync(customer);
 
             return new ConflictResolutionResult
             {
                 Success = true,
-                RedirectUrl = Url.Action("Details", "Customers", new { id = customerId })
+                RedirectUrl = Url.Action("Details", "Customers", new { customerAccount = customer.CustomerAccount, dataAreaId = customer.DataAreaId })
             };
         }
         catch (ConcurrencyException)

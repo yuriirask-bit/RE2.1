@@ -261,7 +261,7 @@ Validates a transaction against compliance rules. Accepts JSON via stdin or file
 dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- validate-transaction --file transaction.json
 
 # From stdin (pipe)
-echo '{"customerId":"00000000-0000-0000-0000-000000000010","transactionType":"Order","transactionDirection":"Outbound","lines":[{"substanceId":"00000000-0000-0000-0000-000000000001","quantity":100}]}' | dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- validate-transaction
+echo '{"customerAccount":"CUST-001","customerDataAreaId":"nlpd","transactionType":"Order","transactionDirection":"Outbound","lines":[{"substanceId":"00000000-0000-0000-0000-000000000001","quantity":100}]}' | dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- validate-transaction
 ```
 
 **Exit Codes**:
@@ -271,17 +271,17 @@ echo '{"customerId":"00000000-0000-0000-0000-000000000010","transactionType":"Or
 
 #### 2. lookup-customer
 
-Retrieves customer compliance status by ID or business name.
+Retrieves customer compliance status by account and data area, or by business name.
 
 ```bash
-# By ID
-dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- lookup-customer --id 00000000-0000-0000-0000-000000000010
+# By account and data area (composite key)
+dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- lookup-customer --account CUST-001 --data-area nlpd
 
 # By name (partial match)
 dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- lookup-customer --name "Amsterdam"
 
 # Include associated licences
-dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- lookup-customer --id 00000000-0000-0000-0000-000000000010 --include-licences
+dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- lookup-customer --account CUST-001 --data-area nlpd --include-licences
 ```
 
 **Output**: Customer details with compliance status (canTransact, isSuspended, warnings).
@@ -321,7 +321,7 @@ dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- generate-
 dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- generate-report -t alerts-summary
 
 # Transaction history report with filters
-dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- generate-report -t transaction-history --customer-id 00000000-0000-0000-0000-000000000010 --from 2026-01-01 --to 2026-01-31
+dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- generate-report -t transaction-history --customer-account CUST-001 --data-area nlpd --from 2026-01-01 --to 2026-01-31
 
 # Output to file
 dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- generate-report -t customer-compliance -o compliance-report.json
@@ -351,7 +351,7 @@ Success responses vary by command but always include relevant entity data.
 Add `--verbose` to any command for detailed logging to stderr:
 
 ```bash
-dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- lookup-customer --id 00000000-0000-0000-0000-000000000010 --verbose
+dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- lookup-customer --account CUST-001 --data-area nlpd --verbose
 ```
 
 ### Building Standalone Executable
@@ -448,11 +448,11 @@ public class TransactionValidationService
 
     public async Task<ValidationResult> ValidateTransactionAsync(TransactionRequest request)
     {
-        // Fetch customer data from D365 F&O
-        var customer = await _d365Client.GetCustomerAsync(request.CustomerId);
+        // Fetch customer master data from D365 F&O (read-only, keyed by CustomerAccount + DataAreaId)
+        var customer = await _d365Client.GetCustomerAsync(request.CustomerAccount, request.DataAreaId);
 
-        // Fetch licences from Dataverse
-        var licences = await _dataverseClient.GetLicencesForCustomerAsync(request.CustomerId);
+        // Fetch compliance extensions and licences from Dataverse
+        var licences = await _dataverseClient.GetLicencesForCustomerAsync(request.CustomerAccount, request.DataAreaId);
 
         // Perform validation (pure logic, no data persistence)
         return PerformValidation(customer, licences, request);
@@ -512,7 +512,7 @@ public async Task UpdateLicenceAsync(Licence licence)
 ```csharp
 var mockDataverseClient = new Mock<IDataverseClient>();
 mockDataverseClient
-    .Setup(c => c.GetLicencesForCustomerAsync(It.IsAny<Guid>()))
+    .Setup(c => c.GetLicencesForCustomerAsync(It.IsAny<string>(), It.IsAny<string>()))
     .ReturnsAsync(new List<Licence> { /* test data */ });
 ```
 

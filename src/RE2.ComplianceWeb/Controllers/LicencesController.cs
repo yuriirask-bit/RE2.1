@@ -52,22 +52,24 @@ public class LicencesController : Controller
     /// Loads customers for dropdown lists.
     /// T094: Customer selection for licence association.
     /// </summary>
-    private async Task<SelectList> GetCustomerSelectListAsync(Guid? selectedId = null, CancellationToken cancellationToken = default)
+    private async Task<SelectList> GetCustomerSelectListAsync(Guid? selectedHolderId = null, CancellationToken cancellationToken = default)
     {
         var customers = await _customerService.GetAllAsync(cancellationToken);
         var customerList = customers
+            .Where(c => c.IsComplianceConfigured)
             .OrderBy(c => c.BusinessName)
-            .Select(c => new { c.CustomerId, DisplayName = $"{c.BusinessName} ({c.Country})" });
-        return new SelectList(customerList, "CustomerId", "DisplayName", selectedId);
+            .Select(c => new { c.ComplianceExtensionId, DisplayName = $"{c.BusinessName} ({c.Country})" });
+        return new SelectList(customerList, "ComplianceExtensionId", "DisplayName", selectedHolderId);
     }
 
     /// <summary>
-    /// Gets customer name by ID for display purposes.
+    /// Gets customer name by HolderId (ComplianceExtensionId) for display purposes.
     /// T094: Display customer name in licence details.
     /// </summary>
-    private async Task<string?> GetCustomerNameAsync(Guid customerId, CancellationToken cancellationToken = default)
+    private async Task<string?> GetCustomerNameAsync(Guid holderId, CancellationToken cancellationToken = default)
     {
-        var customer = await _customerService.GetByIdAsync(customerId, cancellationToken);
+        var customers = await _customerService.GetAllAsync(cancellationToken);
+        var customer = customers.FirstOrDefault(c => c.ComplianceExtensionId == holderId);
         return customer?.BusinessName;
     }
 

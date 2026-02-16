@@ -37,7 +37,8 @@ public class TransactionsController : Controller
     /// </summary>
     public async Task<IActionResult> Index(
         string? status = null,
-        Guid? customerId = null,
+        string? customerAccount = null,
+        string? customerDataAreaId = null,
         DateTime? fromDate = null,
         DateTime? toDate = null,
         CancellationToken cancellationToken = default)
@@ -50,13 +51,15 @@ public class TransactionsController : Controller
 
         var transactions = await _complianceService.GetTransactionsAsync(
             validationStatus,
-            customerId,
+            customerAccount,
+            customerDataAreaId,
             fromDate,
             toDate,
             cancellationToken);
 
         ViewBag.StatusFilter = status;
-        ViewBag.CustomerIdFilter = customerId;
+        ViewBag.CustomerAccountFilter = customerAccount;
+        ViewBag.CustomerDataAreaIdFilter = customerDataAreaId;
         ViewBag.FromDateFilter = fromDate;
         ViewBag.ToDateFilter = toDate;
         ViewBag.ValidationStatuses = GetValidationStatusSelectList(status);
@@ -103,7 +106,7 @@ public class TransactionsController : Controller
 
         ViewBag.Customers = new SelectList(
             customers.Where(c => c.CanTransact()),
-            "CustomerId",
+            "CustomerAccount",
             "BusinessName");
         ViewBag.Substances = substances.ToList();
         ViewBag.TransactionTypes = GetTransactionTypeSelectList();
@@ -271,7 +274,8 @@ public class TransactionValidateViewModel
     public string ExternalId { get; set; } = $"ORD-{DateTime.UtcNow:yyyyMMdd}-{new Random().Next(1000, 9999)}";
     public TransactionTypes.TransactionType TransactionType { get; set; } = TransactionTypes.TransactionType.Order;
     public TransactionDirection Direction { get; set; } = TransactionDirection.Internal;
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+    public string CustomerDataAreaId { get; set; } = string.Empty;
     public string OriginCountry { get; set; } = "NL";
     public string? DestinationCountry { get; set; }
     public DateTime TransactionDate { get; set; } = DateTime.UtcNow;
@@ -289,7 +293,8 @@ public class TransactionValidateViewModel
             ExternalId = ExternalId,
             TransactionType = TransactionType,
             Direction = Direction,
-            CustomerId = CustomerId,
+            CustomerAccount = CustomerAccount,
+            CustomerDataAreaId = CustomerDataAreaId,
             OriginCountry = OriginCountry,
             DestinationCountry = DestinationCountry,
             TransactionDate = TransactionDate,

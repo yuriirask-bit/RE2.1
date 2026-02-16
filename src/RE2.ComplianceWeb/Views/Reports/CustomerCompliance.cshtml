@@ -32,16 +32,17 @@
                 @Html.AntiForgeryToken()
 
                 <div class="row mb-3">
-                    <div class="col-md-12">
-                        <label asp-for="CustomerId" class="form-label">Customer <span class="text-danger">*</span></label>
-                        <select asp-for="CustomerId" class="form-select" required>
+                    <div class="col-md-8">
+                        <label class="form-label">Customer <span class="text-danger">*</span></label>
+                        <select name="customerSelection" id="customerSelection" class="form-select" required>
                             <option value="">Select a customer...</option>
-                            @foreach (var customer in customers.OrderBy(c => c.BusinessName))
+                            @foreach (var customer in customers.Where(c => c.IsComplianceConfigured).OrderBy(c => c.BusinessName))
                             {
-                                <option value="@customer.CustomerId">@customer.BusinessName (@customer.BusinessCategory)</option>
+                                <option value="@customer.CustomerAccount|@customer.DataAreaId">@customer.BusinessName (@customer.BusinessCategory)</option>
                             }
                         </select>
-                        <span asp-validation-for="CustomerId" class="text-danger"></span>
+                        <input type="hidden" asp-for="CustomerAccount" id="customerAccount" />
+                        <input type="hidden" asp-for="DataAreaId" id="dataAreaId" />
                     </div>
                 </div>
 
@@ -77,4 +78,11 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.getElementById('customerSelection').addEventListener('change', function() {
+            var parts = this.value.split('|');
+            document.getElementById('customerAccount').value = parts[0] || '';
+            document.getElementById('dataAreaId').value = parts[1] || '';
+        });
+    </script>
 }
