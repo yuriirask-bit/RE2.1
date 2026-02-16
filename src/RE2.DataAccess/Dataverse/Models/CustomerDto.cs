@@ -3,21 +3,20 @@ using RE2.ComplianceCore.Models;
 namespace RE2.DataAccess.Dataverse.Models;
 
 /// <summary>
-/// Data transfer object for Dataverse phr_customer virtual table.
-/// T087: Dataverse DTO for Customer.
-/// Maps to data-model.md entity 5.
+/// Data transfer object for Dataverse phr_customercomplianceextension table.
+/// Stores compliance-specific extensions for customers whose master data lives in D365FO.
+/// Composite key: phr_customeraccount + phr_dataareaid links to D365FO CustomersV3.
 /// </summary>
-public class CustomerDto
+public class CustomerComplianceExtensionDto
 {
-    public Guid phr_customerid { get; set; }
-    public string? phr_businessname { get; set; }
-    public string? phr_registrationnumber { get; set; }
+    public Guid phr_complianceextensionid { get; set; }
+    public string? phr_customeraccount { get; set; }
+    public string? phr_dataareaid { get; set; }
     public int phr_businesscategory { get; set; }
-    public string? phr_country { get; set; }
     public int phr_approvalstatus { get; set; }
+    public int phr_gdpqualificationstatus { get; set; }
     public DateTime? phr_onboardingdate { get; set; }
     public DateTime? phr_nextreverificationdate { get; set; }
-    public int phr_gdpqualificationstatus { get; set; }
     public bool phr_issuspended { get; set; }
     public string? phr_suspensionreason { get; set; }
     public DateTime phr_createddate { get; set; }
@@ -25,53 +24,61 @@ public class CustomerDto
     public byte[]? phr_rowversion { get; set; }
 
     /// <summary>
-    /// Converts DTO to domain model.
+    /// Applies compliance extension fields onto an existing Customer domain model
+    /// (which already has D365FO fields populated).
     /// </summary>
-    public Customer ToDomainModel()
+    public void ApplyToDomainModel(Customer customer)
     {
-        return new Customer
-        {
-            CustomerId = phr_customerid,
-            BusinessName = phr_businessname ?? string.Empty,
-            RegistrationNumber = phr_registrationnumber,
-            BusinessCategory = (BusinessCategory)phr_businesscategory,
-            Country = phr_country ?? string.Empty,
-            ApprovalStatus = (ApprovalStatus)phr_approvalstatus,
-            OnboardingDate = phr_onboardingdate.HasValue
-                ? DateOnly.FromDateTime(phr_onboardingdate.Value)
-                : null,
-            NextReVerificationDate = phr_nextreverificationdate.HasValue
-                ? DateOnly.FromDateTime(phr_nextreverificationdate.Value)
-                : null,
-            GdpQualificationStatus = (GdpQualificationStatus)phr_gdpqualificationstatus,
-            IsSuspended = phr_issuspended,
-            SuspensionReason = phr_suspensionreason,
-            CreatedDate = phr_createddate,
-            ModifiedDate = phr_modifieddate,
-            RowVersion = phr_rowversion ?? Array.Empty<byte>()
-        };
+        customer.ComplianceExtensionId = phr_complianceextensionid;
+        customer.BusinessCategory = (BusinessCategory)phr_businesscategory;
+        customer.ApprovalStatus = (ApprovalStatus)phr_approvalstatus;
+        customer.GdpQualificationStatus = (GdpQualificationStatus)phr_gdpqualificationstatus;
+        customer.OnboardingDate = phr_onboardingdate.HasValue
+            ? DateOnly.FromDateTime(phr_onboardingdate.Value)
+            : null;
+        customer.NextReVerificationDate = phr_nextreverificationdate.HasValue
+            ? DateOnly.FromDateTime(phr_nextreverificationdate.Value)
+            : null;
+        customer.IsSuspended = phr_issuspended;
+        customer.SuspensionReason = phr_suspensionreason;
+        customer.CreatedDate = phr_createddate;
+        customer.ModifiedDate = phr_modifieddate;
+        customer.RowVersion = phr_rowversion ?? Array.Empty<byte>();
     }
 
     /// <summary>
-    /// Converts domain model to DTO.
+    /// Converts DTO to domain model (compliance extension fields only; D365FO fields will be defaults).
     /// </summary>
-    public static CustomerDto FromDomainModel(Customer model)
+    public Customer ToDomainModel()
     {
-        return new CustomerDto
+        var customer = new Customer
         {
-            phr_customerid = model.CustomerId,
-            phr_businessname = model.BusinessName,
-            phr_registrationnumber = model.RegistrationNumber,
+            CustomerAccount = phr_customeraccount ?? string.Empty,
+            DataAreaId = phr_dataareaid ?? string.Empty
+        };
+        ApplyToDomainModel(customer);
+        return customer;
+    }
+
+    /// <summary>
+    /// Converts domain model to DTO (compliance extension fields only).
+    /// </summary>
+    public static CustomerComplianceExtensionDto FromDomainModel(Customer model)
+    {
+        return new CustomerComplianceExtensionDto
+        {
+            phr_complianceextensionid = model.ComplianceExtensionId,
+            phr_customeraccount = model.CustomerAccount,
+            phr_dataareaid = model.DataAreaId,
             phr_businesscategory = (int)model.BusinessCategory,
-            phr_country = model.Country,
             phr_approvalstatus = (int)model.ApprovalStatus,
+            phr_gdpqualificationstatus = (int)model.GdpQualificationStatus,
             phr_onboardingdate = model.OnboardingDate.HasValue
                 ? model.OnboardingDate.Value.ToDateTime(TimeOnly.MinValue)
                 : null,
             phr_nextreverificationdate = model.NextReVerificationDate.HasValue
                 ? model.NextReVerificationDate.Value.ToDateTime(TimeOnly.MinValue)
                 : null,
-            phr_gdpqualificationstatus = (int)model.GdpQualificationStatus,
             phr_issuspended = model.IsSuspended,
             phr_suspensionreason = model.SuspensionReason,
             phr_createddate = model.CreatedDate,

@@ -8,6 +8,7 @@ namespace RE2.ComplianceCli.Tests;
 /// <summary>
 /// T052h: CLI integration tests verifying stdin/stdout protocol.
 /// Tests the CLI executable end-to-end to ensure proper text I/O per Constitution Principle IV.
+/// Customer lookup uses composite key: --account + --data-area instead of --id (Guid).
 /// </summary>
 public class CliIntegrationTests
 {
@@ -91,20 +92,21 @@ public class CliIntegrationTests
     #region Lookup Customer Command Tests
 
     [Fact]
-    public async Task LookupCustomer_ById_ReturnsValidJson()
+    public async Task LookupCustomer_ByAccount_ReturnsValidJson()
     {
-        // Use a known seed data customer ID
-        var customerId = "00000000-0000-0000-0000-000000000010";
+        // Use a known seed data customer account with data area
+        var customerAccount = "CUST-001";
+        var dataAreaId = "nlpd";
 
         // Act
-        var (exitCode, stdout, _) = await RunCliAsync("lookup-customer", "--id", customerId);
+        var (exitCode, stdout, _) = await RunCliAsync("lookup-customer", "--account", customerAccount, "--data-area", dataAreaId);
 
         // Assert
         Assert.Equal(0, exitCode);
 
         var json = JsonDocument.Parse(stdout);
-        Assert.True(json.RootElement.TryGetProperty("customerId", out _));
-        Assert.True(json.RootElement.TryGetProperty("businessName", out _));
+        Assert.True(json.RootElement.TryGetProperty("customerAccount", out _));
+        Assert.True(json.RootElement.TryGetProperty("dataAreaId", out _));
         Assert.True(json.RootElement.TryGetProperty("complianceStatus", out _));
     }
 
@@ -120,16 +122,16 @@ public class CliIntegrationTests
 
         // Should return either a single customer or a list of matches
         var json = JsonDocument.Parse(stdout);
-        var hasCustomerId = json.RootElement.TryGetProperty("customerId", out _);
+        var hasCustomerAccount = json.RootElement.TryGetProperty("customerAccount", out _);
         var hasMatches = json.RootElement.TryGetProperty("matches", out _);
-        Assert.True(hasCustomerId || hasMatches);
+        Assert.True(hasCustomerAccount || hasMatches);
     }
 
     [Fact]
     public async Task LookupCustomer_NotFound_ReturnsError()
     {
         // Act
-        var (exitCode, stdout, _) = await RunCliAsync("lookup-customer", "--id", "00000000-0000-0000-0000-999999999999");
+        var (exitCode, stdout, _) = await RunCliAsync("lookup-customer", "--account", "NONEXISTENT-999", "--data-area", "nlpd");
 
         // Assert
         Assert.Equal(1, exitCode);
@@ -139,7 +141,7 @@ public class CliIntegrationTests
     }
 
     [Fact]
-    public async Task LookupCustomer_NoIdOrName_ReturnsError()
+    public async Task LookupCustomer_NoAccountOrName_ReturnsError()
     {
         // Act
         var (exitCode, stdout, _) = await RunCliAsync("lookup-customer");
@@ -193,10 +195,11 @@ public class CliIntegrationTests
     [Fact]
     public async Task ValidateTransaction_ValidJson_ReturnsValidationResult()
     {
-        // Arrange - create a sample transaction JSON
+        // Arrange - create a sample transaction JSON using customer account + data area
         var transactionJson = JsonSerializer.Serialize(new
         {
-            customerId = "00000000-0000-0000-0000-000000000010",
+            customerAccount = "CUST-001",
+            dataAreaId = "nlpd",
             transactionType = "Order",
             transactionDirection = "Outbound",
             destinationCountry = "NL",

@@ -126,7 +126,8 @@ public class TransactionsController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<TransactionResponseDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTransactions(
         [FromQuery] string? status = null,
-        [FromQuery] Guid? customerId = null,
+        [FromQuery] string? customerAccount = null,
+        [FromQuery] string? customerDataAreaId = null,
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null,
         CancellationToken cancellationToken = default)
@@ -139,7 +140,8 @@ public class TransactionsController : ControllerBase
 
         var transactions = await _complianceService.GetTransactionsAsync(
             validationStatus,
-            customerId,
+            customerAccount,
+            customerDataAreaId,
             fromDate,
             toDate,
             cancellationToken);
@@ -403,9 +405,14 @@ public class TransactionValidationRequestDto
     public string Direction { get; set; } = "Internal";
 
     /// <summary>
-    /// Customer ID.
+    /// Customer account number (D365FO CustomerAccount).
     /// </summary>
-    public required Guid CustomerId { get; set; }
+    public required string CustomerAccount { get; set; }
+
+    /// <summary>
+    /// Customer data area ID (D365FO legal entity).
+    /// </summary>
+    public required string CustomerDataAreaId { get; set; }
 
     /// <summary>
     /// Origin country (ISO 3166-1 alpha-2).
@@ -452,7 +459,8 @@ public class TransactionValidationRequestDto
             ExternalId = ExternalId,
             TransactionType = Enum.Parse<TransactionTypes.TransactionType>(TransactionType, true),
             Direction = Enum.Parse<TransactionDirection>(Direction, true),
-            CustomerId = CustomerId,
+            CustomerAccount = CustomerAccount,
+            CustomerDataAreaId = CustomerDataAreaId,
             OriginCountry = OriginCountry,
             DestinationCountry = DestinationCountry,
             TransactionDate = TransactionDate,
@@ -692,7 +700,8 @@ public class TransactionResponseDto
     public string ExternalId { get; set; } = string.Empty;
     public string TransactionType { get; set; } = string.Empty;
     public string Direction { get; set; } = string.Empty;
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+    public string CustomerDataAreaId { get; set; } = string.Empty;
     public string? CustomerName { get; set; }
     public string OriginCountry { get; set; } = string.Empty;
     public string? DestinationCountry { get; set; }
@@ -720,7 +729,8 @@ public class TransactionResponseDto
             ExternalId = transaction.ExternalId,
             TransactionType = transaction.TransactionType.ToString(),
             Direction = transaction.Direction.ToString(),
-            CustomerId = transaction.CustomerId,
+            CustomerAccount = transaction.CustomerAccount,
+            CustomerDataAreaId = transaction.CustomerDataAreaId,
             CustomerName = transaction.CustomerName,
             OriginCountry = transaction.OriginCountry,
             DestinationCountry = transaction.DestinationCountry,

@@ -31,9 +31,14 @@ public class TransactionDto
     public int Direction { get; set; }
 
     /// <summary>
-    /// Customer ID reference.
+    /// Customer account number reference.
     /// </summary>
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Customer data area (legal entity) ID.
+    /// </summary>
+    public string CustomerDataAreaId { get; set; } = string.Empty;
 
     /// <summary>
     /// Customer name for display.
@@ -168,7 +173,8 @@ public class TransactionDto
             ExternalId = ExternalId,
             TransactionType = (Shared.Constants.TransactionTypes.TransactionType)TransactionType,
             Direction = (TransactionDirection)Direction,
-            CustomerId = CustomerId,
+            CustomerAccount = CustomerAccount,
+            CustomerDataAreaId = CustomerDataAreaId,
             CustomerName = CustomerName,
             OriginCountry = OriginCountry,
             DestinationCountry = DestinationCountry,
@@ -222,7 +228,8 @@ public class TransactionDto
             ExternalId = model.ExternalId,
             TransactionType = (int)model.TransactionType,
             Direction = (int)model.Direction,
-            CustomerId = model.CustomerId,
+            CustomerAccount = model.CustomerAccount,
+            CustomerDataAreaId = model.CustomerDataAreaId,
             CustomerName = model.CustomerName,
             OriginCountry = model.OriginCountry,
             DestinationCountry = model.DestinationCountry,

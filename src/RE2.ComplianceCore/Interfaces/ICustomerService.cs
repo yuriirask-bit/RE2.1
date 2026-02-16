@@ -4,24 +4,24 @@ namespace RE2.ComplianceCore.Interfaces;
 
 /// <summary>
 /// Service interface for customer business logic.
-/// T090: Service interface for customer qualification management.
+/// Uses composite key (CustomerAccount + DataAreaId) per D365FO + Dataverse pattern.
 /// </summary>
 public interface ICustomerService
 {
     /// <summary>
-    /// Gets a customer by ID.
+    /// Gets a customer by composite key.
     /// </summary>
-    Task<Customer?> GetByIdAsync(Guid customerId, CancellationToken cancellationToken = default);
+    Task<Customer?> GetByAccountAsync(string customerAccount, string dataAreaId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets a customer by registration number.
-    /// </summary>
-    Task<Customer?> GetByRegistrationNumberAsync(string registrationNumber, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Gets all customers.
+    /// Gets all compliance-configured customers.
     /// </summary>
     Task<IEnumerable<Customer>> GetAllAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all D365FO customers (master data).
+    /// </summary>
+    Task<IEnumerable<Customer>> GetAllD365CustomersAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets customers by approval status.
@@ -39,19 +39,19 @@ public interface ICustomerService
     Task<IEnumerable<Customer>> GetReVerificationDueAsync(int daysAhead = 90, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Creates a new customer after validation.
+    /// Configures compliance extension for a D365FO customer.
     /// </summary>
-    Task<(Guid? Id, ValidationResult Result)> CreateAsync(Customer customer, CancellationToken cancellationToken = default);
+    Task<(Guid? Id, ValidationResult Result)> ConfigureComplianceAsync(Customer customer, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Updates an existing customer after validation.
+    /// Updates an existing compliance extension.
     /// </summary>
-    Task<ValidationResult> UpdateAsync(Customer customer, CancellationToken cancellationToken = default);
+    Task<ValidationResult> UpdateComplianceAsync(Customer customer, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Deletes a customer.
+    /// Removes compliance extension for a customer.
     /// </summary>
-    Task<ValidationResult> DeleteAsync(Guid customerId, CancellationToken cancellationToken = default);
+    Task<ValidationResult> RemoveComplianceAsync(string customerAccount, string dataAreaId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Validates a customer meets business rules.
@@ -61,18 +61,18 @@ public interface ICustomerService
     /// <summary>
     /// Suspends a customer with a reason.
     /// </summary>
-    Task<ValidationResult> SuspendCustomerAsync(Guid customerId, string reason, CancellationToken cancellationToken = default);
+    Task<ValidationResult> SuspendCustomerAsync(string customerAccount, string dataAreaId, string reason, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Reinstates a suspended customer.
     /// </summary>
-    Task<ValidationResult> ReinstateCustomerAsync(Guid customerId, CancellationToken cancellationToken = default);
+    Task<ValidationResult> ReinstateCustomerAsync(string customerAccount, string dataAreaId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the compliance status for a customer.
     /// Per FR-060: Customer compliance status lookup.
     /// </summary>
-    Task<CustomerComplianceStatus> GetComplianceStatusAsync(Guid customerId, CancellationToken cancellationToken = default);
+    Task<CustomerComplianceStatus> GetComplianceStatusAsync(string customerAccount, string dataAreaId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Searches customers by business name (partial match).
@@ -86,7 +86,8 @@ public interface ICustomerService
 /// </summary>
 public class CustomerComplianceStatus
 {
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+    public string DataAreaId { get; set; } = string.Empty;
     public string BusinessName { get; set; } = string.Empty;
     public ApprovalStatus ApprovalStatus { get; set; }
     public GdpQualificationStatus GdpQualificationStatus { get; set; }

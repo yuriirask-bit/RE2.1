@@ -25,7 +25,7 @@ A comprehensive licence management and GDP compliance system for Dutch pharmaceu
 
 **Critical Path (99.5% availability target per FR-052, failover required)**:
 - Transaction validation API (POST /api/v1/transactions/validate)
-- Customer compliance lookup API (GET /api/v1/customers/{id}/compliance-status)
+- Customer compliance lookup API (GET /api/v1/customers/{customerAccount}/compliance-status?dataAreaId=)
 - Warehouse operation validation API (POST /api/v1/warehouse/operations/validate)
 - Licence expiry alert generation (Azure Function)
 - Health check endpoints
@@ -103,7 +103,7 @@ src/
 ├── RE2.ComplianceApi/                     # ASP.NET Core Web API (Azure App Service)
 │   ├── Controllers/
 │   │   ├── TransactionValidationController.cs   # FR-018 (POST /api/v1/transactions/validate)
-│   │   ├── CustomerComplianceController.cs      # FR-060 (GET /api/v1/customers/{id}/status)
+│   │   ├── CustomersController.cs                # FR-060 (GET /api/v1/customers/{customerAccount}/compliance-status)
 │   │   ├── LicencesController.cs                # CRUD for licence management
 │   │   ├── GdpSitesController.cs                # GDP site management
 │   │   └── ComplianceOverrideController.cs      # FR-019a override approvals

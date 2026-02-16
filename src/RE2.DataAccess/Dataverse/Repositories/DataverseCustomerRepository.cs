@@ -8,81 +8,145 @@ using RE2.DataAccess.Dataverse.Models;
 namespace RE2.DataAccess.Dataverse.Repositories;
 
 /// <summary>
-/// Dataverse implementation of ICustomerRepository.
-/// T089: Repository implementation for Customer per data-model.md entity 5.
+/// Dataverse + D365FO composite implementation of ICustomerRepository.
+/// D365FO CustomersV3 provides read-only master data via OData.
+/// Dataverse phr_customercomplianceextension stores compliance extensions.
 /// </summary>
 public class DataverseCustomerRepository : ICustomerRepository
 {
     private readonly IDataverseClient _client;
+    private readonly ID365FoClient _d365FoClient;
     private readonly ILogger<DataverseCustomerRepository> _logger;
-    private const string EntityName = "phr_customer";
+    private const string ExtensionEntityName = "phr_customercomplianceextension";
 
-    public DataverseCustomerRepository(IDataverseClient client, ILogger<DataverseCustomerRepository> logger)
+    public DataverseCustomerRepository(
+        IDataverseClient client,
+        ID365FoClient d365FoClient,
+        ILogger<DataverseCustomerRepository> logger)
     {
         _client = client;
+        _d365FoClient = d365FoClient;
         _logger = logger;
     }
 
-    public async Task<Customer?> GetByIdAsync(Guid customerId, CancellationToken cancellationToken = default)
+    #region D365FO Customer Queries
+
+    public async Task<IEnumerable<Customer>> GetAllD365CustomersAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            var entity = await _client.RetrieveAsync(EntityName, customerId, new ColumnSet(true), cancellationToken);
-            return MapToDto(entity).ToDomainModel();
+            var response = await _d365FoClient.GetAsync<D365FinanceOperations.Models.CustomerODataResponse>(
+                "CustomersV3",
+                "$select=CustomerAccount,dataAreaId,OrganizationName,AddressCountryRegionId",
+                cancellationToken);
+
+            if (response?.Value == null)
+                return Enumerable.Empty<Customer>();
+
+            var customers = response.Value.Select(dto => dto.ToDomainModel()).ToList();
+
+            // Merge compliance extensions where they exist
+            foreach (var customer in customers)
+            {
+                var extension = await GetComplianceExtensionAsync(customer.CustomerAccount, customer.DataAreaId, cancellationToken);
+                if (extension != null)
+                {
+                    extension.ApplyToDomainModel(customer);
+                }
+            }
+
+            return customers;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving customer {Id}", customerId);
+            _logger.LogError(ex, "Error retrieving D365FO customers");
+            return Enumerable.Empty<Customer>();
+        }
+    }
+
+    public async Task<Customer?> GetD365CustomerAsync(string customerAccount, string dataAreaId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await _d365FoClient.GetByKeyAsync<D365FinanceOperations.Models.CustomerDto>(
+                "CustomersV3",
+                $"CustomerAccount='{customerAccount}',dataAreaId='{dataAreaId}'",
+                cancellationToken);
+
+            if (response == null)
+                return null;
+
+            var customer = response.ToDomainModel();
+
+            // Merge compliance extension if exists
+            var extension = await GetComplianceExtensionAsync(customerAccount, dataAreaId, cancellationToken);
+            if (extension != null)
+            {
+                extension.ApplyToDomainModel(customer);
+            }
+
+            return customer;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving D365FO customer {Account}/{DataArea}", customerAccount, dataAreaId);
             return null;
         }
     }
 
-    public async Task<Customer?> GetByBusinessNameAsync(string businessName, CancellationToken cancellationToken = default)
+    #endregion
+
+    #region Composite Queries
+
+    public async Task<Customer?> GetByAccountAsync(string customerAccount, string dataAreaId, CancellationToken cancellationToken = default)
     {
-        var query = new QueryExpression(EntityName)
+        // Get compliance extension first (this is the primary lookup for compliance-configured customers)
+        var extension = await GetComplianceExtensionAsync(customerAccount, dataAreaId, cancellationToken);
+        if (extension == null)
+            return null;
+
+        var customer = extension.ToDomainModel();
+
+        // Merge D365FO master data
+        var d365Customer = await GetD365CustomerAsync(customerAccount, dataAreaId, cancellationToken);
+        if (d365Customer != null)
         {
-            ColumnSet = new ColumnSet(true),
-            Criteria = new FilterExpression
-            {
-                Conditions =
-                {
-                    new ConditionExpression("phr_businessname", ConditionOperator.Equal, businessName)
-                }
-            }
-        };
+            customer.OrganizationName = d365Customer.OrganizationName;
+            customer.AddressCountryRegionId = d365Customer.AddressCountryRegionId;
+        }
 
-        var result = await _client.RetrieveMultipleAsync(query, cancellationToken);
-        return result.Entities.FirstOrDefault() != null ? MapToDto(result.Entities.First()).ToDomainModel() : null;
-    }
-
-    public async Task<Customer?> GetByRegistrationNumberAsync(string registrationNumber, CancellationToken cancellationToken = default)
-    {
-        var query = new QueryExpression(EntityName)
-        {
-            ColumnSet = new ColumnSet(true),
-            Criteria = new FilterExpression
-            {
-                Conditions =
-                {
-                    new ConditionExpression("phr_registrationnumber", ConditionOperator.Equal, registrationNumber)
-                }
-            }
-        };
-
-        var result = await _client.RetrieveMultipleAsync(query, cancellationToken);
-        return result.Entities.FirstOrDefault() != null ? MapToDto(result.Entities.First()).ToDomainModel() : null;
+        return customer;
     }
 
     public async Task<IEnumerable<Customer>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        var query = new QueryExpression(EntityName) { ColumnSet = new ColumnSet(true) };
+        var query = new QueryExpression(ExtensionEntityName) { ColumnSet = new ColumnSet(true) };
         var result = await _client.RetrieveMultipleAsync(query, cancellationToken);
-        return result.Entities.Select(e => MapToDto(e).ToDomainModel()).ToList();
+
+        var customers = new List<Customer>();
+        foreach (var entity in result.Entities)
+        {
+            var dto = MapToDto(entity);
+            var customer = dto.ToDomainModel();
+
+            // Merge D365FO data
+            var d365Customer = await GetD365CustomerAsync(
+                customer.CustomerAccount, customer.DataAreaId, cancellationToken);
+            if (d365Customer != null)
+            {
+                customer.OrganizationName = d365Customer.OrganizationName;
+                customer.AddressCountryRegionId = d365Customer.AddressCountryRegionId;
+            }
+
+            customers.Add(customer);
+        }
+
+        return customers;
     }
 
     public async Task<IEnumerable<Customer>> GetByApprovalStatusAsync(ApprovalStatus status, CancellationToken cancellationToken = default)
     {
-        var query = new QueryExpression(EntityName)
+        var query = new QueryExpression(ExtensionEntityName)
         {
             ColumnSet = new ColumnSet(true),
             Criteria = new FilterExpression
@@ -95,12 +159,12 @@ public class DataverseCustomerRepository : ICustomerRepository
         };
 
         var result = await _client.RetrieveMultipleAsync(query, cancellationToken);
-        return result.Entities.Select(e => MapToDto(e).ToDomainModel()).ToList();
+        return await MergeD365DataForEntities(result.Entities, cancellationToken);
     }
 
     public async Task<IEnumerable<Customer>> GetByBusinessCategoryAsync(BusinessCategory category, CancellationToken cancellationToken = default)
     {
-        var query = new QueryExpression(EntityName)
+        var query = new QueryExpression(ExtensionEntityName)
         {
             ColumnSet = new ColumnSet(true),
             Criteria = new FilterExpression
@@ -113,30 +177,12 @@ public class DataverseCustomerRepository : ICustomerRepository
         };
 
         var result = await _client.RetrieveMultipleAsync(query, cancellationToken);
-        return result.Entities.Select(e => MapToDto(e).ToDomainModel()).ToList();
-    }
-
-    public async Task<IEnumerable<Customer>> GetByCountryAsync(string country, CancellationToken cancellationToken = default)
-    {
-        var query = new QueryExpression(EntityName)
-        {
-            ColumnSet = new ColumnSet(true),
-            Criteria = new FilterExpression
-            {
-                Conditions =
-                {
-                    new ConditionExpression("phr_country", ConditionOperator.Equal, country)
-                }
-            }
-        };
-
-        var result = await _client.RetrieveMultipleAsync(query, cancellationToken);
-        return result.Entities.Select(e => MapToDto(e).ToDomainModel()).ToList();
+        return await MergeD365DataForEntities(result.Entities, cancellationToken);
     }
 
     public async Task<IEnumerable<Customer>> GetSuspendedAsync(CancellationToken cancellationToken = default)
     {
-        var query = new QueryExpression(EntityName)
+        var query = new QueryExpression(ExtensionEntityName)
         {
             ColumnSet = new ColumnSet(true),
             Criteria = new FilterExpression
@@ -149,14 +195,14 @@ public class DataverseCustomerRepository : ICustomerRepository
         };
 
         var result = await _client.RetrieveMultipleAsync(query, cancellationToken);
-        return result.Entities.Select(e => MapToDto(e).ToDomainModel()).ToList();
+        return await MergeD365DataForEntities(result.Entities, cancellationToken);
     }
 
     public async Task<IEnumerable<Customer>> GetReVerificationDueAsync(int daysAhead, CancellationToken cancellationToken = default)
     {
         var dueDate = DateTime.UtcNow.AddDays(daysAhead);
 
-        var query = new QueryExpression(EntityName)
+        var query = new QueryExpression(ExtensionEntityName)
         {
             ColumnSet = new ColumnSet(true),
             Criteria = new FilterExpression
@@ -170,14 +216,12 @@ public class DataverseCustomerRepository : ICustomerRepository
         };
 
         var result = await _client.RetrieveMultipleAsync(query, cancellationToken);
-        return result.Entities.Select(e => MapToDto(e).ToDomainModel()).ToList();
+        return await MergeD365DataForEntities(result.Entities, cancellationToken);
     }
 
     public async Task<IEnumerable<Customer>> GetCanTransactAsync(CancellationToken cancellationToken = default)
     {
-        // Per data-model.md: ApprovalStatus must be Approved or ConditionallyApproved,
-        // and IsSuspended = false
-        var query = new QueryExpression(EntityName)
+        var query = new QueryExpression(ExtensionEntityName)
         {
             ColumnSet = new ColumnSet(true),
             Criteria = new FilterExpression
@@ -203,72 +247,136 @@ public class DataverseCustomerRepository : ICustomerRepository
         };
 
         var result = await _client.RetrieveMultipleAsync(query, cancellationToken);
-        return result.Entities.Select(e => MapToDto(e).ToDomainModel()).ToList();
+        return await MergeD365DataForEntities(result.Entities, cancellationToken);
     }
 
-    public async Task<Guid> CreateAsync(Customer customer, CancellationToken cancellationToken = default)
+    #endregion
+
+    #region Compliance Extension CRUD
+
+    public async Task<Guid> SaveComplianceExtensionAsync(Customer customer, CancellationToken cancellationToken = default)
     {
-        var dto = CustomerDto.FromDomainModel(customer);
+        var dto = CustomerComplianceExtensionDto.FromDomainModel(customer);
         var entity = MapToEntity(dto);
         return await _client.CreateAsync(entity, cancellationToken);
     }
 
-    public async Task UpdateAsync(Customer customer, CancellationToken cancellationToken = default)
+    public async Task UpdateComplianceExtensionAsync(Customer customer, CancellationToken cancellationToken = default)
     {
-        var dto = CustomerDto.FromDomainModel(customer);
+        var dto = CustomerComplianceExtensionDto.FromDomainModel(customer);
         var entity = MapToEntity(dto);
         await _client.UpdateAsync(entity, cancellationToken);
     }
 
-    public async Task DeleteAsync(Guid customerId, CancellationToken cancellationToken = default)
+    public async Task DeleteComplianceExtensionAsync(string customerAccount, string dataAreaId, CancellationToken cancellationToken = default)
     {
-        await _client.DeleteAsync(EntityName, customerId, cancellationToken);
+        var extension = await GetComplianceExtensionAsync(customerAccount, dataAreaId, cancellationToken);
+        if (extension != null)
+        {
+            await _client.DeleteAsync(ExtensionEntityName, extension.phr_complianceextensionid, cancellationToken);
+        }
     }
 
-    public async Task<bool> ExistsAsync(Guid customerId, CancellationToken cancellationToken = default)
+    public async Task<bool> ExistsAsync(string customerAccount, string dataAreaId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var entity = await _client.RetrieveAsync(EntityName, customerId, new ColumnSet("phr_customerid"), cancellationToken);
-            return entity != null;
-        }
-        catch
-        {
-            return false;
-        }
+        var extension = await GetComplianceExtensionAsync(customerAccount, dataAreaId, cancellationToken);
+        return extension != null;
     }
 
     public async Task<IEnumerable<Customer>> SearchByNameAsync(string searchTerm, CancellationToken cancellationToken = default)
     {
-        var query = new QueryExpression(EntityName)
+        // Search D365FO customers by organization name
+        try
+        {
+            var response = await _d365FoClient.GetAsync<D365FinanceOperations.Models.CustomerODataResponse>(
+                "CustomersV3",
+                $"$filter=contains(OrganizationName,'{searchTerm}')&$select=CustomerAccount,dataAreaId,OrganizationName,AddressCountryRegionId",
+                cancellationToken);
+
+            if (response?.Value == null)
+                return Enumerable.Empty<Customer>();
+
+            var customers = new List<Customer>();
+            foreach (var dto in response.Value)
+            {
+                var customer = dto.ToDomainModel();
+                var extension = await GetComplianceExtensionAsync(customer.CustomerAccount, customer.DataAreaId, cancellationToken);
+                if (extension != null)
+                {
+                    extension.ApplyToDomainModel(customer);
+                }
+                customers.Add(customer);
+            }
+
+            return customers;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching customers by name '{SearchTerm}'", searchTerm);
+            return Enumerable.Empty<Customer>();
+        }
+    }
+
+    #endregion
+
+    #region Private Helpers
+
+    private async Task<CustomerComplianceExtensionDto?> GetComplianceExtensionAsync(
+        string customerAccount, string dataAreaId, CancellationToken cancellationToken)
+    {
+        var query = new QueryExpression(ExtensionEntityName)
         {
             ColumnSet = new ColumnSet(true),
             Criteria = new FilterExpression
             {
+                FilterOperator = LogicalOperator.And,
                 Conditions =
                 {
-                    new ConditionExpression("phr_businessname", ConditionOperator.Contains, searchTerm)
+                    new ConditionExpression("phr_customeraccount", ConditionOperator.Equal, customerAccount),
+                    new ConditionExpression("phr_dataareaid", ConditionOperator.Equal, dataAreaId)
                 }
             }
         };
 
         var result = await _client.RetrieveMultipleAsync(query, cancellationToken);
-        return result.Entities.Select(e => MapToDto(e).ToDomainModel()).ToList();
+        var entity = result.Entities.FirstOrDefault();
+        return entity != null ? MapToDto(entity) : null;
     }
 
-    private CustomerDto MapToDto(Entity entity)
+    private async Task<List<Customer>> MergeD365DataForEntities(
+        DataCollection<Entity> entities, CancellationToken cancellationToken)
     {
-        return new CustomerDto
+        var customers = new List<Customer>();
+        foreach (var entity in entities)
         {
-            phr_customerid = entity.Id,
-            phr_businessname = entity.GetAttributeValue<string>("phr_businessname"),
-            phr_registrationnumber = entity.GetAttributeValue<string>("phr_registrationnumber"),
+            var dto = MapToDto(entity);
+            var customer = dto.ToDomainModel();
+
+            var d365Customer = await GetD365CustomerAsync(
+                customer.CustomerAccount, customer.DataAreaId, cancellationToken);
+            if (d365Customer != null)
+            {
+                customer.OrganizationName = d365Customer.OrganizationName;
+                customer.AddressCountryRegionId = d365Customer.AddressCountryRegionId;
+            }
+
+            customers.Add(customer);
+        }
+        return customers;
+    }
+
+    private CustomerComplianceExtensionDto MapToDto(Entity entity)
+    {
+        return new CustomerComplianceExtensionDto
+        {
+            phr_complianceextensionid = entity.Id,
+            phr_customeraccount = entity.GetAttributeValue<string>("phr_customeraccount"),
+            phr_dataareaid = entity.GetAttributeValue<string>("phr_dataareaid"),
             phr_businesscategory = entity.GetAttributeValue<int>("phr_businesscategory"),
-            phr_country = entity.GetAttributeValue<string>("phr_country"),
             phr_approvalstatus = entity.GetAttributeValue<int>("phr_approvalstatus"),
+            phr_gdpqualificationstatus = entity.GetAttributeValue<int>("phr_gdpqualificationstatus"),
             phr_onboardingdate = entity.GetAttributeValue<DateTime?>("phr_onboardingdate"),
             phr_nextreverificationdate = entity.GetAttributeValue<DateTime?>("phr_nextreverificationdate"),
-            phr_gdpqualificationstatus = entity.GetAttributeValue<int>("phr_gdpqualificationstatus"),
             phr_issuspended = entity.GetAttributeValue<bool>("phr_issuspended"),
             phr_suspensionreason = entity.GetAttributeValue<string>("phr_suspensionreason"),
             phr_createddate = entity.GetAttributeValue<DateTime>("phr_createddate"),
@@ -277,17 +385,16 @@ public class DataverseCustomerRepository : ICustomerRepository
         };
     }
 
-    private Entity MapToEntity(CustomerDto dto)
+    private Entity MapToEntity(CustomerComplianceExtensionDto dto)
     {
-        var entity = new Entity(EntityName) { Id = dto.phr_customerid };
-        entity["phr_businessname"] = dto.phr_businessname;
-        entity["phr_registrationnumber"] = dto.phr_registrationnumber;
+        var entity = new Entity(ExtensionEntityName) { Id = dto.phr_complianceextensionid };
+        entity["phr_customeraccount"] = dto.phr_customeraccount;
+        entity["phr_dataareaid"] = dto.phr_dataareaid;
         entity["phr_businesscategory"] = dto.phr_businesscategory;
-        entity["phr_country"] = dto.phr_country;
         entity["phr_approvalstatus"] = dto.phr_approvalstatus;
+        entity["phr_gdpqualificationstatus"] = dto.phr_gdpqualificationstatus;
         entity["phr_onboardingdate"] = dto.phr_onboardingdate;
         entity["phr_nextreverificationdate"] = dto.phr_nextreverificationdate;
-        entity["phr_gdpqualificationstatus"] = dto.phr_gdpqualificationstatus;
         entity["phr_issuspended"] = dto.phr_issuspended;
         entity["phr_suspensionreason"] = dto.phr_suspensionreason;
         entity["phr_createddate"] = dto.phr_createddate;
@@ -298,4 +405,6 @@ public class DataverseCustomerRepository : ICustomerRepository
         }
         return entity;
     }
+
+    #endregion
 }

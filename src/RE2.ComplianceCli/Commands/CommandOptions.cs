@@ -25,15 +25,19 @@ public class ValidateTransactionOptions : BaseOptions
 /// <summary>
 /// T052c: Options for lookup-customer command.
 /// Returns customer compliance status as JSON to stdout.
+/// Uses composite key (CustomerAccount + DataAreaId) per D365FO pattern.
 /// </summary>
-[Verb("lookup-customer", HelpText = "Lookup customer compliance status by ID or name.")]
+[Verb("lookup-customer", HelpText = "Lookup customer compliance status by account or name.")]
 public class LookupCustomerOptions : BaseOptions
 {
-    [Option('i', "id", Required = false, HelpText = "Customer ID (GUID).")]
-    public string? CustomerId { get; set; }
+    [Option('a', "account", Required = false, HelpText = "Customer account number (D365FO).")]
+    public string? CustomerAccount { get; set; }
 
-    [Option('n', "name", Required = false, HelpText = "Customer business name (partial match).")]
-    public string? BusinessName { get; set; }
+    [Option('d', "data-area", Required = false, Default = "nlpd", HelpText = "Data area ID (default: nlpd).")]
+    public string DataAreaId { get; set; } = "nlpd";
+
+    [Option('n', "name", Required = false, HelpText = "Customer organization name (partial match).")]
+    public string? Name { get; set; }
 
     [Option("include-licences", Required = false, HelpText = "Include associated licences in output.")]
     public bool IncludeLicences { get; set; }
@@ -72,8 +76,11 @@ public class GenerateReportOptions : BaseOptions
     [Option("days-ahead", Required = false, Default = 90, HelpText = "Days ahead for expiring items (default: 90).")]
     public int DaysAhead { get; set; } = 90;
 
-    [Option("customer-id", Required = false, HelpText = "Filter by customer ID.")]
-    public string? CustomerId { get; set; }
+    [Option("customer-account", Required = false, HelpText = "Filter by customer account number.")]
+    public string? CustomerAccount { get; set; }
+
+    [Option("data-area-id", Required = false, HelpText = "Data area ID (legal entity) for customer filter.")]
+    public string? DataAreaId { get; set; }
 
     [Option("from-date", Required = false, HelpText = "Start date filter (yyyy-MM-dd).")]
     public string? FromDate { get; set; }

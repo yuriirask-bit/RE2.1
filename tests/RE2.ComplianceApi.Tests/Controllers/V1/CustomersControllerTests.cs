@@ -12,8 +12,9 @@ using RE2.Shared.Models;
 namespace RE2.ComplianceApi.Tests.Controllers.V1;
 
 /// <summary>
-/// T084: Integration tests for GET /api/v1/customers/{id}/compliance-status endpoint.
+/// T084: Integration tests for GET /api/v1/customers/{customerAccount}/compliance-status endpoint.
 /// Tests CustomersController with mocked dependencies.
+/// Composite key: CustomerAccount (string) + DataAreaId (string).
 /// </summary>
 public class CustomersControllerTests
 {
@@ -33,26 +34,28 @@ public class CustomersControllerTests
         };
     }
 
-    #region GET /api/v1/customers/{id}/compliance-status Tests
+    #region GET /api/v1/customers/{customerAccount}/compliance-status Tests
 
     [Fact]
     public async Task GetComplianceStatus_ReturnsOk_WhenCustomerExists()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
-        var complianceStatus = CreateTestComplianceStatus(customerId);
+        var customerAccount = "CUST-001";
+        var dataAreaId = "nlpd";
+        var complianceStatus = CreateTestComplianceStatus(customerAccount, dataAreaId);
 
         _mockCustomerService
-            .Setup(s => s.GetComplianceStatusAsync(customerId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetComplianceStatusAsync(customerAccount, dataAreaId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(complianceStatus);
 
         // Act
-        var result = await _controller.GetComplianceStatus(customerId);
+        var result = await _controller.GetComplianceStatus(customerAccount, dataAreaId);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
         var response = okResult.Value.Should().BeOfType<CustomerComplianceStatusResponse>().Subject;
-        response.CustomerId.Should().Be(customerId);
+        response.CustomerAccount.Should().Be(customerAccount);
+        response.DataAreaId.Should().Be(dataAreaId);
         response.BusinessName.Should().Be("Test Customer");
         response.CanTransact.Should().BeTrue();
     }
@@ -61,10 +64,12 @@ public class CustomersControllerTests
     public async Task GetComplianceStatus_ReturnsNotFound_WhenCustomerDoesNotExist()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
+        var customerAccount = "CUST-999";
+        var dataAreaId = "nlpd";
         var complianceStatus = new CustomerComplianceStatus
         {
-            CustomerId = customerId,
+            CustomerAccount = customerAccount,
+            DataAreaId = dataAreaId,
             BusinessName = "Unknown",
             ApprovalStatus = ApprovalStatus.Rejected,
             CanTransact = false,
@@ -80,11 +85,11 @@ public class CustomersControllerTests
         };
 
         _mockCustomerService
-            .Setup(s => s.GetComplianceStatusAsync(customerId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetComplianceStatusAsync(customerAccount, dataAreaId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(complianceStatus);
 
         // Act
-        var result = await _controller.GetComplianceStatus(customerId);
+        var result = await _controller.GetComplianceStatus(customerAccount, dataAreaId);
 
         // Assert
         var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
@@ -96,10 +101,12 @@ public class CustomersControllerTests
     public async Task GetComplianceStatus_ReturnsSuspendedWarning_WhenCustomerSuspended()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
+        var customerAccount = "CUST-001";
+        var dataAreaId = "nlpd";
         var complianceStatus = new CustomerComplianceStatus
         {
-            CustomerId = customerId,
+            CustomerAccount = customerAccount,
+            DataAreaId = dataAreaId,
             BusinessName = "Suspended Customer",
             ApprovalStatus = ApprovalStatus.Approved,
             GdpQualificationStatus = GdpQualificationStatus.NotRequired,
@@ -118,11 +125,11 @@ public class CustomersControllerTests
         };
 
         _mockCustomerService
-            .Setup(s => s.GetComplianceStatusAsync(customerId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetComplianceStatusAsync(customerAccount, dataAreaId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(complianceStatus);
 
         // Act
-        var result = await _controller.GetComplianceStatus(customerId);
+        var result = await _controller.GetComplianceStatus(customerAccount, dataAreaId);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
@@ -136,10 +143,12 @@ public class CustomersControllerTests
     public async Task GetComplianceStatus_ReturnsPendingWarning_WhenCustomerPending()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
+        var customerAccount = "CUST-002";
+        var dataAreaId = "nlpd";
         var complianceStatus = new CustomerComplianceStatus
         {
-            CustomerId = customerId,
+            CustomerAccount = customerAccount,
+            DataAreaId = dataAreaId,
             BusinessName = "Pending Customer",
             ApprovalStatus = ApprovalStatus.Pending,
             GdpQualificationStatus = GdpQualificationStatus.NotRequired,
@@ -157,11 +166,11 @@ public class CustomersControllerTests
         };
 
         _mockCustomerService
-            .Setup(s => s.GetComplianceStatusAsync(customerId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetComplianceStatusAsync(customerAccount, dataAreaId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(complianceStatus);
 
         // Act
-        var result = await _controller.GetComplianceStatus(customerId);
+        var result = await _controller.GetComplianceStatus(customerAccount, dataAreaId);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
@@ -175,10 +184,12 @@ public class CustomersControllerTests
     public async Task GetComplianceStatus_ReturnsReVerificationDueWarning_WhenDue()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
+        var customerAccount = "CUST-003";
+        var dataAreaId = "nlpd";
         var complianceStatus = new CustomerComplianceStatus
         {
-            CustomerId = customerId,
+            CustomerAccount = customerAccount,
+            DataAreaId = dataAreaId,
             BusinessName = "Overdue Customer",
             ApprovalStatus = ApprovalStatus.Approved,
             GdpQualificationStatus = GdpQualificationStatus.NotRequired,
@@ -198,11 +209,11 @@ public class CustomersControllerTests
         };
 
         _mockCustomerService
-            .Setup(s => s.GetComplianceStatusAsync(customerId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetComplianceStatusAsync(customerAccount, dataAreaId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(complianceStatus);
 
         // Act
-        var result = await _controller.GetComplianceStatus(customerId);
+        var result = await _controller.GetComplianceStatus(customerAccount, dataAreaId);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
@@ -270,38 +281,41 @@ public class CustomersControllerTests
 
     #endregion
 
-    #region GET /api/v1/customers/{id} Tests
+    #region GET /api/v1/customers/{customerAccount} Tests
 
     [Fact]
     public async Task GetCustomer_ReturnsCustomer_WhenExists()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
-        var customer = CreateTestCustomer(customerId);
+        var customerAccount = "CUST-001";
+        var dataAreaId = "nlpd";
+        var customer = CreateTestCustomer(customerAccount, dataAreaId);
         _mockCustomerService
-            .Setup(s => s.GetByIdAsync(customerId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetByAccountAsync(customerAccount, dataAreaId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(customer);
 
         // Act
-        var result = await _controller.GetCustomer(customerId);
+        var result = await _controller.GetCustomer(customerAccount, dataAreaId);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
         var response = okResult.Value.Should().BeOfType<CustomerResponseDto>().Subject;
-        response.CustomerId.Should().Be(customerId);
+        response.CustomerAccount.Should().Be(customerAccount);
+        response.DataAreaId.Should().Be(dataAreaId);
     }
 
     [Fact]
     public async Task GetCustomer_ReturnsNotFound_WhenDoesNotExist()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
+        var customerAccount = "CUST-999";
+        var dataAreaId = "nlpd";
         _mockCustomerService
-            .Setup(s => s.GetByIdAsync(customerId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetByAccountAsync(customerAccount, dataAreaId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((Customer?)null);
 
         // Act
-        var result = await _controller.GetCustomer(customerId);
+        var result = await _controller.GetCustomer(customerAccount, dataAreaId);
 
         // Assert
         var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
@@ -311,22 +325,24 @@ public class CustomersControllerTests
 
     #endregion
 
-    #region POST /api/v1/customers/{id}/suspend Tests
+    #region POST /api/v1/customers/{customerAccount}/suspend Tests
 
     [Fact]
     public async Task SuspendCustomer_ReturnsOk_WhenSuccess()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
+        var customerAccount = "CUST-001";
+        var dataAreaId = "nlpd";
         var request = new SuspendCustomerRequestDto { Reason = "Suspicious activity" };
 
         _mockCustomerService
-            .Setup(s => s.SuspendCustomerAsync(customerId, request.Reason, It.IsAny<CancellationToken>()))
+            .Setup(s => s.SuspendCustomerAsync(customerAccount, dataAreaId, request.Reason, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ValidationResult.Success());
 
         var complianceStatus = new CustomerComplianceStatus
         {
-            CustomerId = customerId,
+            CustomerAccount = customerAccount,
+            DataAreaId = dataAreaId,
             BusinessName = "Suspended Customer",
             ApprovalStatus = ApprovalStatus.Approved,
             IsSuspended = true,
@@ -344,11 +360,11 @@ public class CustomersControllerTests
         };
 
         _mockCustomerService
-            .Setup(s => s.GetComplianceStatusAsync(customerId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetComplianceStatusAsync(customerAccount, dataAreaId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(complianceStatus);
 
         // Act
-        var result = await _controller.SuspendCustomer(customerId, request);
+        var result = await _controller.SuspendCustomer(customerAccount, dataAreaId, request);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
@@ -361,22 +377,23 @@ public class CustomersControllerTests
     public async Task SuspendCustomer_ReturnsNotFound_WhenCustomerDoesNotExist()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
+        var customerAccount = "CUST-999";
+        var dataAreaId = "nlpd";
         var request = new SuspendCustomerRequestDto { Reason = "Test" };
 
         _mockCustomerService
-            .Setup(s => s.SuspendCustomerAsync(customerId, request.Reason, It.IsAny<CancellationToken>()))
+            .Setup(s => s.SuspendCustomerAsync(customerAccount, dataAreaId, request.Reason, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ValidationResult.Failure(new[]
             {
                 new ValidationViolation
                 {
                     ErrorCode = ErrorCodes.NOT_FOUND,
-                    Message = $"Customer with ID '{customerId}' not found"
+                    Message = $"Customer '{customerAccount}' in data area '{dataAreaId}' not found"
                 }
             }));
 
         // Act
-        var result = await _controller.SuspendCustomer(customerId, request);
+        var result = await _controller.SuspendCustomer(customerAccount, dataAreaId, request);
 
         // Assert
         var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
@@ -386,21 +403,23 @@ public class CustomersControllerTests
 
     #endregion
 
-    #region POST /api/v1/customers/{id}/reinstate Tests
+    #region POST /api/v1/customers/{customerAccount}/reinstate Tests
 
     [Fact]
     public async Task ReinstateCustomer_ReturnsOk_WhenSuccess()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
+        var customerAccount = "CUST-001";
+        var dataAreaId = "nlpd";
 
         _mockCustomerService
-            .Setup(s => s.ReinstateCustomerAsync(customerId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.ReinstateCustomerAsync(customerAccount, dataAreaId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ValidationResult.Success());
 
         var complianceStatus = new CustomerComplianceStatus
         {
-            CustomerId = customerId,
+            CustomerAccount = customerAccount,
+            DataAreaId = dataAreaId,
             BusinessName = "Reinstated Customer",
             ApprovalStatus = ApprovalStatus.Approved,
             IsSuspended = false,
@@ -409,11 +428,11 @@ public class CustomersControllerTests
         };
 
         _mockCustomerService
-            .Setup(s => s.GetComplianceStatusAsync(customerId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetComplianceStatusAsync(customerAccount, dataAreaId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(complianceStatus);
 
         // Act
-        var result = await _controller.ReinstateCustomer(customerId);
+        var result = await _controller.ReinstateCustomer(customerAccount, dataAreaId);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
@@ -466,15 +485,16 @@ public class CustomersControllerTests
 
     #region Helper Methods
 
-    private static Customer CreateTestCustomer(Guid customerId)
+    private static Customer CreateTestCustomer(string customerAccount, string dataAreaId)
     {
         return new Customer
         {
-            CustomerId = customerId,
-            BusinessName = "Test Pharmacy",
-            RegistrationNumber = "KVK-12345678",
+            CustomerAccount = customerAccount,
+            DataAreaId = dataAreaId,
+            OrganizationName = "Test Pharmacy",
+            AddressCountryRegionId = "NL",
+            ComplianceExtensionId = Guid.NewGuid(),
             BusinessCategory = BusinessCategory.CommunityPharmacy,
-            Country = "NL",
             ApprovalStatus = ApprovalStatus.Approved,
             OnboardingDate = DateOnly.FromDateTime(DateTime.Now.AddMonths(-6)),
             NextReVerificationDate = DateOnly.FromDateTime(DateTime.Now.AddYears(2).AddMonths(6)),
@@ -491,10 +511,12 @@ public class CustomersControllerTests
         {
             new Customer
             {
-                CustomerId = Guid.NewGuid(),
-                BusinessName = "Hospital Pharmacy",
+                CustomerAccount = "CUST-001",
+                DataAreaId = "nlpd",
+                OrganizationName = "Hospital Pharmacy",
+                AddressCountryRegionId = "NL",
+                ComplianceExtensionId = Guid.NewGuid(),
                 BusinessCategory = BusinessCategory.HospitalPharmacy,
-                Country = "NL",
                 ApprovalStatus = ApprovalStatus.Approved,
                 GdpQualificationStatus = GdpQualificationStatus.NotRequired,
                 CreatedDate = DateTime.UtcNow,
@@ -502,10 +524,12 @@ public class CustomersControllerTests
             },
             new Customer
             {
-                CustomerId = Guid.NewGuid(),
-                BusinessName = "Pending Wholesaler",
+                CustomerAccount = "CUST-002",
+                DataAreaId = "nlpd",
+                OrganizationName = "Pending Wholesaler",
+                AddressCountryRegionId = "DE",
+                ComplianceExtensionId = Guid.NewGuid(),
                 BusinessCategory = BusinessCategory.WholesalerEU,
-                Country = "DE",
                 ApprovalStatus = ApprovalStatus.Pending,
                 GdpQualificationStatus = GdpQualificationStatus.Pending,
                 CreatedDate = DateTime.UtcNow,
@@ -513,10 +537,12 @@ public class CustomersControllerTests
             },
             new Customer
             {
-                CustomerId = Guid.NewGuid(),
-                BusinessName = "Suspended Manufacturer",
+                CustomerAccount = "CUST-003",
+                DataAreaId = "nlpd",
+                OrganizationName = "Suspended Manufacturer",
+                AddressCountryRegionId = "BE",
+                ComplianceExtensionId = Guid.NewGuid(),
                 BusinessCategory = BusinessCategory.Manufacturer,
-                Country = "BE",
                 ApprovalStatus = ApprovalStatus.Approved,
                 GdpQualificationStatus = GdpQualificationStatus.Approved,
                 IsSuspended = true,
@@ -527,11 +553,12 @@ public class CustomersControllerTests
         };
     }
 
-    private static CustomerComplianceStatus CreateTestComplianceStatus(Guid customerId)
+    private static CustomerComplianceStatus CreateTestComplianceStatus(string customerAccount, string dataAreaId)
     {
         return new CustomerComplianceStatus
         {
-            CustomerId = customerId,
+            CustomerAccount = customerAccount,
+            DataAreaId = dataAreaId,
             BusinessName = "Test Customer",
             ApprovalStatus = ApprovalStatus.Approved,
             GdpQualificationStatus = GdpQualificationStatus.NotRequired,

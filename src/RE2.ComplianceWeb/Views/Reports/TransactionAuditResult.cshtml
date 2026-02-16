@@ -13,9 +13,9 @@
                 {
                     <span class="badge bg-secondary ms-2">Filtered by Substance</span>
                 }
-                @if (Model.FilteredByCustomer.HasValue)
+                @if (!string.IsNullOrEmpty(Model.FilteredByCustomerAccount))
                 {
-                    <span class="badge bg-secondary ms-2">Filtered by Customer</span>
+                    <span class="badge bg-secondary ms-2">Filtered by Customer: @Model.FilteredByCustomerAccount</span>
                 }
                 @if (!string.IsNullOrEmpty(Model.FilteredByCountry))
                 {
@@ -111,8 +111,8 @@
                                     </td>
                                     <td>@transaction.TransactionDate.ToString("yyyy-MM-dd")</td>
                                     <td>
-                                        <a asp-controller="Customers" asp-action="Details" asp-route-id="@transaction.CustomerId">
-                                            @transaction.CustomerId.ToString().Substring(0, 8)...
+                                        <a asp-controller="Customers" asp-action="Details" asp-route-customerAccount="@transaction.CustomerAccount" asp-route-dataAreaId="@transaction.CustomerDataAreaId">
+                                            @transaction.CustomerAccount
                                         </a>
                                     </td>
                                     <td>@transaction.TransactionType</td>

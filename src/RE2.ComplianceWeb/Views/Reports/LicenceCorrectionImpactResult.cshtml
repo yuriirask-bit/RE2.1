@@ -163,13 +163,13 @@
                                     <td>
                                         @if (!string.IsNullOrEmpty(transaction.CustomerName))
                                         {
-                                            <a asp-controller="Customers" asp-action="Details" asp-route-id="@transaction.CustomerId">
+                                            <a asp-controller="Customers" asp-action="Details" asp-route-customerAccount="@transaction.CustomerAccount" asp-route-dataAreaId="@transaction.CustomerDataAreaId">
                                                 @transaction.CustomerName
                                             </a>
                                         }
                                         else
                                         {
-                                            @transaction.CustomerId.ToString().Substring(0, 8)
+                                            @transaction.CustomerAccount
                                         }
                                     </td>
                                     <td>

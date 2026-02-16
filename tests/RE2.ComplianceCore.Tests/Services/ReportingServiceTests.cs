@@ -77,8 +77,8 @@ public class ReportingServiceTests
 
         var transactions = new List<Transaction>
         {
-            CreateTestTransaction(Guid.NewGuid(), substanceId),
-            CreateTestTransaction(Guid.NewGuid(), substanceId)
+            CreateTestTransaction("CUST-001", "nlpd", substanceId),
+            CreateTestTransaction("CUST-002", "nlpd", substanceId)
         };
 
         _transactionRepoMock.Setup(r => r.GetBySubstanceAsync(
@@ -96,24 +96,24 @@ public class ReportingServiceTests
     }
 
     [Fact]
-    public async Task GenerateTransactionAuditReportAsync_FiltersByCustomer_WhenCustomerIdProvided()
+    public async Task GenerateTransactionAuditReportAsync_FiltersByCustomer_WhenCustomerAccountProvided()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
         var criteria = new TransactionAuditReportCriteria
         {
             FromDate = DateTime.UtcNow.AddDays(-30),
             ToDate = DateTime.UtcNow,
-            CustomerId = customerId
+            CustomerAccount = "CUST-001",
+            CustomerDataAreaId = "nlpd"
         };
 
         var transactions = new List<Transaction>
         {
-            CreateTestTransaction(customerId, Guid.NewGuid())
+            CreateTestTransaction("CUST-001", "nlpd", Guid.NewGuid())
         };
 
-        _transactionRepoMock.Setup(r => r.GetByCustomerAsync(
-                customerId, It.IsAny<CancellationToken>()))
+        _transactionRepoMock.Setup(r => r.GetByDateRangeAsync(
+                criteria.FromDate, criteria.ToDate, It.IsAny<CancellationToken>()))
             .ReturnsAsync(transactions);
 
         // Act
@@ -121,15 +121,12 @@ public class ReportingServiceTests
 
         // Assert
         report.TotalCount.Should().Be(1);
-        _transactionRepoMock.Verify(r => r.GetByCustomerAsync(
-            customerId, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task GenerateTransactionAuditReportAsync_IncludesLicenceInfo_WhenIncludeLicenceDetailsTrue()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
         var licenceId = Guid.NewGuid();
         var criteria = new TransactionAuditReportCriteria
         {
@@ -138,7 +135,7 @@ public class ReportingServiceTests
             IncludeLicenceDetails = true
         };
 
-        var transaction = CreateTestTransaction(customerId, Guid.NewGuid());
+        var transaction = CreateTestTransaction("CUST-001", "nlpd", Guid.NewGuid());
         transaction.LicenceUsages = new List<TransactionLicenceUsage>
         {
             new() { LicenceId = licenceId, TransactionId = transaction.Id }
@@ -253,31 +250,34 @@ public class ReportingServiceTests
     public async Task GenerateCustomerComplianceHistoryAsync_ReturnsFullHistory()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
+        var complianceExtensionId = Guid.NewGuid();
         var criteria = new CustomerComplianceHistoryCriteria
         {
-            CustomerId = customerId
+            CustomerAccount = "CUST-001",
+            DataAreaId = "nlpd"
         };
 
         var customer = new Customer
         {
-            CustomerId = customerId,
-            BusinessName = "Test Customer",
+            CustomerAccount = "CUST-001",
+            DataAreaId = "nlpd",
+            ComplianceExtensionId = complianceExtensionId,
+            OrganizationName = "Test Customer",
             BusinessCategory = BusinessCategory.CommunityPharmacy,
             ApprovalStatus = ApprovalStatus.Approved
         };
 
         var auditEvents = new List<AuditEvent>
         {
-            AuditEvent.ForCreate(AuditEntityType.Customer, customerId, Guid.NewGuid()),
-            AuditEvent.ForCustomerStatusChange(customerId, Guid.NewGuid(), AuditEventType.CustomerApproved)
+            AuditEvent.ForCreate(AuditEntityType.Customer, complianceExtensionId, Guid.NewGuid()),
+            AuditEvent.ForCustomerStatusChange(complianceExtensionId, Guid.NewGuid(), AuditEventType.CustomerApproved)
         };
 
-        _customerRepoMock.Setup(r => r.GetByIdAsync(customerId, It.IsAny<CancellationToken>()))
+        _customerRepoMock.Setup(r => r.GetByAccountAsync("CUST-001", "nlpd", It.IsAny<CancellationToken>()))
             .ReturnsAsync(customer);
 
         _auditRepoMock.Setup(r => r.GetCustomerComplianceHistoryAsync(
-                customerId, null, null, It.IsAny<CancellationToken>()))
+                complianceExtensionId, null, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(auditEvents);
 
         // Act
@@ -285,7 +285,8 @@ public class ReportingServiceTests
 
         // Assert
         report.Should().NotBeNull();
-        report.CustomerId.Should().Be(customerId);
+        report.CustomerAccount.Should().Be("CUST-001");
+        report.DataAreaId.Should().Be("nlpd");
         report.CustomerName.Should().Be("Test Customer");
         report.Events.Should().HaveCount(2);
     }
@@ -294,17 +295,20 @@ public class ReportingServiceTests
     public async Task GenerateCustomerComplianceHistoryAsync_IncludesLicenceStatus()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
+        var complianceExtensionId = Guid.NewGuid();
         var criteria = new CustomerComplianceHistoryCriteria
         {
-            CustomerId = customerId,
+            CustomerAccount = "CUST-001",
+            DataAreaId = "nlpd",
             IncludeLicenceStatus = true
         };
 
         var customer = new Customer
         {
-            CustomerId = customerId,
-            BusinessName = "Test Customer",
+            CustomerAccount = "CUST-001",
+            DataAreaId = "nlpd",
+            ComplianceExtensionId = complianceExtensionId,
+            OrganizationName = "Test Customer",
             BusinessCategory = BusinessCategory.CommunityPharmacy,
             ApprovalStatus = ApprovalStatus.Approved
         };
@@ -314,14 +318,14 @@ public class ReportingServiceTests
             new() { LicenceId = Guid.NewGuid(), LicenceNumber = "LIC-001", IssuingAuthority = "IGJ", HolderType = "Customer", Status = "Valid" }
         };
 
-        _customerRepoMock.Setup(r => r.GetByIdAsync(customerId, It.IsAny<CancellationToken>()))
+        _customerRepoMock.Setup(r => r.GetByAccountAsync("CUST-001", "nlpd", It.IsAny<CancellationToken>()))
             .ReturnsAsync(customer);
 
-        _licenceRepoMock.Setup(r => r.GetByHolderAsync(customerId, "Customer", It.IsAny<CancellationToken>()))
+        _licenceRepoMock.Setup(r => r.GetByHolderAsync(complianceExtensionId, "Customer", It.IsAny<CancellationToken>()))
             .ReturnsAsync(licences);
 
         _auditRepoMock.Setup(r => r.GetCustomerComplianceHistoryAsync(
-                customerId, null, null, It.IsAny<CancellationToken>()))
+                complianceExtensionId, null, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Enumerable.Empty<AuditEvent>());
 
         // Act
@@ -330,36 +334,39 @@ public class ReportingServiceTests
         // Assert
         report.CurrentLicences.Should().HaveCount(1);
         _licenceRepoMock.Verify(r => r.GetByHolderAsync(
-            customerId, "Customer", It.IsAny<CancellationToken>()), Times.Once);
+            complianceExtensionId, "Customer", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task GenerateCustomerComplianceHistoryAsync_FiltersByDateRange()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
+        var complianceExtensionId = Guid.NewGuid();
         var fromDate = DateTime.UtcNow.AddDays(-30);
         var toDate = DateTime.UtcNow;
         var criteria = new CustomerComplianceHistoryCriteria
         {
-            CustomerId = customerId,
+            CustomerAccount = "CUST-001",
+            DataAreaId = "nlpd",
             FromDate = fromDate,
             ToDate = toDate
         };
 
         var customer = new Customer
         {
-            CustomerId = customerId,
-            BusinessName = "Test Customer",
+            CustomerAccount = "CUST-001",
+            DataAreaId = "nlpd",
+            ComplianceExtensionId = complianceExtensionId,
+            OrganizationName = "Test Customer",
             BusinessCategory = BusinessCategory.CommunityPharmacy,
             ApprovalStatus = ApprovalStatus.Approved
         };
 
-        _customerRepoMock.Setup(r => r.GetByIdAsync(customerId, It.IsAny<CancellationToken>()))
+        _customerRepoMock.Setup(r => r.GetByAccountAsync("CUST-001", "nlpd", It.IsAny<CancellationToken>()))
             .ReturnsAsync(customer);
 
         _auditRepoMock.Setup(r => r.GetCustomerComplianceHistoryAsync(
-                customerId, fromDate, toDate, It.IsAny<CancellationToken>()))
+                complianceExtensionId, fromDate, toDate, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Enumerable.Empty<AuditEvent>());
 
         // Act
@@ -367,20 +374,20 @@ public class ReportingServiceTests
 
         // Assert
         _auditRepoMock.Verify(r => r.GetCustomerComplianceHistoryAsync(
-            customerId, fromDate, toDate, It.IsAny<CancellationToken>()), Times.Once);
+            complianceExtensionId, fromDate, toDate, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task GenerateCustomerComplianceHistoryAsync_ReturnsNull_WhenCustomerNotFound()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
         var criteria = new CustomerComplianceHistoryCriteria
         {
-            CustomerId = customerId
+            CustomerAccount = "CUST-NOTFOUND",
+            DataAreaId = "nlpd"
         };
 
-        _customerRepoMock.Setup(r => r.GetByIdAsync(customerId, It.IsAny<CancellationToken>()))
+        _customerRepoMock.Setup(r => r.GetByAccountAsync("CUST-NOTFOUND", "nlpd", It.IsAny<CancellationToken>()))
             .ReturnsAsync((Customer?)null);
 
         // Act
@@ -394,14 +401,15 @@ public class ReportingServiceTests
 
     #region Helper Methods
 
-    private static Transaction CreateTestTransaction(Guid customerId, Guid substanceId)
+    private static Transaction CreateTestTransaction(string customerAccount, string customerDataAreaId, Guid substanceId)
     {
         var transactionId = Guid.NewGuid();
         return new Transaction
         {
             Id = transactionId,
             ExternalId = $"EXT-{Guid.NewGuid():N}".Substring(0, 20),
-            CustomerId = customerId,
+            CustomerAccount = customerAccount,
+            CustomerDataAreaId = customerDataAreaId,
             TransactionType = TransactionType.Order,
             TransactionDate = DateTime.UtcNow.AddDays(-5),
             ValidationStatus = ValidationStatus.Passed,
@@ -425,7 +433,8 @@ public class ReportingServiceTests
         {
             Id = transactionId,
             ExternalId = $"EXT-{Guid.NewGuid():N}".Substring(0, 20),
-            CustomerId = Guid.NewGuid(),
+            CustomerAccount = "CUST-001",
+            CustomerDataAreaId = "nlpd",
             TransactionType = TransactionType.Order,
             TransactionDate = DateTime.UtcNow.AddDays(-5),
             ValidationStatus = ValidationStatus.Passed,

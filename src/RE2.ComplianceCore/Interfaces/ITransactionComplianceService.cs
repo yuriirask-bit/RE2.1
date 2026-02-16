@@ -92,7 +92,8 @@ public interface ITransactionComplianceService
     /// </summary>
     Task<IEnumerable<Transaction>> GetTransactionsAsync(
         Shared.Constants.TransactionTypes.ValidationStatus? status = null,
-        Guid? customerId = null,
+        string? customerAccount = null,
+        string? customerDataAreaId = null,
         DateTime? fromDate = null,
         DateTime? toDate = null,
         CancellationToken cancellationToken = default);
@@ -114,7 +115,8 @@ public interface ITransactionComplianceService
     /// Per FR-022: Frequency threshold validation.
     /// </summary>
     Task<IEnumerable<ValidationViolation>> CheckFrequencyThresholdsAsync(
-        Guid customerId,
+        string customerAccount,
+        string customerDataAreaId,
         DateTime transactionDate,
         CancellationToken cancellationToken = default);
 
@@ -123,7 +125,8 @@ public interface ITransactionComplianceService
     /// Used for threshold tracking and reporting.
     /// </summary>
     Task<decimal> GetCumulativeUsageAsync(
-        Guid customerId,
+        string customerAccount,
+        string customerDataAreaId,
         Guid substanceId,
         DateTime fromDate,
         DateTime toDate,

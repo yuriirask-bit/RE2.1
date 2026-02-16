@@ -68,13 +68,27 @@ public class LicenceCorrectionImpactService : ILicenceCorrectionImpactService
         }
 
         // Get the licence holder (customer) to find relevant transactions
-        Guid? holderId = licence.HolderType == "Customer" ? licence.HolderId : (Guid?)null;
-
         IEnumerable<Transaction> transactions;
-        if (holderId.HasValue)
+        if (licence.HolderType == "Customer")
         {
-            transactions = await _transactionRepository.GetCustomerTransactionsInPeriodAsync(
-                holderId.Value, analysisFromDate, analysisToDate, cancellationToken);
+            // Look up the customer by ComplianceExtensionId (the licence's HolderId)
+            // to get the CustomerAccount/DataAreaId composite key
+            var allCustomers = await _customerRepository.GetAllAsync(cancellationToken);
+            var holderCustomer = allCustomers.FirstOrDefault(c => c.ComplianceExtensionId == licence.HolderId);
+
+            if (holderCustomer != null)
+            {
+                transactions = await _transactionRepository.GetCustomerTransactionsInPeriodAsync(
+                    holderCustomer.CustomerAccount, holderCustomer.DataAreaId,
+                    analysisFromDate, analysisToDate, cancellationToken);
+            }
+            else
+            {
+                // Customer not found by ComplianceExtensionId; fall back to all transactions in period
+                _logger.LogWarning("Customer with ComplianceExtensionId {HolderId} not found, analyzing all transactions in period", licence.HolderId);
+                transactions = await _transactionRepository.GetByDateRangeAsync(
+                    analysisFromDate, analysisToDate, cancellationToken);
+            }
         }
         else
         {
@@ -156,7 +170,7 @@ public class LicenceCorrectionImpactService : ILicenceCorrectionImpactService
 
         // Get customer name
         string? customerName = null;
-        var customer = await _customerRepository.GetByIdAsync(transaction.CustomerId, cancellationToken);
+        var customer = await _customerRepository.GetByAccountAsync(transaction.CustomerAccount, transaction.CustomerDataAreaId, cancellationToken);
         if (customer != null)
         {
             customerName = customer.BusinessName;
@@ -173,7 +187,8 @@ public class LicenceCorrectionImpactService : ILicenceCorrectionImpactService
             TransactionId = transaction.Id,
             ExternalTransactionId = transaction.ExternalId,
             TransactionDate = transaction.TransactionDate,
-            CustomerId = transaction.CustomerId,
+            CustomerAccount = transaction.CustomerAccount,
+            CustomerDataAreaId = transaction.CustomerDataAreaId,
             CustomerName = customerName,
             OriginalStatus = originalStatus.ToString(),
             CorrectedStatus = correctedStatus.ToString(),
@@ -466,9 +481,14 @@ public class LicenceCorrectionImpactItem
     public DateTime TransactionDate { get; set; }
 
     /// <summary>
-    /// Customer ID.
+    /// Customer account number.
     /// </summary>
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Customer data area ID.
+    /// </summary>
+    public string CustomerDataAreaId { get; set; } = string.Empty;
 
     /// <summary>
     /// Customer name.

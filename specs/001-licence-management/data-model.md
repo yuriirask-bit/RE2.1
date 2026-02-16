@@ -9,8 +9,10 @@
 This data model defines the domain entities for the compliance management system. All entities are stored in external systems (Dataverse or D365 F&O) accessed via API calls. No local database storage.
 
 **Storage Strategy**:
-- **Dataverse**: Master data (licences, customers, GDP sites, partners, qualifications, inspections, CAPAs, training, documentation)
-- **D365 F&O**: Transactional data (compliance validation requests/results, audit events, alerts/notifications)
+- **Dataverse**: Compliance configuration and extensions (licence records, customer compliance extensions, GDP warehouse extensions, partners, qualifications, inspections, CAPAs, training, documentation)
+- **D365 F&O (read-only master data)**: Customer master data (`CustomersV3`), warehouse master data (`Warehouses`), operational sites (`OperationalSitesV2`)
+- **D365 F&O (transactional)**: Compliance validation requests/results, audit events, alerts/notifications
+- **Composite Models**: Customer (D365 F&O `CustomersV3` + Dataverse `phr_customercomplianceextension`), GdpSite (D365 F&O `Warehouses` + Dataverse `phr_gdpwarehouseextension`)
 
 ## Core Entities
 
@@ -24,7 +26,7 @@ Represents a legal authorization (permit, exemption, certificate) held by the co
 - `LicenceTypeId` (Guid, FK → LicenceType, required) - Category of authorization
 - `LicenceType` (navigation property → LicenceType) - Related LicenceType entity providing `Name` and other type details
 - `HolderType` (enum: Company, Customer, required) - Who holds this licence
-- `HolderId` (Guid, FK → Company or Customer, required) - Reference to holder entity
+- `HolderId` (Guid, FK → Company or Customer compliance extension, required) - Reference to holder entity. When `HolderType=Customer`, this is the `ComplianceExtensionId` (Guid) from `phr_customercomplianceextension`
 - `IssuingAuthority` (string, required) - Name of authority (e.g., "IGJ", "Farmatec", "CBG-MEB")
 - `IssueDate` (DateOnly, required) - Date licence was issued
 - `ExpiryDate` (DateOnly, nullable) - Date licence expires (null = no expiry)
@@ -125,25 +127,37 @@ Maps which substances a specific licence authorizes (e.g., "Opium Act exemption 
 
 ---
 
-### 5. Customer
+### 5. Customer (Composite: D365 F&O + Dataverse)
 
-Represents a trading partner qualified to purchase controlled drugs or provide services.
+Represents a trading partner qualified to purchase controlled drugs or provide services. Uses a composite data model: master data from D365 F&O `CustomersV3` OData entity, compliance extensions stored in Dataverse.
 
-**Attributes**:
-- `CustomerId` (Guid, PK) - Unique identifier
-- `BusinessName` (string, required, indexed) - Legal entity name
-- `RegistrationNumber` (string, nullable, indexed) - Company registration number (KVK, VAT, etc.)
+**Composite Key**: `CustomerAccount` (string) + `DataAreaId` (string)
+
+**D365 F&O Master Data** (read-only, from `CustomersV3` OData entity):
+- `CustomerAccount` (string, PK part 1) - D365 F&O customer account number
+- `DataAreaId` (string, PK part 2) - D365 F&O legal entity / data area
+- `OrganizationName` (string) - Legal entity name (aliased as `BusinessName`)
+- `AddressCountryRegionId` (string) - ISO country code (aliased as `Country`)
+
+**Dataverse Compliance Extension** (stored in `phr_customercomplianceextension`):
+- `ComplianceExtensionId` (Guid, Dataverse PK) - Unique Dataverse record identifier
+- `CustomerAccount` (string, FK) - Links to D365 F&O customer
+- `DataAreaId` (string, FK) - Links to D365 F&O data area
 - `BusinessCategory` (enum: HospitalPharmacy, CommunityPharmacy, Veterinarian, Manufacturer, WholesalerEU, WholesalerNonEU, ResearchInstitution, required) - Type of entity
-- `Country` (string, required) - ISO 3166-1 alpha-2 country code
 - `ApprovalStatus` (enum: Pending, Approved, ConditionallyApproved, Rejected, Suspended, required) - Current qualification status
+- `GdpQualificationStatus` (enum: NotRequired, Pending, Approved, ConditionallyApproved, Rejected, UnderReview, required) - GDP qualification status
 - `OnboardingDate` (DateOnly, nullable) - When customer was first qualified
 - `NextReVerificationDate` (DateOnly, nullable) - When next periodic review is due
-- `GdpQualificationStatus` (enum: NotRequired, Pending, Approved, ConditionallyApproved, Rejected, UnderReview, required) - GDP qualification status
 - `IsSuspended` (bool, required, default: false) - Whether sales are currently blocked
 - `SuspensionReason` (string, nullable) - Why customer is suspended
 - `CreatedDate` (DateTime, required) - Record creation timestamp
 - `ModifiedDate` (DateTime, required) - Last modification timestamp
 - `RowVersion` (byte[], required) - Optimistic concurrency token
+
+**Computed Properties**:
+- `BusinessName` => `OrganizationName` (convenience alias)
+- `Country` => `AddressCountryRegionId` (convenience alias)
+- `IsComplianceConfigured` => `ComplianceExtensionId != Guid.Empty`
 
 **Relationships**:
 - Has many `Licence` (one-to-many) - Licences held by this customer
@@ -153,11 +167,14 @@ Represents a trading partner qualified to purchase controlled drugs or provide s
 - Has many `GdpCredential` (one-to-many) - GDP credentials for this customer
 - Has many `AuditEvent` (one-to-many) - Audit events related to this customer
 
-**Storage**: Dataverse virtual table `phr_customer`
+**Storage**:
+- D365 F&O: `CustomersV3` OData entity (read-only master data)
+- Dataverse: `phr_customercomplianceextension` table (compliance extensions)
 
 **Validation Rules**:
 - `ApprovalStatus` must be `Approved` or `ConditionallyApproved` for transactions to be allowed
 - `IsSuspended = true` blocks all transactions regardless of `ApprovalStatus`
+- Compliance extension can only be created for customers that exist in D365 F&O
 
 ---
 
@@ -168,7 +185,8 @@ Represents a compliance validation request/result for a sales order or transfer 
 **Attributes**:
 - `TransactionId` (Guid, PK) - Unique identifier
 - `ExternalTransactionId` (string, required, unique, indexed) - Order/shipment ID from calling system
-- `CustomerId` (Guid, FK → Customer, required) - Customer involved
+- `CustomerAccount` (string, FK → Customer, required) - Customer account number from D365 F&O
+- `CustomerDataAreaId` (string, FK → Customer, required) - Customer data area from D365 F&O
 - `TransactionDate` (DateTime, required) - When validation was performed
 - `TransactionType` (enum: DomesticSale, EUCrossBorder, NonEUInternational, required) - Type of transaction
 - `ComplianceStatus` (enum: Pass, Pending, Failed, OverrideApproved, required) - Validation result
@@ -263,21 +281,21 @@ Defines quantity or frequency limits for suspicious-order monitoring.
 
 **Attributes**:
 - `ThresholdId` (Guid, PK) - Unique identifier
-- `CustomerId` (Guid, FK → Customer, required) - Which customer
+- `ComplianceExtensionId` (Guid, FK → CustomerComplianceExtension, required) - Which customer (references `ComplianceExtensionId` from `phr_customercomplianceextension`)
 - `SubstanceId` (Guid, FK → ControlledSubstance, required) - Which substance
 - `ThresholdType` (enum: MonthlyQuantity, AnnualFrequency, required) - Type of limit
 - `LimitValue` (decimal, required) - Threshold value
 - `MonitoringPeriodDays` (int, required) - Period for threshold calculation
 
 **Relationships**:
-- Belongs to one `Customer` (many-to-one)
+- Belongs to one `Customer` via `ComplianceExtensionId` (many-to-one, references `phr_customercomplianceextension`)
 - Belongs to one `ControlledSubstance` (many-to-one)
 - Generates many `Alert` (one-to-many)
 
 **Storage**: Dataverse virtual table `phr_threshold`
 
 **Validation Rules**:
-- `CustomerId` + `SubstanceId` + `ThresholdType` must be unique
+- `ComplianceExtensionId` + `SubstanceId` + `ThresholdType` must be unique
 
 ---
 
@@ -290,7 +308,7 @@ Represents a compliance warning or reminder.
 - `AlertType` (enum: LicenceExpiring, LicenceExpired, MissingDocumentation, ThresholdExceeded, ReVerificationDue, GdpCertificateExpiring, required) - Type of alert
 - `Severity` (enum: Critical, Warning, Info, required) - Urgency level
 - `TargetEntityType` (enum: Customer, Licence, Threshold, GdpSite, GdpCredential, required) - What entity this alert is about
-- `TargetEntityId` (Guid, required) - Reference to entity
+- `TargetEntityId` (Guid, required) - Reference to entity. When `TargetEntityType=Customer`, this is the `ComplianceExtensionId` from `phr_customercomplianceextension`
 - `GeneratedDate` (DateTime, required) - When alert was created
 - `AcknowledgedDate` (DateTime, nullable) - When alert was acknowledged
 - `AcknowledgedBy` (Guid, FK → User, nullable) - Who acknowledged alert
@@ -378,7 +396,7 @@ Records compliance-related actions, verifications, or changes for audit trail.
 - `EventDate` (DateTime, required) - When event occurred
 - `PerformedBy` (Guid, FK → User, required) - Who performed action
 - `EntityType` (enum: Customer, Licence, Transaction, GdpSite, Inspection, required) - What entity affected
-- `EntityId` (Guid, required) - Reference to affected entity
+- `EntityId` (Guid, required) - Reference to affected entity. When `EntityType=Customer`, this is the `ComplianceExtensionId` from `phr_customercomplianceextension`
 - `Details` (string, nullable) - Event details (JSON serialized)
 - `SupportingEvidenceUrl` (string, nullable) - Reference to evidence (document, screenshot, etc.)
 
@@ -465,7 +483,7 @@ Represents a partner's GDP compliance status and credentials.
 **Attributes**:
 - `CredentialId` (Guid, PK) - Unique identifier
 - `EntityType` (enum: Supplier, ServiceProvider, required) - Type of partner
-- `EntityId` (Guid, FK → Customer or GdpServiceProvider, required) - Which partner
+- `EntityId` (Guid, FK → Customer or GdpServiceProvider, required) - Which partner. When `EntityType=Supplier` (customer), this is the `ComplianceExtensionId` from `phr_customercomplianceextension`
 - `WdaNumber` (string, nullable) - WDA number if applicable
 - `GdpCertificateNumber` (string, nullable) - GDP certificate number
 - `EudraGmdpEntryUrl` (string, nullable) - Link to EudraGMDP entry
@@ -736,7 +754,7 @@ Represents a qualification or re-qualification review of a customer/partner.
 **Attributes**:
 - `ReviewId` (Guid, PK) - Unique identifier
 - `EntityType` (enum: Customer, ServiceProvider, required) - What is being reviewed
-- `EntityId` (Guid, FK → Customer or GdpServiceProvider, required) - Which entity
+- `EntityId` (Guid, FK → Customer or GdpServiceProvider, required) - Which entity. When `EntityType=Customer`, this is the `ComplianceExtensionId` from `phr_customercomplianceextension`
 - `ReviewDate` (DateOnly, required) - When review occurred
 - `ReviewMethod` (enum: OnSiteAudit, Questionnaire, DocumentReview, required) - How reviewed
 - `ReviewOutcome` (enum: Approved, ConditionallyApproved, Rejected, required) - Result
@@ -776,7 +794,7 @@ Records verification of a partner's GDP status via EudraGMDP or national databas
 
 ### Dataverse Virtual Tables (Master Data)
 - Licence, LicenceType, ControlledSubstance, LicenceSubstanceMapping
-- Customer, IntegrationSystem, User
+- CustomerComplianceExtension (`phr_customercomplianceextension`), IntegrationSystem, User
 - Threshold
 - LicenceDocument, LicenceVerification, LicenceScopeChange
 - GdpWarehouseExtension (`phr_gdpwarehouseextension`), GdpSiteWdaCoverage, GdpCredential, GdpServiceProvider
@@ -785,6 +803,7 @@ Records verification of a partner's GDP status via EudraGMDP or national databas
 - QualificationReview, GdpCredentialVerification
 
 ### D365 F&O Virtual Data Entities (Read-Only Master Data)
+- CustomersV3 (OData: `CustomersV3`) - Customer master data, keyed by CustomerAccount + dataAreaId
 - Warehouses (OData: `Warehouses`) - Physical warehouse locations, keyed by WarehouseId + dataAreaId
 - OperationalSitesV2 (OData: `OperationalSitesV2`) - Organizational sites, keyed by SiteId + dataAreaId
 
@@ -793,6 +812,7 @@ Records verification of a partner's GDP status via EudraGMDP or national databas
 - AuditEvent, Alert
 
 ### Composite Domain Models (Multi-Source)
+- Customer = D365FO `CustomersV3` (read-only master data) + Dataverse `phr_customercomplianceextension` (compliance config)
 - GdpSite = D365FO `Warehouses` (read-only) + Dataverse `phr_gdpwarehouseextension` (GDP config)
 
 ---
@@ -815,18 +835,19 @@ When updating these entities, the application MUST:
 ## Key Relationships Diagram (High-Level)
 
 ```text
-Customer (1) ----< (M) Licence ----< (M) LicenceSubstanceMapping >---- (M) ControlledSubstance
-   |                                                                              |
-   | (1:M)                                                                        | (1:M)
-   v                                                                              v
+D365FO CustomersV3 ----[compliance extensions]---- Dataverse phr_customercomplianceextension = Customer (composite)
+Customer [CustomerAccount+DataAreaId] (1) ----< (M) Licence (via ComplianceExtensionId) ----< (M) LicenceSubstanceMapping >---- (M) ControlledSubstance
+   |                                                                                                        |
+   | (1:M via CustomerAccount+DataAreaId)                                                                   | (1:M)
+   v                                                                                                        v
 Transaction ----< (1:M) TransactionLine ----< (M:1) ControlledSubstance
    |
    | (1:M)
    v
 TransactionViolation
 
-Customer (1) ----< (M) GdpCredential
-Customer (1) ----< (M) Threshold >---- (M:1) ControlledSubstance
+Customer [ComplianceExtensionId] (1) ----< (M) GdpCredential
+Customer [ComplianceExtensionId] (1) ----< (M) Threshold >---- (M:1) ControlledSubstance
 
 D365FO Warehouse ----[GDP extensions]---- Dataverse phr_gdpwarehouseextension = GdpSite (composite)
 GdpSite [WarehouseId+DataAreaId] (1) ----< (M) GdpInspection ----< (1:M) GdpInspectionFinding ----< (1:M) Capa

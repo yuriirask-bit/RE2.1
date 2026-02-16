@@ -167,17 +167,17 @@ public class AlertGenerationService
             if (!customer.NextReVerificationDate.HasValue) continue;
             if (customer.NextReVerificationDate.Value > threshold) continue;
 
-            // Check if alert already exists
+            // Check if alert already exists (use ComplianceExtensionId as entity Guid)
             var alertExists = await _alertRepository.ExistsAsync(
                 AlertType.ReVerificationDue,
                 TargetEntityType.Customer,
-                customer.CustomerId,
+                customer.ComplianceExtensionId,
                 cancellationToken);
 
             if (alertExists) continue;
 
             var alert = Alert.CreateReVerificationAlert(
-                customer.CustomerId,
+                customer.ComplianceExtensionId,
                 customer.BusinessName,
                 customer.NextReVerificationDate.Value);
 

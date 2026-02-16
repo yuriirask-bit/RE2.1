@@ -24,7 +24,8 @@ public class TransactionValidationContractTests
 
         // Assert - required fields per transaction-validation-api.yaml
         properties.Should().Contain(p => p.Name == "ExternalId");
-        properties.Should().Contain(p => p.Name == "CustomerId");
+        properties.Should().Contain(p => p.Name == "CustomerAccount");
+        properties.Should().Contain(p => p.Name == "CustomerDataAreaId");
         properties.Should().Contain(p => p.Name == "TransactionType");
         properties.Should().Contain(p => p.Name == "TransactionDate");
         properties.Should().Contain(p => p.Name == "Lines");
@@ -72,14 +73,14 @@ public class TransactionValidationContractTests
     public void ToDomainModel_ShouldMapAllRequiredFields()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
         var substanceId = Guid.NewGuid();
         var transactionDate = DateTime.UtcNow;
 
         var request = new TransactionValidationRequestDto
         {
             ExternalId = "SO-2026-0012345",
-            CustomerId = customerId,
+            CustomerAccount = "CUST-001",
+            CustomerDataAreaId = "nlpd",
             TransactionType = "Order",
             Direction = "Internal",
             TransactionDate = transactionDate,
@@ -103,7 +104,8 @@ public class TransactionValidationContractTests
 
         // Assert
         domain.ExternalId.Should().Be("SO-2026-0012345");
-        domain.CustomerId.Should().Be(customerId);
+        domain.CustomerAccount.Should().Be("CUST-001");
+        domain.CustomerDataAreaId.Should().Be("nlpd");
         domain.TransactionType.Should().Be(TransactionType.Order);
         domain.Direction.Should().Be(TransactionDirection.Internal);
         domain.TransactionDate.Should().Be(transactionDate);
@@ -124,7 +126,8 @@ public class TransactionValidationContractTests
         var request = new TransactionValidationRequestDto
         {
             ExternalId = "TEST-001",
-            CustomerId = Guid.NewGuid(),
+            CustomerAccount = "CUST-001",
+            CustomerDataAreaId = "nlpd",
             TransactionType = typeString,
             Lines = new List<TransactionLineDto>
             {
@@ -149,7 +152,8 @@ public class TransactionValidationContractTests
         var request = new TransactionValidationRequestDto
         {
             ExternalId = "TEST-001",
-            CustomerId = Guid.NewGuid(),
+            CustomerAccount = "CUST-001",
+            CustomerDataAreaId = "nlpd",
             Direction = directionString,
             Lines = new List<TransactionLineDto>
             {
@@ -171,7 +175,8 @@ public class TransactionValidationContractTests
         var request = new TransactionValidationRequestDto
         {
             ExternalId = "TEST-001",
-            CustomerId = Guid.NewGuid(),
+            CustomerAccount = "CUST-001",
+            CustomerDataAreaId = "nlpd",
             Lines = new List<TransactionLineDto>
             {
                 new() { SubstanceId = Guid.NewGuid(), Quantity = 100, BaseUnitQuantity = 1000 },
@@ -405,7 +410,8 @@ public class TransactionValidationContractTests
         var request = new TransactionValidationRequestDto
         {
             ExternalId = "SO-2026-EXPORT-001",
-            CustomerId = Guid.NewGuid(),
+            CustomerAccount = "CUST-EXPORT",
+            CustomerDataAreaId = "nlpd",
             TransactionType = "Shipment",
             Direction = "Outbound",
             OriginCountry = "NL",
@@ -432,7 +438,8 @@ public class TransactionValidationContractTests
         var request = new TransactionValidationRequestDto
         {
             ExternalId = "SO-2026-DOMESTIC-001",
-            CustomerId = Guid.NewGuid(),
+            CustomerAccount = "CUST-DOMESTIC",
+            CustomerDataAreaId = "nlpd",
             TransactionType = "Order",
             Direction = "Internal",
             OriginCountry = "NL",
@@ -503,7 +510,8 @@ public class TransactionValidationContractTests
         var request = new TransactionValidationRequestDto
         {
             ExternalId = "SO-2026-0012345",
-            CustomerId = Guid.Parse("c7f3a1b2-8d4e-4a9c-b5e6-1f2a3b4c5d6e"),
+            CustomerAccount = "CUST-0012345",
+            CustomerDataAreaId = "nlpd",
             TransactionType = "DomesticSale",
             TransactionDate = new DateTime(2026, 1, 9, 14, 30, 0, DateTimeKind.Utc),
             Lines = new List<TransactionLineDto>
@@ -523,7 +531,8 @@ public class TransactionValidationContractTests
 
         // Assert
         json.Should().Contain("SO-2026-0012345");
-        json.Should().Contain("c7f3a1b2-8d4e-4a9c-b5e6-1f2a3b4c5d6e");
+        json.Should().Contain("CUST-0012345");
+        json.Should().Contain("nlpd");
         json.Should().Contain("MOR-10MG-AMP");
     }
 

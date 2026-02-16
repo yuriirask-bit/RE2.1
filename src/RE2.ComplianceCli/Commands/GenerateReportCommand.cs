@@ -117,9 +117,9 @@ public class GenerateReportCommand
 
         IEnumerable<RE2.ComplianceCore.Models.Customer> customers;
 
-        if (!string.IsNullOrEmpty(options.CustomerId) && Guid.TryParse(options.CustomerId, out var customerId))
+        if (!string.IsNullOrEmpty(options.CustomerAccount) && !string.IsNullOrEmpty(options.DataAreaId))
         {
-            var customer = await customerService.GetByIdAsync(customerId);
+            var customer = await customerService.GetByAccountAsync(options.CustomerAccount, options.DataAreaId);
             customers = customer != null ? new[] { customer } : Array.Empty<RE2.ComplianceCore.Models.Customer>();
         }
         else
@@ -132,10 +132,11 @@ public class GenerateReportCommand
 
         foreach (var customer in customerList)
         {
-            var status = await customerService.GetComplianceStatusAsync(customer.CustomerId);
+            var status = await customerService.GetComplianceStatusAsync(customer.CustomerAccount, customer.DataAreaId);
             complianceItems.Add(new CustomerComplianceItem
             {
-                CustomerId = customer.CustomerId,
+                CustomerAccount = customer.CustomerAccount,
+                DataAreaId = customer.DataAreaId,
                 BusinessName = customer.BusinessName,
                 Country = customer.Country,
                 ApprovalStatus = customer.ApprovalStatus.ToString(),
@@ -154,7 +155,8 @@ public class GenerateReportCommand
             GeneratedAt = DateTime.UtcNow,
             Parameters = new ReportParameters
             {
-                CustomerId = options.CustomerId
+                CustomerAccount = options.CustomerAccount,
+                DataAreaId = options.DataAreaId
             },
             Summary = new CustomerComplianceSummary
             {
@@ -215,7 +217,8 @@ public class GenerateReportCommand
                 GeneratedAt = DateTime.UtcNow,
                 Parameters = new ReportParameters
                 {
-                    CustomerId = options.CustomerId,
+                    CustomerAccount = options.CustomerAccount,
+                    DataAreaId = options.DataAreaId,
                     FromDate = options.FromDate,
                     ToDate = options.ToDate
                 },
@@ -230,9 +233,12 @@ public class GenerateReportCommand
         var transactionList = transactions.ToList();
 
         // Apply filters
-        if (!string.IsNullOrEmpty(options.CustomerId) && Guid.TryParse(options.CustomerId, out var customerId))
+        if (!string.IsNullOrEmpty(options.CustomerAccount))
         {
-            transactionList = transactionList.Where(t => t.CustomerId == customerId).ToList();
+            transactionList = transactionList.Where(t =>
+                t.CustomerAccount.Equals(options.CustomerAccount, StringComparison.OrdinalIgnoreCase) &&
+                (string.IsNullOrEmpty(options.DataAreaId) ||
+                 t.CustomerDataAreaId.Equals(options.DataAreaId, StringComparison.OrdinalIgnoreCase))).ToList();
         }
 
         if (!string.IsNullOrEmpty(options.FromDate) && DateTime.TryParse(options.FromDate, out var fromDate))
@@ -251,7 +257,8 @@ public class GenerateReportCommand
             GeneratedAt = DateTime.UtcNow,
             Parameters = new ReportParameters
             {
-                CustomerId = options.CustomerId,
+                CustomerAccount = options.CustomerAccount,
+                DataAreaId = options.DataAreaId,
                 FromDate = options.FromDate,
                 ToDate = options.ToDate
             },
@@ -267,7 +274,8 @@ public class GenerateReportCommand
             {
                 TransactionId = t.Id,
                 ExternalTransactionId = t.ExternalId,
-                CustomerId = t.CustomerId,
+                CustomerAccount = t.CustomerAccount,
+                CustomerDataAreaId = t.CustomerDataAreaId,
                 TransactionType = t.TransactionType.ToString(),
                 TransactionDirection = t.Direction.ToString(),
                 TransactionDate = t.TransactionDate,
@@ -289,7 +297,8 @@ public class GenerateReportCommand
 public class ReportParameters
 {
     public int? DaysAhead { get; set; }
-    public string? CustomerId { get; set; }
+    public string? CustomerAccount { get; set; }
+    public string? DataAreaId { get; set; }
     public string? FromDate { get; set; }
     public string? ToDate { get; set; }
 }
@@ -347,7 +356,8 @@ public class CustomerComplianceSummary
 
 public class CustomerComplianceItem
 {
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+    public string DataAreaId { get; set; } = string.Empty;
     public string BusinessName { get; set; } = string.Empty;
     public string Country { get; set; } = string.Empty;
     public string ApprovalStatus { get; set; } = string.Empty;
@@ -417,7 +427,8 @@ public class TransactionItem
 {
     public Guid TransactionId { get; set; }
     public string? ExternalTransactionId { get; set; }
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+    public string CustomerDataAreaId { get; set; } = string.Empty;
     public string TransactionType { get; set; } = string.Empty;
     public string TransactionDirection { get; set; } = string.Empty;
     public DateTime TransactionDate { get; set; }

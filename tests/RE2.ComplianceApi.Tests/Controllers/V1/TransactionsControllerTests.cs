@@ -232,7 +232,7 @@ public class TransactionsControllerTests
         };
 
         _mockComplianceService
-            .Setup(s => s.GetTransactionsAsync(null, null, null, null, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetTransactionsAsync(null, null, null, null, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(transactions);
 
         // Act
@@ -251,7 +251,7 @@ public class TransactionsControllerTests
         var transactions = new[] { CreateTransaction() };
 
         _mockComplianceService
-            .Setup(s => s.GetTransactionsAsync(ValidationStatus.Passed, null, null, null, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetTransactionsAsync(ValidationStatus.Passed, null, null, null, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(transactions);
 
         // Act
@@ -260,7 +260,7 @@ public class TransactionsControllerTests
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
         _mockComplianceService.Verify(s => s.GetTransactionsAsync(
-            ValidationStatus.Passed, null, null, null, It.IsAny<CancellationToken>()), Times.Once);
+            ValidationStatus.Passed, null, null, null, null, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -268,8 +268,8 @@ public class TransactionsControllerTests
     {
         // Arrange
         _mockComplianceService
-            .Setup(s => s.GetTransactionsAsync(It.IsAny<ValidationStatus?>(), It.IsAny<Guid?>(),
-                It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetTransactionsAsync(It.IsAny<ValidationStatus?>(), It.IsAny<string?>(),
+                It.IsAny<string?>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Enumerable.Empty<Transaction>());
 
         // Act
@@ -499,7 +499,8 @@ public class TransactionsControllerTests
             ExternalId = "ORD-2024-001",
             TransactionType = "Order",
             Direction = "Internal",
-            CustomerId = Guid.NewGuid(),
+            CustomerAccount = "CUST-001",
+            CustomerDataAreaId = "DAT",
             OriginCountry = "NL",
             TransactionDate = DateTime.UtcNow,
             Lines = new List<TransactionLineDto>
@@ -524,7 +525,8 @@ public class TransactionsControllerTests
             ExternalId = "ORD-2024-001",
             TransactionType = TransactionType.Order,
             Direction = TransactionDirection.Internal,
-            CustomerId = Guid.NewGuid(),
+            CustomerAccount = "CUST-001",
+            CustomerDataAreaId = "DAT",
             CustomerName = "Test Pharmacy",
             OriginCountry = "NL",
             TransactionDate = DateTime.UtcNow,

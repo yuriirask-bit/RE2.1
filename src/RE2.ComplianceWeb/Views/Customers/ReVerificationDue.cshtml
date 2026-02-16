@@ -63,7 +63,7 @@
 
                     <tr class="@(isOverdue ? "table-danger" : isUrgent ? "table-warning" : "")">
                         <td>
-                            <a asp-action="Details" asp-route-id="@customer.CustomerId">
+                            <a asp-action="Details" asp-route-customerAccount="@customer.CustomerAccount" asp-route-dataAreaId="@customer.DataAreaId">
                                 @customer.BusinessName
                             </a>
                             @if (customer.IsSuspended)
@@ -110,10 +110,10 @@
                             <span class="badge @statusClass">@FormatEnumName(customer.ApprovalStatus.ToString())</span>
                         </td>
                         <td>
-                            <a asp-action="Details" asp-route-id="@customer.CustomerId" class="btn btn-sm btn-outline-primary" title="View Details">
+                            <a asp-action="Details" asp-route-customerAccount="@customer.CustomerAccount" asp-route-dataAreaId="@customer.DataAreaId" class="btn btn-sm btn-outline-primary" title="View Details">
                                 <i class="bi bi-eye"></i>
                             </a>
-                            <a asp-action="Edit" asp-route-id="@customer.CustomerId" class="btn btn-sm btn-outline-secondary" title="Edit">
+                            <a asp-action="Edit" asp-route-customerAccount="@customer.CustomerAccount" asp-route-dataAreaId="@customer.DataAreaId" class="btn btn-sm btn-outline-secondary" title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </a>
                         </td>

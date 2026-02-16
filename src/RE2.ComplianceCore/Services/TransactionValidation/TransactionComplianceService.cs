@@ -52,9 +52,10 @@ public class TransactionComplianceService : ITransactionComplianceService
         var licenceUsages = new List<TransactionLicenceUsage>();
 
         _logger.LogInformation(
-            "Validating transaction {ExternalId} for customer {CustomerId}",
+            "Validating transaction {ExternalId} for customer {CustomerAccount} in {DataAreaId}",
             transaction.ExternalId,
-            transaction.CustomerId);
+            transaction.CustomerAccount,
+            transaction.CustomerDataAreaId);
 
         try
         {
@@ -77,7 +78,8 @@ public class TransactionComplianceService : ITransactionComplianceService
 
             // 5. Validate frequency thresholds (FR-022)
             var frequencyViolations = await CheckFrequencyThresholdsInternalAsync(
-                transaction.CustomerId,
+                transaction.CustomerAccount,
+                transaction.CustomerDataAreaId,
                 transaction.TransactionDate,
                 cancellationToken);
             violations.AddRange(frequencyViolations);
@@ -202,15 +204,15 @@ public class TransactionComplianceService : ITransactionComplianceService
     {
         var violations = new List<TransactionViolation>();
 
-        var customer = await _customerRepository.GetByIdAsync(transaction.CustomerId, cancellationToken);
+        var customer = await _customerRepository.GetByAccountAsync(transaction.CustomerAccount, transaction.CustomerDataAreaId, cancellationToken);
         if (customer == null)
         {
             violations.Add(TransactionViolation.CustomerViolation(
                 transaction.Id,
                 ViolationType.CustomerNotQualified,
                 ErrorCodes.CUSTOMER_NOT_FOUND,
-                $"Customer with ID {transaction.CustomerId} not found",
-                transaction.CustomerId,
+                $"Customer '{transaction.CustomerAccount}' not found in data area '{transaction.CustomerDataAreaId}'",
+                Guid.Empty,
                 canOverride: false));
             return violations;
         }
@@ -226,7 +228,7 @@ public class TransactionComplianceService : ITransactionComplianceService
                 ViolationType.CustomerSuspended,
                 ErrorCodes.CUSTOMER_SUSPENDED,
                 $"Customer '{customer.BusinessName}' is suspended: {customer.SuspensionReason}",
-                customer.CustomerId,
+                customer.ComplianceExtensionId,
                 customer.BusinessName,
                 canOverride: false)); // Cannot override suspended customer
         }
@@ -239,7 +241,7 @@ public class TransactionComplianceService : ITransactionComplianceService
                 ViolationType.CustomerNotQualified,
                 ErrorCodes.CUSTOMER_NOT_APPROVED,
                 $"Customer '{customer.BusinessName}' is not approved (status: {customer.ApprovalStatus})",
-                customer.CustomerId,
+                customer.ComplianceExtensionId,
                 customer.BusinessName,
                 canOverride: true)); // Can override pending approval in some cases
         }
@@ -255,7 +257,7 @@ public class TransactionComplianceService : ITransactionComplianceService
                     ViolationType.CustomerNotQualified,
                     ErrorCodes.GDP_QUALIFICATION_INVALID,
                     $"Customer '{customer.BusinessName}' is not GDP qualified (status: {customer.GdpQualificationStatus})",
-                    customer.CustomerId,
+                    customer.ComplianceExtensionId,
                     customer.BusinessName,
                     canOverride: true));
             }
@@ -275,11 +277,12 @@ public class TransactionComplianceService : ITransactionComplianceService
         var usages = new List<TransactionLicenceUsage>();
         var coveredLinesByLicence = new Dictionary<Guid, List<TransactionLine>>();
 
-        // Get customer's licences
-        var customerLicences = await _licenceRepository.GetByHolderAsync(
-            transaction.CustomerId,
-            "Customer",
-            cancellationToken);
+        // Get customer's licences (look up customer to get ComplianceExtensionId for licence holder)
+        var licenceCustomer = await _customerRepository.GetByAccountAsync(
+            transaction.CustomerAccount, transaction.CustomerDataAreaId, cancellationToken);
+        var customerLicences = licenceCustomer != null
+            ? await _licenceRepository.GetByHolderAsync(licenceCustomer.ComplianceExtensionId, "Customer", cancellationToken)
+            : Enumerable.Empty<Licence>();
 
         // Get company's licences (wholesaler licences)
         var companyLicences = await _licenceRepository.GetByHolderAsync(
@@ -481,7 +484,7 @@ public class TransactionComplianceService : ITransactionComplianceService
         var violations = new List<TransactionViolation>();
 
         // Get customer for category-based thresholds
-        var customer = await _customerRepository.GetByIdAsync(transaction.CustomerId, cancellationToken);
+        var customer = await _customerRepository.GetByAccountAsync(transaction.CustomerAccount, transaction.CustomerDataAreaId, cancellationToken);
         if (customer == null)
         {
             return violations; // Customer validation will catch this
@@ -493,7 +496,7 @@ public class TransactionComplianceService : ITransactionComplianceService
         // Get applicable thresholds
         var thresholds = await _thresholdRepository.GetApplicableThresholdsAsync(
             substanceIds,
-            transaction.CustomerId,
+            customer.ComplianceExtensionId,
             customer.BusinessCategory,
             cancellationToken);
 
@@ -524,7 +527,8 @@ public class TransactionComplianceService : ITransactionComplianceService
                 if (threshold.SubstanceId.HasValue)
                 {
                     historicalUsage = await GetCumulativeUsageAsync(
-                        transaction.CustomerId,
+                        customer.CustomerAccount,
+                        customer.DataAreaId,
                         threshold.SubstanceId.Value,
                         fromDate,
                         toDate,
@@ -537,7 +541,8 @@ public class TransactionComplianceService : ITransactionComplianceService
                     foreach (var substanceId in substanceIds)
                     {
                         historicalUsage += await GetCumulativeUsageAsync(
-                            transaction.CustomerId,
+                            customer.CustomerAccount,
+                            customer.DataAreaId,
                             substanceId,
                             fromDate,
                             toDate,
@@ -590,11 +595,12 @@ public class TransactionComplianceService : ITransactionComplianceService
 
     /// <inheritdoc />
     public async Task<IEnumerable<ValidationViolation>> CheckFrequencyThresholdsAsync(
-        Guid customerId,
+        string customerAccount,
+        string customerDataAreaId,
         DateTime transactionDate,
         CancellationToken cancellationToken = default)
     {
-        var violations = await CheckFrequencyThresholdsInternalAsync(customerId, transactionDate, cancellationToken);
+        var violations = await CheckFrequencyThresholdsInternalAsync(customerAccount, customerDataAreaId, transactionDate, cancellationToken);
         return ConvertToValidationViolations(violations);
     }
 
@@ -602,14 +608,15 @@ public class TransactionComplianceService : ITransactionComplianceService
     /// Internal implementation of frequency threshold checking that returns TransactionViolation.
     /// </summary>
     private async Task<List<TransactionViolation>> CheckFrequencyThresholdsInternalAsync(
-        Guid customerId,
+        string customerAccount,
+        string customerDataAreaId,
         DateTime transactionDate,
         CancellationToken cancellationToken)
     {
         var violations = new List<TransactionViolation>();
 
         // Get customer for category
-        var customer = await _customerRepository.GetByIdAsync(customerId, cancellationToken);
+        var customer = await _customerRepository.GetByAccountAsync(customerAccount, customerDataAreaId, cancellationToken);
         if (customer == null)
         {
             return violations;
@@ -618,7 +625,7 @@ public class TransactionComplianceService : ITransactionComplianceService
         // Get frequency thresholds
         var thresholds = await _thresholdRepository.GetByTypeAsync(ThresholdType.Frequency, cancellationToken);
         var applicableThresholds = thresholds.Where(t =>
-            t.AppliesToCustomer(customerId, customer.BusinessCategory));
+            t.AppliesToCustomer(customer.ComplianceExtensionId, customer.BusinessCategory));
 
         foreach (var threshold in applicableThresholds)
         {
@@ -626,7 +633,8 @@ public class TransactionComplianceService : ITransactionComplianceService
 
             // Count transactions in period
             var transactions = await _transactionRepository.GetCustomerTransactionsInPeriodAsync(
-                customerId,
+                customer.CustomerAccount,
+                customer.DataAreaId,
                 fromDate,
                 toDate,
                 cancellationToken);
@@ -775,7 +783,8 @@ public class TransactionComplianceService : ITransactionComplianceService
     /// <inheritdoc />
     public async Task<IEnumerable<Transaction>> GetTransactionsAsync(
         ValidationStatus? status = null,
-        Guid? customerId = null,
+        string? customerAccount = null,
+        string? customerDataAreaId = null,
         DateTime? fromDate = null,
         DateTime? toDate = null,
         CancellationToken cancellationToken = default)
@@ -786,9 +795,9 @@ public class TransactionComplianceService : ITransactionComplianceService
         {
             transactions = await _transactionRepository.GetByStatusAsync(status.Value, cancellationToken);
         }
-        else if (customerId.HasValue)
+        else if (!string.IsNullOrEmpty(customerAccount) && !string.IsNullOrEmpty(customerDataAreaId))
         {
-            transactions = await _transactionRepository.GetByCustomerIdAsync(customerId.Value, cancellationToken);
+            transactions = await _transactionRepository.GetByCustomerAccountAsync(customerAccount, customerDataAreaId, cancellationToken);
         }
         else if (fromDate.HasValue && toDate.HasValue)
         {
@@ -808,14 +817,16 @@ public class TransactionComplianceService : ITransactionComplianceService
 
     /// <inheritdoc />
     public async Task<decimal> GetCumulativeUsageAsync(
-        Guid customerId,
+        string customerAccount,
+        string customerDataAreaId,
         Guid substanceId,
         DateTime fromDate,
         DateTime toDate,
         CancellationToken cancellationToken = default)
     {
         var lines = await _transactionRepository.GetCustomerSubstanceLinesInPeriodAsync(
-            customerId,
+            customerAccount,
+            customerDataAreaId,
             substanceId,
             fromDate,
             toDate,
@@ -984,7 +995,7 @@ public class TransactionComplianceService : ITransactionComplianceService
             {
                 TransactionId = transaction.Id,
                 ExternalId = transaction.ExternalId,
-                CustomerId = transaction.CustomerId,
+                CustomerAccount = transaction.CustomerAccount,
                 CustomerName = transaction.CustomerName,
                 ApproverUserId = approverUserId,
                 Justification = justification,
@@ -1020,7 +1031,7 @@ public class TransactionComplianceService : ITransactionComplianceService
             {
                 TransactionId = transaction.Id,
                 ExternalId = transaction.ExternalId,
-                CustomerId = transaction.CustomerId,
+                CustomerAccount = transaction.CustomerAccount,
                 CustomerName = transaction.CustomerName,
                 Status = "Approved",
                 ValidationStatus = transaction.ValidationStatus.ToString(),
@@ -1058,7 +1069,7 @@ public class TransactionComplianceService : ITransactionComplianceService
             {
                 TransactionId = transaction.Id,
                 ExternalId = transaction.ExternalId,
-                CustomerId = transaction.CustomerId,
+                CustomerAccount = transaction.CustomerAccount,
                 CustomerName = transaction.CustomerName,
                 Status = "Rejected",
                 ValidationStatus = transaction.ValidationStatus.ToString(),
@@ -1093,7 +1104,7 @@ public class OverrideApprovedEventPayload
 {
     public Guid TransactionId { get; set; }
     public string ExternalId { get; set; } = string.Empty;
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
     public string? CustomerName { get; set; }
     public string ApproverUserId { get; set; } = string.Empty;
     public string Justification { get; set; } = string.Empty;
@@ -1108,7 +1119,7 @@ public class OrderStatusChangedEventPayload
 {
     public Guid TransactionId { get; set; }
     public string ExternalId { get; set; } = string.Empty;
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
     public string? CustomerName { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? ValidationStatus { get; set; }

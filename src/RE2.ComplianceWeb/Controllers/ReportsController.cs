@@ -84,7 +84,8 @@ public class ReportsController : Controller
                 FromDate = model.FromDate,
                 ToDate = model.ToDate,
                 SubstanceId = model.SubstanceId,
-                CustomerId = model.CustomerId,
+                CustomerAccount = model.CustomerAccount,
+                CustomerDataAreaId = model.CustomerDataAreaId,
                 CountryCode = model.CountryCode,
                 IncludeLicenceDetails = model.IncludeLicenceDetails
             };
@@ -201,7 +202,8 @@ public class ReportsController : Controller
         {
             var criteria = new CustomerComplianceHistoryCriteria
             {
-                CustomerId = model.CustomerId,
+                CustomerAccount = model.CustomerAccount,
+                DataAreaId = model.DataAreaId,
                 FromDate = model.FromDate,
                 ToDate = model.ToDate,
                 IncludeLicenceStatus = model.IncludeLicenceStatus
@@ -217,14 +219,14 @@ public class ReportsController : Controller
             }
 
             _logger.LogInformation(
-                "Generated customer compliance history: {Count} events for {CustomerId}",
-                report.Events.Count, model.CustomerId);
+                "Generated customer compliance history: {Count} events for {CustomerAccount}/{DataAreaId}",
+                report.Events.Count, model.CustomerAccount, model.DataAreaId);
 
             return View("CustomerComplianceResult", report);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating customer compliance history for {CustomerId}", model.CustomerId);
+            _logger.LogError(ex, "Error generating customer compliance history for {CustomerAccount}/{DataAreaId}", model.CustomerAccount, model.DataAreaId);
             TempData["ErrorMessage"] = "An error occurred generating the report.";
             ViewBag.Customers = await _customerRepository.GetAllAsync(cancellationToken);
             return View(model);
@@ -314,7 +316,8 @@ public class TransactionAuditReportViewModel
     public DateTime FromDate { get; set; }
     public DateTime ToDate { get; set; }
     public Guid? SubstanceId { get; set; }
-    public Guid? CustomerId { get; set; }
+    public string? CustomerAccount { get; set; }
+    public string? CustomerDataAreaId { get; set; }
     public string? CountryCode { get; set; }
     public bool IncludeLicenceDetails { get; set; }
 }
@@ -336,7 +339,8 @@ public class LicenceUsageReportViewModel
 /// </summary>
 public class CustomerComplianceReportViewModel
 {
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+    public string DataAreaId { get; set; } = string.Empty;
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
     public bool IncludeLicenceStatus { get; set; }

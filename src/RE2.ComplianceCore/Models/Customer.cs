@@ -3,27 +3,43 @@ using RE2.Shared.Constants;
 namespace RE2.ComplianceCore.Models;
 
 /// <summary>
-/// Represents a trading partner qualified to purchase controlled drugs or provide services.
-/// T085: Customer domain model per data-model.md entity 5.
+/// Composite domain model combining D365FO customer master data with Dataverse compliance extensions.
+/// D365FO CustomersV3 provides read-only master data (CustomerAccount, OrganizationName, AddressCountryRegionId).
+/// Dataverse phr_customercomplianceextension stores compliance-specific extensions.
+/// Composite key: CustomerAccount (string) + DataAreaId (string).
 /// </summary>
 public class Customer
 {
-    /// <summary>
-    /// Unique identifier.
-    /// </summary>
-    public Guid CustomerId { get; set; }
+    #region D365FO Read-Only Fields (from CustomersV3 OData entity)
 
     /// <summary>
-    /// Legal entity name.
-    /// Required, indexed.
+    /// Customer account number from D365FO. Composite key part 1.
     /// </summary>
-    public string BusinessName { get; set; } = string.Empty;
+    public string CustomerAccount { get; set; } = string.Empty;
 
     /// <summary>
-    /// Company registration number (KVK, VAT, etc.).
-    /// Nullable, indexed.
+    /// Legal entity (data area) in D365FO. Composite key part 2.
     /// </summary>
-    public string? RegistrationNumber { get; set; }
+    public string DataAreaId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Organization name from D365FO.
+    /// </summary>
+    public string OrganizationName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Country/region ID from D365FO (ISO code).
+    /// </summary>
+    public string AddressCountryRegionId { get; set; } = string.Empty;
+
+    #endregion
+
+    #region Dataverse Compliance Extension Fields (phr_customercomplianceextension)
+
+    /// <summary>
+    /// Unique identifier for the compliance extension record in Dataverse.
+    /// </summary>
+    public Guid ComplianceExtensionId { get; set; }
 
     /// <summary>
     /// Type of entity (Hospital, Pharmacy, Wholesaler, etc.).
@@ -32,16 +48,16 @@ public class Customer
     public BusinessCategory BusinessCategory { get; set; }
 
     /// <summary>
-    /// ISO 3166-1 alpha-2 country code.
-    /// Required.
-    /// </summary>
-    public string Country { get; set; } = string.Empty;
-
-    /// <summary>
     /// Current qualification status.
     /// Required.
     /// </summary>
     public ApprovalStatus ApprovalStatus { get; set; } = ApprovalStatus.Pending;
+
+    /// <summary>
+    /// GDP qualification status.
+    /// Required.
+    /// </summary>
+    public GdpQualificationStatus GdpQualificationStatus { get; set; } = GdpQualificationStatus.NotRequired;
 
     /// <summary>
     /// When customer was first qualified.
@@ -54,12 +70,6 @@ public class Customer
     /// Nullable.
     /// </summary>
     public DateOnly? NextReVerificationDate { get; set; }
-
-    /// <summary>
-    /// GDP qualification status.
-    /// Required.
-    /// </summary>
-    public GdpQualificationStatus GdpQualificationStatus { get; set; } = GdpQualificationStatus.NotRequired;
 
     /// <summary>
     /// Whether sales are currently blocked.
@@ -91,6 +101,33 @@ public class Customer
     /// </summary>
     public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
+    #endregion
+
+    #region Convenience Aliases (backward compat for views/services)
+
+    /// <summary>
+    /// Alias for OrganizationName (backward compatibility).
+    /// </summary>
+    public string BusinessName => OrganizationName;
+
+    /// <summary>
+    /// Alias for AddressCountryRegionId (backward compatibility).
+    /// </summary>
+    public string Country => AddressCountryRegionId;
+
+    #endregion
+
+    #region Computed Properties
+
+    /// <summary>
+    /// Whether this customer has a compliance extension configured in Dataverse.
+    /// </summary>
+    public bool IsComplianceConfigured => ComplianceExtensionId != Guid.Empty;
+
+    #endregion
+
+    #region Business Logic
+
     /// <summary>
     /// Determines whether transactions are allowed for this customer.
     /// Per data-model.md: ApprovalStatus must be Approved or ConditionallyApproved,
@@ -115,29 +152,21 @@ public class Customer
     {
         var violations = new List<ValidationViolation>();
 
-        if (string.IsNullOrWhiteSpace(BusinessName))
+        if (string.IsNullOrWhiteSpace(CustomerAccount))
         {
             violations.Add(new ValidationViolation
             {
                 ErrorCode = ErrorCodes.VALIDATION_ERROR,
-                Message = "BusinessName is required"
+                Message = "CustomerAccount is required"
             });
         }
 
-        if (string.IsNullOrWhiteSpace(Country))
+        if (string.IsNullOrWhiteSpace(DataAreaId))
         {
             violations.Add(new ValidationViolation
             {
                 ErrorCode = ErrorCodes.VALIDATION_ERROR,
-                Message = "Country is required"
-            });
-        }
-        else if (Country.Length != 2)
-        {
-            violations.Add(new ValidationViolation
-            {
-                ErrorCode = ErrorCodes.VALIDATION_ERROR,
-                Message = "Country must be a valid ISO 3166-1 alpha-2 code (2 characters)"
+                Message = "DataAreaId is required"
             });
         }
 
@@ -194,6 +223,8 @@ public class Customer
 
         return NextReVerificationDate.Value <= DateOnly.FromDateTime(DateTime.UtcNow);
     }
+
+    #endregion
 }
 
 /// <summary>

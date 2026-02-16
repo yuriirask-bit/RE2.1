@@ -280,7 +280,7 @@
                                     {
                                         <tr class="table-warning">
                                             <td>
-                                                <a asp-controller="Customers" asp-action="Details" asp-route-id="@customer.CustomerId">
+                                                <a asp-controller="Customers" asp-action="Details" asp-route-customerAccount="@customer.CustomerAccount" asp-route-dataAreaId="@customer.DataAreaId">
                                                     @customer.BusinessName
                                                 </a>
                                             </td>
@@ -333,7 +333,7 @@
 
                                         <tr>
                                             <td>
-                                                <a asp-controller="Customers" asp-action="Details" asp-route-id="@customer.CustomerId">
+                                                <a asp-controller="Customers" asp-action="Details" asp-route-customerAccount="@customer.CustomerAccount" asp-route-dataAreaId="@customer.DataAreaId">
                                                     @customer.BusinessName
                                                 </a>
                                             </td>

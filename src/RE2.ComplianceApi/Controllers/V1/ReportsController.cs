@@ -44,7 +44,8 @@ public class ReportsController : ControllerBase
         [FromQuery] DateTime fromDate,
         [FromQuery] DateTime toDate,
         [FromQuery] Guid? substanceId = null,
-        [FromQuery] Guid? customerId = null,
+        [FromQuery] string? customerAccount = null,
+        [FromQuery] string? customerDataAreaId = null,
         [FromQuery] string? countryCode = null,
         [FromQuery] bool includeLicenceDetails = false,
         CancellationToken cancellationToken = default)
@@ -65,7 +66,8 @@ public class ReportsController : ControllerBase
                 FromDate = fromDate,
                 ToDate = toDate,
                 SubstanceId = substanceId,
-                CustomerId = customerId,
+                CustomerAccount = customerAccount,
+                CustomerDataAreaId = customerDataAreaId,
                 CountryCode = countryCode,
                 IncludeLicenceDetails = includeLicenceDetails
             };
@@ -125,7 +127,8 @@ public class ReportsController : ControllerBase
                 FromDate = request.FromDate,
                 ToDate = request.ToDate,
                 SubstanceId = request.SubstanceId,
-                CustomerId = request.CustomerId,
+                CustomerAccount = request.CustomerAccount,
+                CustomerDataAreaId = request.CustomerDataAreaId,
                 CountryCode = request.CountryCode,
                 IncludeLicenceDetails = request.IncludeLicenceDetails
             };
@@ -274,12 +277,13 @@ public class ReportsController : ControllerBase
     /// Generates a customer compliance history report.
     /// T163/FR-029: Complete compliance history for a customer.
     /// </summary>
-    [HttpGet("customer-compliance/{customerId}")]
+    [HttpGet("customer-compliance/{customerAccount}/{dataAreaId}")]
     [ProducesResponseType(typeof(CustomerComplianceHistoryReportDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetCustomerComplianceHistory(
-        Guid customerId,
+        string customerAccount,
+        string dataAreaId,
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null,
         [FromQuery] bool includeLicenceStatus = false,
@@ -298,7 +302,8 @@ public class ReportsController : ControllerBase
         {
             var criteria = new CustomerComplianceHistoryCriteria
             {
-                CustomerId = customerId,
+                CustomerAccount = customerAccount,
+                DataAreaId = dataAreaId,
                 FromDate = fromDate,
                 ToDate = toDate,
                 IncludeLicenceStatus = includeLicenceStatus
@@ -311,19 +316,19 @@ public class ReportsController : ControllerBase
                 return NotFound(new ErrorResponseDto
                 {
                     ErrorCode = ErrorCodes.CUSTOMER_NOT_FOUND,
-                    Message = $"Customer with ID '{customerId}' not found"
+                    Message = $"Customer with account '{customerAccount}' in data area '{dataAreaId}' not found"
                 });
             }
 
             _logger.LogInformation(
-                "Generated customer compliance history for {CustomerId}: {Count} events",
-                customerId, report.Events.Count);
+                "Generated customer compliance history for {CustomerAccount}/{DataAreaId}: {Count} events",
+                customerAccount, dataAreaId, report.Events.Count);
 
             return Ok(CustomerComplianceHistoryReportDto.FromDomain(report));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating customer compliance history for {CustomerId}", customerId);
+            _logger.LogError(ex, "Error generating customer compliance history for {CustomerAccount}/{DataAreaId}", customerAccount, dataAreaId);
             return BadRequest(new ErrorResponseDto
             {
                 ErrorCode = ErrorCodes.INTERNAL_ERROR,
@@ -366,7 +371,8 @@ public class ReportsController : ControllerBase
         {
             var criteria = new CustomerComplianceHistoryCriteria
             {
-                CustomerId = request.CustomerId,
+                CustomerAccount = request.CustomerAccount,
+                DataAreaId = request.DataAreaId,
                 FromDate = request.FromDate,
                 ToDate = request.ToDate,
                 IncludeLicenceStatus = request.IncludeLicenceStatus
@@ -379,19 +385,19 @@ public class ReportsController : ControllerBase
                 return NotFound(new ErrorResponseDto
                 {
                     ErrorCode = ErrorCodes.CUSTOMER_NOT_FOUND,
-                    Message = $"Customer with ID '{request.CustomerId}' not found"
+                    Message = $"Customer with account '{request.CustomerAccount}' in data area '{request.DataAreaId}' not found"
                 });
             }
 
             _logger.LogInformation(
-                "Generated customer compliance history for {CustomerId}: {Count} events",
-                request.CustomerId, report.Events.Count);
+                "Generated customer compliance history for {CustomerAccount}/{DataAreaId}: {Count} events",
+                request.CustomerAccount, request.DataAreaId, report.Events.Count);
 
             return Ok(CustomerComplianceHistoryReportDto.FromDomain(report));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating customer compliance history for {CustomerId}", request.CustomerId);
+            _logger.LogError(ex, "Error generating customer compliance history for {CustomerAccount}/{DataAreaId}", request.CustomerAccount, request.DataAreaId);
             return BadRequest(new ErrorResponseDto
             {
                 ErrorCode = ErrorCodes.INTERNAL_ERROR,
@@ -548,9 +554,14 @@ public class TransactionAuditReportRequestDto
     public Guid? SubstanceId { get; set; }
 
     /// <summary>
-    /// Optional filter by customer ID.
+    /// Optional filter by customer account number.
     /// </summary>
-    public Guid? CustomerId { get; set; }
+    public string? CustomerAccount { get; set; }
+
+    /// <summary>
+    /// Optional filter by customer data area ID.
+    /// </summary>
+    public string? CustomerDataAreaId { get; set; }
 
     /// <summary>
     /// Optional filter by country code (ISO 3166-1 alpha-2).
@@ -600,9 +611,14 @@ public class LicenceUsageReportRequestDto
 public class CustomerComplianceHistoryRequestDto
 {
     /// <summary>
-    /// Customer ID to generate history for.
+    /// Customer account number to generate history for.
     /// </summary>
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Data area ID for the customer.
+    /// </summary>
+    public string DataAreaId { get; set; } = string.Empty;
 
     /// <summary>
     /// Optional start date filter.
@@ -697,9 +713,14 @@ public class TransactionAuditReportDto
     public Guid? FilteredBySubstance { get; set; }
 
     /// <summary>
-    /// Customer filter applied (if any).
+    /// Customer account filter applied (if any).
     /// </summary>
-    public Guid? FilteredByCustomer { get; set; }
+    public string? FilteredByCustomerAccount { get; set; }
+
+    /// <summary>
+    /// Customer data area ID filter applied (if any).
+    /// </summary>
+    public string? FilteredByCustomerDataAreaId { get; set; }
 
     /// <summary>
     /// Country filter applied (if any).
@@ -716,7 +737,8 @@ public class TransactionAuditReportDto
             Transactions = report.Transactions.Select(TransactionAuditItemDto.FromDomain).ToList(),
             TotalCount = report.TotalCount,
             FilteredBySubstance = report.FilteredBySubstance,
-            FilteredByCustomer = report.FilteredByCustomer,
+            FilteredByCustomerAccount = report.FilteredByCustomerAccount,
+            FilteredByCustomerDataAreaId = report.FilteredByCustomerDataAreaId,
             FilteredByCountry = report.FilteredByCountry
         };
     }
@@ -730,7 +752,8 @@ public class TransactionAuditItemDto
     public Guid TransactionId { get; set; }
     public string ExternalTransactionId { get; set; } = string.Empty;
     public DateTime TransactionDate { get; set; }
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+    public string CustomerDataAreaId { get; set; } = string.Empty;
     public string TransactionType { get; set; } = string.Empty;
     public string ValidationStatus { get; set; } = string.Empty;
     public decimal TotalQuantity { get; set; }
@@ -743,7 +766,8 @@ public class TransactionAuditItemDto
             TransactionId = item.TransactionId,
             ExternalTransactionId = item.ExternalTransactionId,
             TransactionDate = item.TransactionDate,
-            CustomerId = item.CustomerId,
+            CustomerAccount = item.CustomerAccount,
+            CustomerDataAreaId = item.CustomerDataAreaId,
             TransactionType = item.TransactionType,
             ValidationStatus = item.ValidationStatus,
             TotalQuantity = item.TotalQuantity,
@@ -864,9 +888,14 @@ public class CustomerComplianceHistoryReportDto
     public DateTime GeneratedDate { get; set; }
 
     /// <summary>
-    /// Customer ID.
+    /// Customer account number.
     /// </summary>
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Data area ID for the customer.
+    /// </summary>
+    public string DataAreaId { get; set; } = string.Empty;
 
     /// <summary>
     /// Customer name.
@@ -898,7 +927,8 @@ public class CustomerComplianceHistoryReportDto
         return new CustomerComplianceHistoryReportDto
         {
             GeneratedDate = report.GeneratedDate,
-            CustomerId = report.CustomerId,
+            CustomerAccount = report.CustomerAccount,
+            DataAreaId = report.DataAreaId,
             CustomerName = report.CustomerName,
             BusinessCategory = report.BusinessCategory,
             ApprovalStatus = report.ApprovalStatus,
@@ -1074,7 +1104,8 @@ public class LicenceCorrectionImpactItemDto
     public Guid TransactionId { get; set; }
     public string ExternalTransactionId { get; set; } = string.Empty;
     public DateTime TransactionDate { get; set; }
-    public Guid CustomerId { get; set; }
+    public string CustomerAccount { get; set; } = string.Empty;
+    public string CustomerDataAreaId { get; set; } = string.Empty;
     public string? CustomerName { get; set; }
     public string OriginalStatus { get; set; } = string.Empty;
     public string CorrectedStatus { get; set; } = string.Empty;
@@ -1089,7 +1120,8 @@ public class LicenceCorrectionImpactItemDto
             TransactionId = item.TransactionId,
             ExternalTransactionId = item.ExternalTransactionId,
             TransactionDate = item.TransactionDate,
-            CustomerId = item.CustomerId,
+            CustomerAccount = item.CustomerAccount,
+            CustomerDataAreaId = item.CustomerDataAreaId,
             CustomerName = item.CustomerName,
             OriginalStatus = item.OriginalStatus,
             CorrectedStatus = item.CorrectedStatus,

@@ -70,7 +70,8 @@ public class ReportsControllerTests
                     TransactionId = Guid.NewGuid(),
                     ExternalTransactionId = "EXT-001",
                     TransactionDate = DateTime.UtcNow.AddDays(-5),
-                    CustomerId = Guid.NewGuid(),
+                    CustomerAccount = "CUST-001",
+                    CustomerDataAreaId = "nlpd",
                     TransactionType = "Order",
                     ValidationStatus = "Passed",
                     TotalQuantity = 100
@@ -149,12 +150,11 @@ public class ReportsControllerTests
     }
 
     [Fact]
-    public async Task GetTransactionAuditReport_FiltersByCustomer_WhenCustomerIdProvided()
+    public async Task GetTransactionAuditReport_FiltersByCustomer_WhenCustomerAccountProvided()
     {
         // Arrange
         var fromDate = DateTime.UtcNow.AddDays(-30);
         var toDate = DateTime.UtcNow;
-        var customerId = Guid.NewGuid();
 
         var report = new TransactionAuditReport
         {
@@ -163,23 +163,26 @@ public class ReportsControllerTests
             ToDate = toDate,
             Transactions = new List<TransactionAuditReportItem>(),
             TotalCount = 0,
-            FilteredByCustomer = customerId
+            FilteredByCustomerAccount = "CUST-001",
+            FilteredByCustomerDataAreaId = "nlpd"
         };
 
         _mockReportingService
             .Setup(s => s.GenerateTransactionAuditReportAsync(
-                It.Is<TransactionAuditReportCriteria>(c => c.CustomerId == customerId),
+                It.Is<TransactionAuditReportCriteria>(c =>
+                    c.CustomerAccount == "CUST-001" && c.CustomerDataAreaId == "nlpd"),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(report);
 
         // Act
         var result = await _controller.GetTransactionAuditReport(
-            fromDate, toDate, customerId: customerId);
+            fromDate, toDate, customerAccount: "CUST-001", customerDataAreaId: "nlpd");
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
         var response = okResult.Value.Should().BeOfType<TransactionAuditReportDto>().Subject;
-        response.FilteredByCustomer.Should().Be(customerId);
+        response.FilteredByCustomerAccount.Should().Be("CUST-001");
+        response.FilteredByCustomerDataAreaId.Should().Be("nlpd");
     }
 
     [Fact]
@@ -235,7 +238,8 @@ public class ReportsControllerTests
                     TransactionId = Guid.NewGuid(),
                     ExternalTransactionId = "EXT-001",
                     TransactionDate = DateTime.UtcNow.AddDays(-5),
-                    CustomerId = Guid.NewGuid(),
+                    CustomerAccount = "CUST-001",
+                    CustomerDataAreaId = "nlpd",
                     TransactionType = "Order",
                     ValidationStatus = "Passed",
                     TotalQuantity = 100,
@@ -428,12 +432,11 @@ public class ReportsControllerTests
     public async Task GetCustomerComplianceHistory_ReturnsOk_WhenCustomerExists()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
-
         var report = new CustomerComplianceHistoryReport
         {
             GeneratedDate = DateTime.UtcNow,
-            CustomerId = customerId,
+            CustomerAccount = "CUST-001",
+            DataAreaId = "nlpd",
             CustomerName = "Test Pharmacy",
             BusinessCategory = "CommunityPharmacy",
             ApprovalStatus = "Approved",
@@ -458,17 +461,18 @@ public class ReportsControllerTests
 
         _mockReportingService
             .Setup(s => s.GenerateCustomerComplianceHistoryAsync(
-                It.Is<CustomerComplianceHistoryCriteria>(c => c.CustomerId == customerId),
+                It.Is<CustomerComplianceHistoryCriteria>(c =>
+                    c.CustomerAccount == "CUST-001" && c.DataAreaId == "nlpd"),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(report);
 
         // Act
-        var result = await _controller.GetCustomerComplianceHistory(customerId);
+        var result = await _controller.GetCustomerComplianceHistory("CUST-001", "nlpd");
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
         var response = okResult.Value.Should().BeOfType<CustomerComplianceHistoryReportDto>().Subject;
-        response.CustomerId.Should().Be(customerId);
+        response.CustomerAccount.Should().Be("CUST-001");
         response.CustomerName.Should().Be("Test Pharmacy");
         response.Events.Should().HaveCount(2);
     }
@@ -477,8 +481,6 @@ public class ReportsControllerTests
     public async Task GetCustomerComplianceHistory_ReturnsNotFound_WhenCustomerDoesNotExist()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
-
         _mockReportingService
             .Setup(s => s.GenerateCustomerComplianceHistoryAsync(
                 It.IsAny<CustomerComplianceHistoryCriteria>(),
@@ -486,7 +488,7 @@ public class ReportsControllerTests
             .ReturnsAsync((CustomerComplianceHistoryReport?)null);
 
         // Act
-        var result = await _controller.GetCustomerComplianceHistory(customerId);
+        var result = await _controller.GetCustomerComplianceHistory("CUST-NOTFOUND", "nlpd");
 
         // Assert
         var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
@@ -498,14 +500,14 @@ public class ReportsControllerTests
     public async Task GetCustomerComplianceHistory_FiltersByDateRange_WhenProvided()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
         var fromDate = DateTime.UtcNow.AddDays(-30);
         var toDate = DateTime.UtcNow;
 
         var report = new CustomerComplianceHistoryReport
         {
             GeneratedDate = DateTime.UtcNow,
-            CustomerId = customerId,
+            CustomerAccount = "CUST-001",
+            DataAreaId = "nlpd",
             CustomerName = "Test Pharmacy",
             BusinessCategory = "CommunityPharmacy",
             ApprovalStatus = "Approved",
@@ -515,7 +517,8 @@ public class ReportsControllerTests
         _mockReportingService
             .Setup(s => s.GenerateCustomerComplianceHistoryAsync(
                 It.Is<CustomerComplianceHistoryCriteria>(c =>
-                    c.CustomerId == customerId &&
+                    c.CustomerAccount == "CUST-001" &&
+                    c.DataAreaId == "nlpd" &&
                     c.FromDate == fromDate &&
                     c.ToDate == toDate),
                 It.IsAny<CancellationToken>()))
@@ -523,7 +526,7 @@ public class ReportsControllerTests
 
         // Act
         var result = await _controller.GetCustomerComplianceHistory(
-            customerId, fromDate: fromDate, toDate: toDate);
+            "CUST-001", "nlpd", fromDate: fromDate, toDate: toDate);
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();
@@ -536,12 +539,11 @@ public class ReportsControllerTests
     public async Task GetCustomerComplianceHistory_IncludesLicenceStatus_WhenRequested()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
-
         var report = new CustomerComplianceHistoryReport
         {
             GeneratedDate = DateTime.UtcNow,
-            CustomerId = customerId,
+            CustomerAccount = "CUST-001",
+            DataAreaId = "nlpd",
             CustomerName = "Test Pharmacy",
             BusinessCategory = "CommunityPharmacy",
             ApprovalStatus = "Approved",
@@ -567,7 +569,7 @@ public class ReportsControllerTests
 
         // Act
         var result = await _controller.GetCustomerComplianceHistory(
-            customerId, includeLicenceStatus: true);
+            "CUST-001", "nlpd", includeLicenceStatus: true);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
@@ -579,13 +581,12 @@ public class ReportsControllerTests
     public async Task GetCustomerComplianceHistory_ReturnsBadRequest_WhenFromDateAfterToDate()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
         var fromDate = DateTime.UtcNow;
         var toDate = DateTime.UtcNow.AddDays(-30);
 
         // Act
         var result = await _controller.GetCustomerComplianceHistory(
-            customerId, fromDate: fromDate, toDate: toDate);
+            "CUST-001", "nlpd", fromDate: fromDate, toDate: toDate);
 
         // Assert
         var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
@@ -603,7 +604,8 @@ public class ReportsControllerTests
         // Arrange
         var request = new CustomerComplianceHistoryRequestDto
         {
-            CustomerId = Guid.NewGuid(),
+            CustomerAccount = "CUST-001",
+            DataAreaId = "nlpd",
             FromDate = DateTime.UtcNow.AddDays(-30),
             ToDate = DateTime.UtcNow,
             IncludeLicenceStatus = true
@@ -612,7 +614,8 @@ public class ReportsControllerTests
         var report = new CustomerComplianceHistoryReport
         {
             GeneratedDate = DateTime.UtcNow,
-            CustomerId = request.CustomerId,
+            CustomerAccount = request.CustomerAccount,
+            DataAreaId = request.DataAreaId,
             CustomerName = "Test Pharmacy",
             BusinessCategory = "CommunityPharmacy",
             ApprovalStatus = "Approved",
@@ -632,7 +635,7 @@ public class ReportsControllerTests
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
         var response = okResult.Value.Should().BeOfType<CustomerComplianceHistoryReportDto>().Subject;
-        response.CustomerId.Should().Be(request.CustomerId);
+        response.CustomerAccount.Should().Be(request.CustomerAccount);
     }
 
     [Fact]
@@ -641,7 +644,8 @@ public class ReportsControllerTests
         // Arrange
         var request = new CustomerComplianceHistoryRequestDto
         {
-            CustomerId = Guid.NewGuid()
+            CustomerAccount = "CUST-NOTFOUND",
+            DataAreaId = "nlpd"
         };
 
         _mockReportingService
@@ -711,8 +715,6 @@ public class ReportsControllerTests
     public async Task GetCustomerComplianceHistory_ReturnsBadRequest_WhenServiceThrowsException()
     {
         // Arrange
-        var customerId = Guid.NewGuid();
-
         _mockReportingService
             .Setup(s => s.GenerateCustomerComplianceHistoryAsync(
                 It.IsAny<CustomerComplianceHistoryCriteria>(),
@@ -720,7 +722,7 @@ public class ReportsControllerTests
             .ThrowsAsync(new InvalidOperationException("Database error"));
 
         // Act
-        var result = await _controller.GetCustomerComplianceHistory(customerId);
+        var result = await _controller.GetCustomerComplianceHistory("CUST-001", "nlpd");
 
         // Assert
         var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;

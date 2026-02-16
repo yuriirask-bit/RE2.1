@@ -250,19 +250,19 @@ Project uses multi-project .NET solution structure per plan.md:
 
 - [X] T081 [P] [US2] Unit tests for Customer model in tests/RE2.ComplianceCore.Tests/Models/CustomerTests.cs
 - [X] T082 [P] [US2] Unit tests for QualificationReview model in tests/RE2.ComplianceCore.Tests/Models/QualificationReviewTests.cs
-- [X] T083 [US2] Contract tests for Dataverse Customer entity in tests/RE2.Contract.Tests/DataverseCustomerContractTests.cs
+- [X] T083 [US2] Contract tests for Customer composite model: D365FoCustomerContractTests.cs (CustomersV3 OData entity) and DataverseCustomerComplianceExtensionContractTests.cs (phr_customercomplianceextension) in tests/RE2.Contract.Tests/
 - [X] T084 [US2] Integration tests for GET /api/v1/customers/{id}/compliance-status in tests/RE2.ComplianceApi.Tests/Controllers/V1/CustomersControllerTests.cs per transaction-validation-api.yaml
 
 ### Implementation for User Story 2
 
-- [X] T085 [P] [US2] Create Customer domain model in src/RE2.ComplianceCore/Models/Customer.cs per data-model.md entity 5
+- [X] T085 [P] [US2] Create Customer composite domain model in src/RE2.ComplianceCore/Models/Customer.cs per data-model.md entity 5 (D365 F&O CustomersV3 master data + Dataverse phr_customercomplianceextension compliance extensions, keyed by CustomerAccount + DataAreaId)
 - [X] T086 [P] [US2] Create QualificationReview domain model in src/RE2.ComplianceCore/Models/QualificationReview.cs per data-model.md entity 29
-- [X] T087 [P] [US2] Create Customer DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/CustomerDto.cs
+- [X] T087 [P] [US2] Create Customer DTOs: D365FoCustomerDto in src/RE2.DataAccess/D365FinanceOperations/Models/D365FoCustomerDto.cs (read-only master data from CustomersV3) and CustomerComplianceExtensionDto in src/RE2.DataAccess/Dataverse/Models/CustomerComplianceExtensionDto.cs (compliance extensions from phr_customercomplianceextension)
 - [X] T088 [US2] Create ICustomerRepository interface in src/RE2.ComplianceCore/Interfaces/ICustomerRepository.cs
-- [X] T089 [US2] Implement DataverseCustomerRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseCustomerRepository.cs
+- [X] T089 [US2] Implement CustomerRepository combining D365FoCustomerRepository (read-only master data from CustomersV3) and DataverseCustomerComplianceExtensionRepository (compliance extensions from phr_customercomplianceextension)
 - [X] T090 [US2] Create CustomerService in src/RE2.ComplianceCore/Services/CustomerQualification/CustomerService.cs with qualification logic
 - [X] T091 [US2] Create CustomersController v1 in src/RE2.ComplianceApi/Controllers/V1/CustomersController.cs with customer compliance status endpoint per transaction-validation-api.yaml
-- [X] T092 [US2] Create customer management UI in src/RE2.ComplianceWeb/Views/Customers/ (Index, Create, Edit, Details views)
+- [X] T092 [US2] Create customer management UI in src/RE2.ComplianceWeb/Views/Customers/ (Browse, Configure, Edit, Details views) - Browse.cshtml for browsing D365 F&O customers, Configure.cshtml for configuring compliance extensions
 - [X] T093 [US2] Create CustomersController for web UI in src/RE2.ComplianceWeb/Controllers/CustomersController.cs
 - [X] T094 [US2] Extend LicencesController web UI to support associating licences with customers
 - [X] T095 [US2] Implement customer approval status validation per data-model.md validation rules (FR-016: prevent approval if required licences missing)
@@ -475,24 +475,24 @@ Project uses multi-project .NET solution structure per plan.md:
 
 ### Tests for User Story 7 (TDD - Write First)
 
-- [ ] T181 [P] [US7] Unit tests for GdpSite model in tests/RE2.ComplianceCore.Tests/Models/GdpSiteTests.cs
-- [ ] T182 [P] [US7] Unit tests for GdpSiteWdaCoverage model in tests/RE2.ComplianceCore.Tests/Models/GdpSiteWdaCoverageTests.cs
-- [ ] T183 [US7] Contract tests for Dataverse GdpSite entity in tests/RE2.Contract.Tests/DataverseGdpSiteContractTests.cs
-- [ ] T184 [US7] Integration tests for GDP site management API in tests/RE2.ComplianceApi.Tests/Controllers/V1/GdpSitesControllerTests.cs
+- [X] T181 [P] [US7] Unit tests for GdpSite model in tests/RE2.ComplianceCore.Tests/Models/GdpSiteTests.cs
+- [X] T182 [P] [US7] Unit tests for GdpSiteWdaCoverage model in tests/RE2.ComplianceCore.Tests/Models/GdpSiteWdaCoverageTests.cs
+- [X] T183 [US7] Contract tests for Dataverse GdpSite entity in tests/RE2.Contract.Tests/DataverseGdpSiteContractTests.cs
+- [X] T184 [US7] Integration tests for GDP site management API in tests/RE2.ComplianceApi.Tests/Controllers/V1/GdpSitesControllerTests.cs
 
 ### Implementation for User Story 7
 
-- [ ] T185 [P] [US7] Create GdpSite domain model in src/RE2.ComplianceCore/Models/GdpSite.cs per data-model.md entity 16
-- [ ] T186 [P] [US7] Create GdpSiteWdaCoverage domain model in src/RE2.ComplianceCore/Models/GdpSiteWdaCoverage.cs per data-model.md entity 17
-- [ ] T187 [P] [US7] Create GdpSite DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/GdpSiteDto.cs
-- [ ] T188 [US7] Create IGdpSiteRepository interface in src/RE2.ComplianceCore/Interfaces/IGdpSiteRepository.cs
-- [ ] T189 [US7] Implement DataverseGdpSiteRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseGdpSiteRepository.cs
-- [ ] T190 [US7] Create GdpComplianceService in src/RE2.ComplianceCore/Services/GdpCompliance/GdpComplianceService.cs
-- [ ] T191 [US7] Create GdpSitesController v1 in src/RE2.ComplianceApi/Controllers/V1/GdpSitesController.cs
-- [ ] T192 [US7] Create GDP sites management UI in src/RE2.ComplianceWeb/Views/GdpSites/ (Index, Create, Edit, Details views)
-- [ ] T193 [US7] Create GdpSitesController for web UI in src/RE2.ComplianceWeb/Controllers/GdpSitesController.cs
-- [ ] T194 [US7] Add WDA coverage validation per data-model.md (FR-033: ensure sites linked to valid WDA)
-- [ ] T195 [US7] Configure route authorization: QAUser and ComplianceManager can manage GDP sites
+- [X] T185 [P] [US7] Create GdpSite domain model in src/RE2.ComplianceCore/Models/GdpSite.cs per data-model.md entity 16
+- [X] T186 [P] [US7] Create GdpSiteWdaCoverage domain model in src/RE2.ComplianceCore/Models/GdpSiteWdaCoverage.cs per data-model.md entity 17
+- [X] T187 [P] [US7] Create GdpSite DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/GdpSiteDto.cs
+- [X] T188 [US7] Create IGdpSiteRepository interface in src/RE2.ComplianceCore/Interfaces/IGdpSiteRepository.cs
+- [X] T189 [US7] Implement DataverseGdpSiteRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseGdpSiteRepository.cs
+- [X] T190 [US7] Create GdpComplianceService in src/RE2.ComplianceCore/Services/GdpCompliance/GdpComplianceService.cs
+- [X] T191 [US7] Create GdpSitesController v1 in src/RE2.ComplianceApi/Controllers/V1/GdpSitesController.cs
+- [X] T192 [US7] Create GDP sites management UI in src/RE2.ComplianceWeb/Views/GdpSites/ (Index, Create, Edit, Details views)
+- [X] T193 [US7] Create GdpSitesController for web UI in src/RE2.ComplianceWeb/Controllers/GdpSitesController.cs
+- [X] T194 [US7] Add WDA coverage validation per data-model.md (FR-033: ensure sites linked to valid WDA)
+- [X] T195 [US7] Configure route authorization: QAUser and ComplianceManager can manage GDP sites
 
 **Checkpoint**: At this point, User Story 7 is complete - GDP site and WDA master data operational
 

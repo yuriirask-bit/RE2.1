@@ -6,6 +6,7 @@ namespace RE2.ComplianceCore.Tests.Models;
 /// <summary>
 /// Unit tests for Customer domain model.
 /// T081: Test-driven development for Customer per data-model.md entity 5.
+/// Composite key: CustomerAccount (string) + DataAreaId (string).
 /// </summary>
 public class CustomerTests
 {
@@ -15,14 +16,15 @@ public class CustomerTests
     public void Customer_Constructor_InitializesWithValidData()
     {
         // Arrange & Act
-        var customerId = Guid.NewGuid();
+        var complianceExtensionId = Guid.NewGuid();
         var customer = new Customer
         {
-            CustomerId = customerId,
-            BusinessName = "Ziekenhuis St. Elisabeth",
-            RegistrationNumber = "KVK-12345678",
+            CustomerAccount = "TEST-001",
+            DataAreaId = "nlpd",
+            OrganizationName = "Ziekenhuis St. Elisabeth",
+            AddressCountryRegionId = "NL",
+            ComplianceExtensionId = complianceExtensionId,
             BusinessCategory = BusinessCategory.HospitalPharmacy,
-            Country = "NL",
             ApprovalStatus = ApprovalStatus.Approved,
             OnboardingDate = DateOnly.FromDateTime(DateTime.Now.AddMonths(-6)),
             NextReVerificationDate = DateOnly.FromDateTime(DateTime.Now.AddYears(2).AddMonths(6)),
@@ -33,14 +35,18 @@ public class CustomerTests
         };
 
         // Assert
-        Assert.Equal(customerId, customer.CustomerId);
-        Assert.Equal("Ziekenhuis St. Elisabeth", customer.BusinessName);
-        Assert.Equal("KVK-12345678", customer.RegistrationNumber);
+        Assert.Equal("TEST-001", customer.CustomerAccount);
+        Assert.Equal("nlpd", customer.DataAreaId);
+        Assert.Equal("Ziekenhuis St. Elisabeth", customer.OrganizationName);
+        Assert.Equal("Ziekenhuis St. Elisabeth", customer.BusinessName); // computed alias
+        Assert.Equal("NL", customer.AddressCountryRegionId);
+        Assert.Equal("NL", customer.Country); // computed alias
+        Assert.Equal(complianceExtensionId, customer.ComplianceExtensionId);
         Assert.Equal(BusinessCategory.HospitalPharmacy, customer.BusinessCategory);
-        Assert.Equal("NL", customer.Country);
         Assert.Equal(ApprovalStatus.Approved, customer.ApprovalStatus);
         Assert.False(customer.IsSuspended);
         Assert.Equal(GdpQualificationStatus.Approved, customer.GdpQualificationStatus);
+        Assert.True(customer.IsComplianceConfigured);
     }
 
     [Fact]
@@ -49,10 +55,11 @@ public class CustomerTests
         // Arrange & Act
         var customer = new Customer
         {
-            CustomerId = Guid.NewGuid(),
-            BusinessName = "Test Pharmacy",
+            CustomerAccount = "TEST-002",
+            DataAreaId = "nlpd",
+            OrganizationName = "Test Pharmacy",
+            AddressCountryRegionId = "NL",
             BusinessCategory = BusinessCategory.CommunityPharmacy,
-            Country = "NL",
             ApprovalStatus = ApprovalStatus.Pending,
             GdpQualificationStatus = GdpQualificationStatus.NotRequired,
             CreatedDate = DateTime.UtcNow,
@@ -69,10 +76,11 @@ public class CustomerTests
         // Arrange & Act
         var customer = new Customer
         {
-            CustomerId = Guid.NewGuid(),
-            BusinessName = "Test Customer",
+            CustomerAccount = "TEST-003",
+            DataAreaId = "nlpd",
+            OrganizationName = "Test Customer",
+            AddressCountryRegionId = "NL",
             BusinessCategory = BusinessCategory.Veterinarian,
-            Country = "NL",
             ApprovalStatus = ApprovalStatus.Pending,
             GdpQualificationStatus = GdpQualificationStatus.NotRequired,
             CreatedDate = DateTime.UtcNow,
@@ -82,6 +90,27 @@ public class CustomerTests
         // Assert
         Assert.NotNull(customer.RowVersion);
         Assert.Empty(customer.RowVersion);
+    }
+
+    [Fact]
+    public void Customer_IsComplianceConfigured_ReturnsFalse_WhenNoExtensionId()
+    {
+        // Arrange & Act
+        var customer = new Customer
+        {
+            CustomerAccount = "TEST-004",
+            DataAreaId = "nlpd",
+            OrganizationName = "Not Configured Customer",
+            AddressCountryRegionId = "NL",
+            BusinessCategory = BusinessCategory.CommunityPharmacy,
+            ApprovalStatus = ApprovalStatus.Pending,
+            GdpQualificationStatus = GdpQualificationStatus.NotRequired,
+            CreatedDate = DateTime.UtcNow,
+            ModifiedDate = DateTime.UtcNow
+        };
+
+        // Assert - ComplianceExtensionId defaults to Guid.Empty
+        Assert.False(customer.IsComplianceConfigured);
     }
 
     #endregion
@@ -179,10 +208,11 @@ public class CustomerTests
         // Arrange
         var customer = new Customer
         {
-            CustomerId = Guid.NewGuid(),
-            BusinessName = "Test Customer",
+            CustomerAccount = "TEST-001",
+            DataAreaId = "nlpd",
+            OrganizationName = "Test Customer",
+            AddressCountryRegionId = "NL",
             BusinessCategory = BusinessCategory.CommunityPharmacy,
-            Country = "NL",
             ApprovalStatus = approvalStatus,
             IsSuspended = isSuspended,
             GdpQualificationStatus = GdpQualificationStatus.NotRequired,
@@ -203,10 +233,11 @@ public class CustomerTests
         // Arrange - per data-model.md: IsSuspended = true blocks all transactions regardless of ApprovalStatus
         var customer = new Customer
         {
-            CustomerId = Guid.NewGuid(),
-            BusinessName = "Suspended Pharmacy",
+            CustomerAccount = "TEST-001",
+            DataAreaId = "nlpd",
+            OrganizationName = "Suspended Pharmacy",
+            AddressCountryRegionId = "NL",
             BusinessCategory = BusinessCategory.CommunityPharmacy,
-            Country = "NL",
             ApprovalStatus = ApprovalStatus.Approved,
             IsSuspended = true,
             SuspensionReason = "Under investigation by IGJ",
@@ -224,15 +255,16 @@ public class CustomerTests
     #region Validation Tests
 
     [Fact]
-    public void Customer_Validate_FailsWithMissingBusinessName()
+    public void Customer_Validate_FailsWithMissingCustomerAccount()
     {
         // Arrange
         var customer = new Customer
         {
-            CustomerId = Guid.NewGuid(),
-            BusinessName = string.Empty,
+            CustomerAccount = string.Empty,
+            DataAreaId = "nlpd",
+            OrganizationName = "Test Customer",
+            AddressCountryRegionId = "NL",
             BusinessCategory = BusinessCategory.CommunityPharmacy,
-            Country = "NL",
             ApprovalStatus = ApprovalStatus.Pending,
             GdpQualificationStatus = GdpQualificationStatus.NotRequired,
             CreatedDate = DateTime.UtcNow,
@@ -244,19 +276,20 @@ public class CustomerTests
 
         // Assert
         Assert.False(result.IsValid);
-        Assert.Contains(result.Violations, v => v.Message.Contains("BusinessName"));
+        Assert.Contains(result.Violations, v => v.Message.Contains("CustomerAccount"));
     }
 
     [Fact]
-    public void Customer_Validate_FailsWithMissingCountry()
+    public void Customer_Validate_FailsWithMissingDataAreaId()
     {
         // Arrange
         var customer = new Customer
         {
-            CustomerId = Guid.NewGuid(),
-            BusinessName = "Test Customer",
+            CustomerAccount = "TEST-001",
+            DataAreaId = string.Empty,
+            OrganizationName = "Test Customer",
+            AddressCountryRegionId = "NL",
             BusinessCategory = BusinessCategory.CommunityPharmacy,
-            Country = string.Empty,
             ApprovalStatus = ApprovalStatus.Pending,
             GdpQualificationStatus = GdpQualificationStatus.NotRequired,
             CreatedDate = DateTime.UtcNow,
@@ -268,31 +301,7 @@ public class CustomerTests
 
         // Assert
         Assert.False(result.IsValid);
-        Assert.Contains(result.Violations, v => v.Message.Contains("Country"));
-    }
-
-    [Fact]
-    public void Customer_Validate_FailsWithInvalidCountryCode()
-    {
-        // Arrange - country should be ISO 3166-1 alpha-2 (2 characters)
-        var customer = new Customer
-        {
-            CustomerId = Guid.NewGuid(),
-            BusinessName = "Test Customer",
-            BusinessCategory = BusinessCategory.CommunityPharmacy,
-            Country = "Netherlands", // Should be "NL"
-            ApprovalStatus = ApprovalStatus.Pending,
-            GdpQualificationStatus = GdpQualificationStatus.NotRequired,
-            CreatedDate = DateTime.UtcNow,
-            ModifiedDate = DateTime.UtcNow
-        };
-
-        // Act
-        var result = customer.Validate();
-
-        // Assert
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Violations, v => v.Message.Contains("Country") && v.Message.Contains("ISO 3166-1"));
+        Assert.Contains(result.Violations, v => v.Message.Contains("DataAreaId"));
     }
 
     [Fact]
@@ -301,10 +310,11 @@ public class CustomerTests
         // Arrange
         var customer = new Customer
         {
-            CustomerId = Guid.NewGuid(),
-            BusinessName = "Valid Pharmacy",
+            CustomerAccount = "TEST-001",
+            DataAreaId = "nlpd",
+            OrganizationName = "Valid Pharmacy",
+            AddressCountryRegionId = "NL",
             BusinessCategory = BusinessCategory.CommunityPharmacy,
-            Country = "NL",
             ApprovalStatus = ApprovalStatus.Approved,
             GdpQualificationStatus = GdpQualificationStatus.NotRequired,
             CreatedDate = DateTime.UtcNow,
@@ -325,11 +335,11 @@ public class CustomerTests
         // Arrange
         var customer = new Customer
         {
-            CustomerId = Guid.NewGuid(),
-            BusinessName = "Minimal Customer",
-            RegistrationNumber = null,
+            CustomerAccount = "TEST-001",
+            DataAreaId = "nlpd",
+            OrganizationName = "Minimal Customer",
+            AddressCountryRegionId = "DE",
             BusinessCategory = BusinessCategory.ResearchInstitution,
-            Country = "DE",
             ApprovalStatus = ApprovalStatus.Pending,
             OnboardingDate = null,
             NextReVerificationDate = null,
@@ -356,10 +366,11 @@ public class CustomerTests
         // Arrange
         var customer = new Customer
         {
-            CustomerId = Guid.NewGuid(),
-            BusinessName = "Active Customer",
+            CustomerAccount = "TEST-001",
+            DataAreaId = "nlpd",
+            OrganizationName = "Active Customer",
+            AddressCountryRegionId = "NL",
             BusinessCategory = BusinessCategory.Manufacturer,
-            Country = "NL",
             ApprovalStatus = ApprovalStatus.Approved,
             IsSuspended = false,
             GdpQualificationStatus = GdpQualificationStatus.Approved,
@@ -381,10 +392,11 @@ public class CustomerTests
         // Arrange
         var customer = new Customer
         {
-            CustomerId = Guid.NewGuid(),
-            BusinessName = "Suspended Customer",
+            CustomerAccount = "TEST-001",
+            DataAreaId = "nlpd",
+            OrganizationName = "Suspended Customer",
+            AddressCountryRegionId = "BE",
             BusinessCategory = BusinessCategory.WholesalerEU,
-            Country = "BE",
             ApprovalStatus = ApprovalStatus.Approved,
             IsSuspended = true,
             SuspensionReason = "Investigation completed",
@@ -412,10 +424,11 @@ public class CustomerTests
         var onboardingDate = DateOnly.FromDateTime(DateTime.Now.AddYears(-1));
         var customer = new Customer
         {
-            CustomerId = Guid.NewGuid(),
-            BusinessName = "Customer for Reverification",
+            CustomerAccount = "TEST-001",
+            DataAreaId = "nlpd",
+            OrganizationName = "Customer for Reverification",
+            AddressCountryRegionId = "NL",
             BusinessCategory = BusinessCategory.CommunityPharmacy,
-            Country = "NL",
             ApprovalStatus = ApprovalStatus.Approved,
             OnboardingDate = onboardingDate,
             GdpQualificationStatus = GdpQualificationStatus.NotRequired,
@@ -437,10 +450,11 @@ public class CustomerTests
         // Arrange
         var customer = new Customer
         {
-            CustomerId = Guid.NewGuid(),
-            BusinessName = "Overdue Customer",
+            CustomerAccount = "TEST-001",
+            DataAreaId = "nlpd",
+            OrganizationName = "Overdue Customer",
+            AddressCountryRegionId = "NL",
             BusinessCategory = BusinessCategory.HospitalPharmacy,
-            Country = "NL",
             ApprovalStatus = ApprovalStatus.Approved,
             OnboardingDate = DateOnly.FromDateTime(DateTime.Now.AddYears(-4)),
             NextReVerificationDate = DateOnly.FromDateTime(DateTime.Now.AddDays(-30)),
@@ -462,10 +476,11 @@ public class CustomerTests
         // Arrange
         var customer = new Customer
         {
-            CustomerId = Guid.NewGuid(),
-            BusinessName = "Current Customer",
+            CustomerAccount = "TEST-001",
+            DataAreaId = "nlpd",
+            OrganizationName = "Current Customer",
+            AddressCountryRegionId = "NL",
             BusinessCategory = BusinessCategory.HospitalPharmacy,
-            Country = "NL",
             ApprovalStatus = ApprovalStatus.Approved,
             OnboardingDate = DateOnly.FromDateTime(DateTime.Now.AddYears(-1)),
             NextReVerificationDate = DateOnly.FromDateTime(DateTime.Now.AddYears(2)),

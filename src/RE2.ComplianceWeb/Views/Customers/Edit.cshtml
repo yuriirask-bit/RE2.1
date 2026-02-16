@@ -1,37 +1,49 @@
 @model RE2.ComplianceWeb.Controllers.CustomerEditViewModel
 @{
-    ViewData["Title"] = "Edit Customer";
+    ViewData["Title"] = "Edit Customer Compliance";
 }
 
 <div class="container">
-    <h1>Edit Customer</h1>
+    <h1>Edit Customer Compliance</h1>
+    <p>Edit compliance extension for customer <strong>@Model.CustomerAccount</strong> in data area <code>@Model.DataAreaId</code>.</p>
 
     <div asp-validation-summary="All" class="alert alert-danger" style="display:none;"></div>
 
     <form asp-action="Edit" method="post">
         @Html.AntiForgeryToken()
-        <input type="hidden" asp-for="CustomerId" />
+        <input type="hidden" asp-for="CustomerAccount" />
+        <input type="hidden" asp-for="DataAreaId" />
 
         <div class="row">
             <div class="col-md-6">
                 <div class="card mb-3">
                     <div class="card-header">
-                        <h5 class="mb-0">Business Information</h5>
+                        <h5 class="mb-0">D365FO Customer (Read-Only)</h5>
                     </div>
                     <div class="card-body">
-                        <div class="mb-3">
-                            <label asp-for="BusinessName" class="form-label">Business Name *</label>
-                            <input asp-for="BusinessName" class="form-control" required />
-                            <span asp-validation-for="BusinessName" class="text-danger"></span>
-                        </div>
+                        <dl class="row">
+                            <dt class="col-sm-5">Customer Account</dt>
+                            <dd class="col-sm-7"><code>@Model.CustomerAccount</code></dd>
 
-                        <div class="mb-3">
-                            <label asp-for="RegistrationNumber" class="form-label">Registration Number</label>
-                            <input asp-for="RegistrationNumber" class="form-control" />
-                            <span asp-validation-for="RegistrationNumber" class="text-danger"></span>
-                            <small class="text-muted">KVK, VAT, or company registration number</small>
-                        </div>
+                            <dt class="col-sm-5">Data Area</dt>
+                            <dd class="col-sm-7"><code>@Model.DataAreaId</code></dd>
 
+                            <dt class="col-sm-5">Organization Name</dt>
+                            <dd class="col-sm-7">@(ViewBag.OrganizationName ?? "-")</dd>
+
+                            <dt class="col-sm-5">Country</dt>
+                            <dd class="col-sm-7">@(ViewBag.Country ?? "-")</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Compliance Configuration</h5>
+                    </div>
+                    <div class="card-body">
                         <div class="mb-3">
                             <label asp-for="BusinessCategory" class="form-label">Business Category *</label>
                             <select asp-for="BusinessCategory" class="form-select" asp-items="@ViewBag.BusinessCategories" required>
@@ -40,22 +52,6 @@
                             <span asp-validation-for="BusinessCategory" class="text-danger"></span>
                         </div>
 
-                        <div class="mb-3">
-                            <label asp-for="Country" class="form-label">Country *</label>
-                            <input asp-for="Country" class="form-control" maxlength="2" required />
-                            <span asp-validation-for="Country" class="text-danger"></span>
-                            <small class="text-muted">ISO 3166-1 alpha-2 code (e.g., NL, DE, BE)</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6">
-                <div class="card mb-3">
-                    <div class="card-header">
-                        <h5 class="mb-0">Qualification & Compliance</h5>
-                    </div>
-                    <div class="card-body">
                         <div class="mb-3">
                             <label asp-for="ApprovalStatus" class="form-label">Approval Status *</label>
                             <select asp-for="ApprovalStatus" class="form-select" asp-items="@ViewBag.ApprovalStatuses" required>
@@ -109,7 +105,7 @@
             <button type="submit" class="btn btn-primary">
                 <i class="bi bi-check-circle"></i> Save Changes
             </button>
-            <a asp-action="Details" asp-route-id="@Model.CustomerId" class="btn btn-secondary">Cancel</a>
+            <a asp-action="Details" asp-route-customerAccount="@Model.CustomerAccount" asp-route-dataAreaId="@Model.DataAreaId" class="btn btn-secondary">Cancel</a>
             <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
         </div>
     </form>

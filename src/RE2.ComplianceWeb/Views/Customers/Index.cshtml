@@ -24,9 +24,9 @@
     }
 
     <div class="row mb-3">
-        <div class="col-md-4">
-            <a asp-action="Create" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Create New Customer
+        <div class="col-md-6">
+            <a asp-action="Browse" class="btn btn-primary">
+                <i class="bi bi-search"></i> Browse D365FO Customers
             </a>
             <a asp-action="ReVerificationDue" class="btn btn-warning">
                 <i class="bi bi-calendar-check"></i> Re-Verification Due
@@ -39,7 +39,7 @@
             <form method="get" class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">Search by Name</label>
-                    <input type="text" name="search" class="form-control" placeholder="Business name..." value="@ViewBag.SearchTerm" />
+                    <input type="text" name="search" class="form-control" placeholder="Organization name..." value="@ViewBag.SearchTerm" />
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Approval Status</label>
@@ -65,8 +65,8 @@
     <table class="table table-striped table-hover">
         <thead class="table-dark">
             <tr>
-                <th>Business Name</th>
-                <th>Registration No.</th>
+                <th>Account</th>
+                <th>Organization Name</th>
                 <th>Category</th>
                 <th>Country</th>
                 <th>Approval Status</th>
@@ -80,7 +80,7 @@
             {
                 <tr>
                     <td colspan="8" class="text-center">
-                        <em>No customers found. Click "Create New Customer" to add one.</em>
+                        <em>No compliance-configured customers found. Click "Browse D365FO Customers" to configure one.</em>
                     </td>
                 </tr>
             }
@@ -90,15 +90,15 @@
                 {
                     <tr class="@(customer.IsSuspended ? "table-danger" : "")">
                         <td>
-                            <a asp-action="Details" asp-route-id="@customer.CustomerId">
-                                @customer.BusinessName
+                            <a asp-action="Details" asp-route-customerAccount="@customer.CustomerAccount" asp-route-dataAreaId="@customer.DataAreaId">
+                                <strong>@customer.CustomerAccount</strong>
                             </a>
                             @if (customer.IsSuspended)
                             {
                                 <span class="badge bg-danger ms-1">SUSPENDED</span>
                             }
                         </td>
-                        <td>@(customer.RegistrationNumber ?? "-")</td>
+                        <td>@customer.BusinessName</td>
                         <td>@FormatEnumName(customer.BusinessCategory.ToString())</td>
                         <td>@customer.Country</td>
                         <td>
@@ -141,19 +141,12 @@
                             }
                         </td>
                         <td>
-                            <a asp-action="Details" asp-route-id="@customer.CustomerId" class="btn btn-sm btn-outline-primary" title="View Details">
+                            <a asp-action="Details" asp-route-customerAccount="@customer.CustomerAccount" asp-route-dataAreaId="@customer.DataAreaId" class="btn btn-sm btn-outline-primary" title="View Details">
                                 <i class="bi bi-eye"></i>
                             </a>
-                            <a asp-action="Edit" asp-route-id="@customer.CustomerId" class="btn btn-sm btn-outline-secondary" title="Edit">
+                            <a asp-action="Edit" asp-route-customerAccount="@customer.CustomerAccount" asp-route-dataAreaId="@customer.DataAreaId" class="btn btn-sm btn-outline-secondary" title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </a>
-                            <form asp-action="Delete" asp-route-id="@customer.CustomerId" method="post" style="display:inline;"
-                                  onsubmit="return confirm('Are you sure you want to delete this customer?');">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
                         </td>
                     </tr>
                 }
