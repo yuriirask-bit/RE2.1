@@ -392,45 +392,67 @@ Records compliance-related actions, verifications, or changes for audit trail.
 
 ## GDP Entities
 
-### 16. GdpSite
+### 16. GdpSite (Composite Model)
 
-Represents a physical location for distribution activities.
+Represents a GDP-relevant physical location. This is a **composite domain model** combining read-only warehouse master data from D365 F&O with GDP-specific extensions stored in Dataverse. This avoids duplicating master data and ensures the compliance system stays in sync with D365FO.
 
-**Attributes**:
-- `SiteId` (Guid, PK) - Unique identifier
-- `SiteName` (string, required, indexed) - Site name
-- `Address` (string, required) - Full address
-- `SiteType` (enum: Warehouse, CrossDock, TransportHub, required) - Type of site
-- `PermittedActivities` (flags: StorageOver72h, TemperatureControlled, Outsourced, TransportOnly) - Activities allowed at this site
-- `IsActive` (bool, required, default: true) - Whether site is currently operational
+**D365 F&O Warehouse Attributes** (read-only, from OData entity `Warehouses`):
+- `WarehouseId` (string, composite PK part 1) - D365FO warehouse identifier
+- `DataAreaId` (string, composite PK part 2) - Legal entity / data area
+- `WarehouseName` (string) - Warehouse display name
+- `OperationalSiteId` (string) - Parent operational site ID
+- `OperationalSiteName` (string) - Parent site name (resolved from `OperationalSitesV2` entity)
+- `WarehouseType` (string) - D365FO type: Standard, Quarantine, Transit
+- `FormattedAddress` (string) - Pre-formatted address from D365FO
+- `Street` (string), `StreetNumber` (string), `City` (string), `ZipCode` (string)
+- `CountryRegionId` (string), `StateId` (string)
+- `Latitude` (decimal?), `Longitude` (decimal?)
+
+**GDP Extension Attributes** (stored in Dataverse table `phr_gdpwarehouseextension`):
+- `GdpExtensionId` (Guid, PK) - Unique identifier for the GDP extension record
+- `phr_warehouseid` (string, FK → D365FO Warehouse) - Links to D365FO warehouse
+- `phr_dataareaid` (string) - Legal entity context
+- `GdpSiteType` (enum: Warehouse, CrossDock, TransportHub, required) - GDP classification
+- `PermittedActivities` (flags: StorageOver72h=1, TemperatureControlled=2, Outsourced=4, TransportOnly=8) - Activities allowed at this site
+- `IsGdpActive` (bool, required, default: true) - Whether GDP configuration is active
 - `CreatedDate` (DateTime, required) - Record creation timestamp
 - `ModifiedDate` (DateTime, required) - Last modification timestamp
 - `RowVersion` (byte[], required) - Optimistic concurrency token
 
+**Domain Logic**:
+- `IsConfiguredForGdp` (bool) - True when GdpExtensionId != Guid.Empty
+- `HasActivity(GdpSiteActivity)` - Checks if a specific activity flag is set
+- `Validate()` - Validates GdpSiteType, PermittedActivities (at least one required), WarehouseId, DataAreaId
+
 **Relationships**:
-- Has many `GdpSiteWdaCoverage` (one-to-many) - Which WDAs cover this site
+- Has many `GdpSiteWdaCoverage` (one-to-many, via WarehouseId + DataAreaId) - Which WDAs cover this site
 - Has many `GdpInspection` (one-to-many) - Inspections at this site
 - Has many `GdpSiteSop` (one-to-many) - SOPs applicable to this site
 - Has many `TrainingRecord` (one-to-many) - Training for staff at this site
 
-**Storage**: Dataverse virtual table `phr_gdpsite`
+**Storage**: D365 F&O `Warehouses` entity (read-only) + Dataverse table `phr_gdpwarehouseextension` (GDP extensions)
 
 ---
 
 ### 17. GdpSiteWdaCoverage
 
-Maps which Wholesale Distribution Authorisations (WDAs) cover which sites.
+Maps which Wholesale Distribution Authorisations (WDAs) cover which GDP sites (warehouses).
 
 **Attributes**:
 - `CoverageId` (Guid, PK) - Unique identifier
-- `SiteId` (Guid, FK → GdpSite, required) - Which site
-- `LicenceId` (Guid, FK → Licence, required) - Which WDA licence (must be type "WDA")
+- `WarehouseId` (string, FK → D365FO Warehouse, required) - Which warehouse
+- `DataAreaId` (string, required) - Legal entity context
+- `LicenceId` (Guid, FK → Licence, required) - Which WDA licence (must be type "Wholesale Distribution Authorisation (WDA)")
 - `EffectiveDate` (DateOnly, required) - When coverage started
 - `ExpiryDate` (DateOnly, nullable) - When coverage ends
 
+**Domain Logic**:
+- `IsActive()` - True when EffectiveDate <= today and (ExpiryDate is null or ExpiryDate >= today)
+- `Validate()` - Checks required fields, ExpiryDate > EffectiveDate
+
 **Relationships**:
-- Belongs to one `GdpSite` (many-to-one)
-- Belongs to one `Licence` (many-to-one, constrained to WDA type)
+- Belongs to one `GdpSite` (many-to-one, via WarehouseId + DataAreaId)
+- Belongs to one `Licence` (many-to-one, constrained to WDA type per FR-033)
 
 **Storage**: Dataverse virtual table `phr_gdpsitewdacoverage`
 
@@ -757,14 +779,21 @@ Records verification of a partner's GDP status via EudraGMDP or national databas
 - Customer, IntegrationSystem, User
 - Threshold
 - LicenceDocument, LicenceVerification, LicenceScopeChange
-- GdpSite, GdpSiteWdaCoverage, GdpCredential, GdpServiceProvider
+- GdpWarehouseExtension (`phr_gdpwarehouseextension`), GdpSiteWdaCoverage, GdpCredential, GdpServiceProvider
 - GdpInspection, GdpInspectionFinding, Capa
 - GdpSop, GdpSiteSop, TrainingRecord, GdpChangeRecord
 - QualificationReview, GdpCredentialVerification
 
+### D365 F&O Virtual Data Entities (Read-Only Master Data)
+- Warehouses (OData: `Warehouses`) - Physical warehouse locations, keyed by WarehouseId + dataAreaId
+- OperationalSitesV2 (OData: `OperationalSitesV2`) - Organizational sites, keyed by SiteId + dataAreaId
+
 ### D365 F&O Virtual Data Entities (Transactional Data)
 - Transaction, TransactionLine, TransactionLicenceUsage, TransactionViolation
 - AuditEvent, Alert
+
+### Composite Domain Models (Multi-Source)
+- GdpSite = D365FO `Warehouses` (read-only) + Dataverse `phr_gdpwarehouseextension` (GDP config)
 
 ---
 
@@ -799,9 +828,10 @@ TransactionViolation
 Customer (1) ----< (M) GdpCredential
 Customer (1) ----< (M) Threshold >---- (M:1) ControlledSubstance
 
-GdpSite (1) ----< (M) GdpInspection ----< (1:M) GdpInspectionFinding ----< (1:M) Capa
-GdpSite (1) ----< (M) GdpSiteWdaCoverage >---- (M:1) Licence (WDA type)
-GdpSite (1) ----< (M) GdpSiteSop >---- (M:1) GdpSop
+D365FO Warehouse ----[GDP extensions]---- Dataverse phr_gdpwarehouseextension = GdpSite (composite)
+GdpSite [WarehouseId+DataAreaId] (1) ----< (M) GdpInspection ----< (1:M) GdpInspectionFinding ----< (1:M) Capa
+GdpSite [WarehouseId+DataAreaId] (1) ----< (M) GdpSiteWdaCoverage >---- (M:1) Licence (WDA type)
+GdpSite [WarehouseId+DataAreaId] (1) ----< (M) GdpSiteSop >---- (M:1) GdpSop
 
 GdpServiceProvider (1) ----< (M) GdpCredential
 GdpServiceProvider (1) ----< (M) QualificationReview
