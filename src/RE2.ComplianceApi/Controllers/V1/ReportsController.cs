@@ -43,7 +43,7 @@ public class ReportsController : ControllerBase
     public async Task<IActionResult> GetTransactionAuditReport(
         [FromQuery] DateTime fromDate,
         [FromQuery] DateTime toDate,
-        [FromQuery] Guid? substanceId = null,
+        [FromQuery] string? substanceCode = null,
         [FromQuery] string? customerAccount = null,
         [FromQuery] string? customerDataAreaId = null,
         [FromQuery] string? countryCode = null,
@@ -65,7 +65,7 @@ public class ReportsController : ControllerBase
             {
                 FromDate = fromDate,
                 ToDate = toDate,
-                SubstanceId = substanceId,
+                SubstanceCode = substanceCode,
                 CustomerAccount = customerAccount,
                 CustomerDataAreaId = customerDataAreaId,
                 CountryCode = countryCode,
@@ -126,7 +126,7 @@ public class ReportsController : ControllerBase
             {
                 FromDate = request.FromDate,
                 ToDate = request.ToDate,
-                SubstanceId = request.SubstanceId,
+                SubstanceCode = request.SubstanceCode,
                 CustomerAccount = request.CustomerAccount,
                 CustomerDataAreaId = request.CustomerDataAreaId,
                 CountryCode = request.CountryCode,
@@ -549,9 +549,9 @@ public class TransactionAuditReportRequestDto
     public DateTime ToDate { get; set; }
 
     /// <summary>
-    /// Optional filter by substance ID.
+    /// Optional filter by substance code.
     /// </summary>
-    public Guid? SubstanceId { get; set; }
+    public string? SubstanceCode { get; set; }
 
     /// <summary>
     /// Optional filter by customer account number.
@@ -708,9 +708,9 @@ public class TransactionAuditReportDto
     public int TotalCount { get; set; }
 
     /// <summary>
-    /// Substance filter applied (if any).
+    /// Substance code filter applied (if any).
     /// </summary>
-    public Guid? FilteredBySubstance { get; set; }
+    public string? FilteredBySubstanceCode { get; set; }
 
     /// <summary>
     /// Customer account filter applied (if any).
@@ -736,7 +736,7 @@ public class TransactionAuditReportDto
             ToDate = report.ToDate,
             Transactions = report.Transactions.Select(TransactionAuditItemDto.FromDomain).ToList(),
             TotalCount = report.TotalCount,
-            FilteredBySubstance = report.FilteredBySubstance,
+            FilteredBySubstanceCode = report.FilteredBySubstanceCode,
             FilteredByCustomerAccount = report.FilteredByCustomerAccount,
             FilteredByCustomerDataAreaId = report.FilteredByCustomerDataAreaId,
             FilteredByCountry = report.FilteredByCountry

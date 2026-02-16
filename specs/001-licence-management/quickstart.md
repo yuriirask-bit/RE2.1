@@ -34,7 +34,7 @@ This quickstart guide helps developers set up their local development environmen
 
 For local development, you'll need a service principal with permissions to:
 - Read/write Dataverse virtual tables (`re2_*` entities)
-- Read D365 F&O virtual data entities (Customers, Vendors)
+- Read D365 F&O virtual data entities (Customers, Products, Product Attributes, Warehouses)
 - Read/write Azure Blob Storage
 
 Contact your platform team for service principal credentials.
@@ -53,10 +53,10 @@ git checkout 001-licence-management
 
 ```
 src/
-├── RE2.ComplianceCore/       # Core business logic library
-├── RE2.DataAccess/           # External system API clients
-├── RE2.ComplianceApi/        # ASP.NET Core Web API
-├── RE2.ComplianceWeb/        # ASP.NET Core MVC Web UI
+├── RE2.ComplianceCore/       # Core business logic library (models, interfaces, services)
+├── RE2.DataAccess/           # External system API clients (Dataverse, D365 F&O product/customer repos)
+├── RE2.ComplianceApi/        # ASP.NET Core Web API (ProductsController, SubstancesController, etc.)
+├── RE2.ComplianceWeb/        # ASP.NET Core MVC Web UI (Browse D365 substances, Configure compliance)
 ├── RE2.ComplianceFunctions/  # Azure Functions (background jobs)
 └── RE2.Shared/               # Shared utilities
 
@@ -97,13 +97,14 @@ Create `appsettings.Development.json` in each project:
     "ClientSecret": "<your-client-secret>"
   },
   "Dataverse": {
-    "BaseUrl": "https://<your-org>.crm4.dynamics.com/api/data/v9.2",
+    "Url": "https://<your-org>.crm4.dynamics.com",
     "ClientId": "<service-principal-client-id>",
     "ClientSecret": "<service-principal-secret>",
     "TenantId": "<tenant-id>"
   },
-  "D365FinanceOperations": {
-    "BaseUrl": "https://<your-instance>.operations.dynamics.com/data",
+  "D365FO": {
+    "ODataEndpoint": "https://<your-instance>.cloudax.dynamics.com/data",
+    "Resource": "https://<your-instance>.cloudax.dynamics.com",
     "ClientId": "<service-principal-client-id>",
     "ClientSecret": "<service-principal-secret>",
     "TenantId": "<tenant-id>"
@@ -152,7 +153,7 @@ Instead of storing secrets in files, use .NET User Secrets:
 cd src/RE2.ComplianceApi
 dotnet user-secrets init
 dotnet user-secrets set "Dataverse:ClientSecret" "your-secret-here"
-dotnet user-secrets set "D365FinanceOperations:ClientSecret" "your-secret-here"
+dotnet user-secrets set "D365FO:ClientSecret" "your-secret-here"
 dotnet user-secrets set "AzureAd:ClientSecret" "your-secret-here"
 ```
 
@@ -253,7 +254,7 @@ dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- --help
 
 Validates a transaction against compliance rules. Accepts JSON via stdin or file.
 
-**Input**: Transaction JSON with customer, substances, and quantities.
+**Input**: Transaction JSON with customer, product lines (itemNumber + dataAreaId), and quantities. Substance codes are resolved automatically from D365 F&O product attributes during validation.
 **Output**: Validation result with violations and licence coverage.
 
 ```bash
@@ -261,7 +262,7 @@ Validates a transaction against compliance rules. Accepts JSON via stdin or file
 dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- validate-transaction --file transaction.json
 
 # From stdin (pipe)
-echo '{"customerAccount":"CUST-001","customerDataAreaId":"nlpd","transactionType":"Order","transactionDirection":"Outbound","lines":[{"substanceId":"00000000-0000-0000-0000-000000000001","quantity":100}]}' | dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- validate-transaction
+echo '{"customerAccount":"CUST-001","customerDataAreaId":"nlpd","transactionType":"Order","transactionDirection":"Outbound","lines":[{"itemNumber":"MOR-10MG-AMP","dataAreaId":"nlpd","quantity":100,"unitOfMeasure":"ampules"}]}' | dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- validate-transaction
 ```
 
 **Exit Codes**:
@@ -315,13 +316,13 @@ Generates compliance reports in JSON format.
 dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- generate-report -t customer-compliance
 
 # Expiring licences report (default: 90 days ahead)
-dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- generate-report -t expiring-licences --days 60
+dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- generate-report -t expiring-licences --days-ahead 60
 
 # Alerts summary report
 dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- generate-report -t alerts-summary
 
 # Transaction history report with filters
-dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- generate-report -t transaction-history --customer-account CUST-001 --data-area nlpd --from 2026-01-01 --to 2026-01-31
+dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- generate-report -t transaction-history --customer-account CUST-001 --data-area-id nlpd --from-date 2026-01-01 --to-date 2026-01-31
 
 # Output to file
 dotnet run --project src/RE2.ComplianceCli/RE2.ComplianceCli.csproj -- generate-report -t customer-compliance -o compliance-report.json
@@ -438,18 +439,36 @@ Improve code quality, extract methods, add abstractions - but keep all tests pas
 
 ### Stateless Service Design
 
-**No local data storage** for business entities. All data fetched from Dataverse/D365 via API calls:
+**No local data storage** for business entities. All data fetched from Dataverse/D365 via API calls.
+
+**Composite Model Pattern**: Several domain entities use a composite data model combining read-only
+master data from D365 F&O with compliance-specific extensions stored in Dataverse:
+- **Customer** = D365 F&O `CustomersV3` + Dataverse `phr_customercomplianceextension`
+- **ControlledSubstance** = D365 F&O product attributes (`ProductAttributeValues`) + Dataverse `phr_substancecomplianceextension`
+- **GdpSite** = D365 F&O `Warehouses` + Dataverse `phr_gdpwarehouseextension`
+
+**Product Resolution**: Transaction lines reference products by `ItemNumber` + `DataAreaId` (D365 F&O keys).
+During validation, the system resolves each product's `SubstanceCode` from D365 F&O product attributes,
+then uses that code to look up controlled substance classification and compliance rules.
 
 ```csharp
 public class TransactionValidationService
 {
     private readonly IDataverseClient _dataverseClient;
     private readonly ID365FoClient _d365Client;
+    private readonly IProductRepository _productRepository;
 
     public async Task<ValidationResult> ValidateTransactionAsync(TransactionRequest request)
     {
         // Fetch customer master data from D365 F&O (read-only, keyed by CustomerAccount + DataAreaId)
         var customer = await _d365Client.GetCustomerAsync(request.CustomerAccount, request.DataAreaId);
+
+        // Resolve products and substance codes from D365 F&O
+        foreach (var line in request.Lines)
+        {
+            var product = await _productRepository.GetByItemNumberAsync(line.ItemNumber, line.DataAreaId);
+            line.SubstanceCode = product?.SubstanceCode; // Resolved from product attributes
+        }
 
         // Fetch compliance extensions and licences from Dataverse
         var licences = await _dataverseClient.GetLicencesForCustomerAsync(request.CustomerAccount, request.DataAreaId);
@@ -462,40 +481,45 @@ public class TransactionValidationService
 
 ### Dependency Injection Setup
 
-```csharp
-// Program.cs
-builder.Services.AddScoped<IDataverseClient, DataverseClient>();
-builder.Services.AddScoped<ID365FoClient, D365FoClient>();
-builder.Services.AddScoped<ILicenceValidationService, LicenceValidationService>();
-builder.Services.AddScoped<ITransactionComplianceService, TransactionComplianceService>();
+Registration uses extension methods from `RE2.DataAccess.DependencyInjection.InfrastructureExtensions`:
 
-// Configure HttpClients with authentication
-builder.Services.AddHttpClient<IDataverseClient, DataverseClient>(client =>
-{
-    client.BaseAddress = new Uri(builder.Configuration["Dataverse:BaseUrl"]);
-});
+```csharp
+// Program.cs — production setup (chooses Dataverse or in-memory based on config)
+builder.Services.AddComplianceDataServices(builder.Configuration);
+builder.Services.AddD365FOServices(builder.Configuration);
+builder.Services.AddBlobStorageServices(builder.Configuration);
+
+// Or register everything in one call:
+// builder.Services.AddExternalSystemIntegration(builder.Configuration);
+
+// For local development without external dependencies:
+// builder.Services.AddInMemoryRepositories(seedData: true);
 ```
 
 ### Optimistic Concurrency
 
-All mutable entities include a `Version` field for conflict detection (FR-027a):
+All mutable entities include a `RowVersion` field for conflict detection (FR-027a):
 
 ```csharp
 public class Licence
 {
     public Guid LicenceId { get; set; }
-    public string LicenceNumber { get; set; }
-    public int Version { get; set; }  // Optimistic concurrency token
+    public required string LicenceNumber { get; set; }
+    public byte[]? RowVersion { get; set; }  // Optimistic concurrency token
     // ... other properties
 }
 
-// Update with version check
+// Update with version check (RowVersion is sent as a base64-encoded ETag)
 public async Task UpdateLicenceAsync(Licence licence)
 {
+    var etag = licence.RowVersion != null
+        ? Convert.ToBase64String(licence.RowVersion)
+        : null;
+
     var response = await _httpClient.PatchAsync(
         $"re2_licences({licence.LicenceId})",
         CreateJsonContent(licence),
-        new Dictionary<string, string> { ["If-Match"] = $"\"{licence.Version}\"" }
+        new Dictionary<string, string> { ["If-Match"] = $"W/\"{etag}\"" }
     );
 
     if (response.StatusCode == HttpStatusCode.PreconditionFailed)

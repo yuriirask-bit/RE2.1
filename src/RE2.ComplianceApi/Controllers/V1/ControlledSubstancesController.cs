@@ -8,8 +8,8 @@ using RE2.Shared.Models;
 namespace RE2.ComplianceApi.Controllers.V1;
 
 /// <summary>
-/// Controlled substance master list management API endpoints.
-/// T073c: ControlledSubstancesController v1 with GET, POST, PUT, DELETE endpoints per FR-003.
+/// Controlled substance management API endpoints.
+/// Substances are discovered from D365 product attributes; compliance extensions are managed here.
 /// </summary>
 [ApiController]
 [Route("api/v1/[controller]")]
@@ -33,7 +33,7 @@ public class ControlledSubstancesController : ControllerBase
     /// <param name="activeOnly">If true, only returns active substances. Default: false.</param>
     /// <param name="opiumActList">Filter by Opium Act classification (None, ListI, ListII).</param>
     /// <param name="precursorCategory">Filter by precursor category (None, Category1, Category2, Category3).</param>
-    /// <param name="search">Search term for name or internal code.</param>
+    /// <param name="search">Search term for name or substance code.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of controlled substances.</returns>
     [HttpGet]
@@ -73,24 +73,24 @@ public class ControlledSubstancesController : ControllerBase
     }
 
     /// <summary>
-    /// Gets a specific controlled substance by ID.
+    /// Gets a specific controlled substance by substance code (business key).
     /// </summary>
-    /// <param name="id">Substance ID.</param>
+    /// <param name="substanceCode">Substance code.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The substance details.</returns>
-    [HttpGet("{id:guid}")]
+    [HttpGet("{substanceCode}")]
     [ProducesResponseType(typeof(ControlledSubstanceResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetSubstance(Guid id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetSubstance(string substanceCode, CancellationToken cancellationToken = default)
     {
-        var substance = await _substanceService.GetByIdAsync(id, cancellationToken);
+        var substance = await _substanceService.GetBySubstanceCodeAsync(substanceCode, cancellationToken);
 
         if (substance == null)
         {
             return NotFound(new ErrorResponseDto
             {
                 ErrorCode = ErrorCodes.SUBSTANCE_NOT_FOUND,
-                Message = $"Controlled substance with ID '{id}' not found",
+                Message = $"Controlled substance with code '{substanceCode}' not found",
                 TraceId = HttpContext.TraceIdentifier
             });
         }
@@ -99,168 +99,128 @@ public class ControlledSubstancesController : ControllerBase
     }
 
     /// <summary>
-    /// Gets a controlled substance by internal code.
+    /// Configures a compliance extension for a D365-discovered substance.
+    /// Only ComplianceManager role can configure compliance per FR-031.
     /// </summary>
-    /// <param name="code">The internal code.</param>
+    /// <param name="request">Compliance configuration request.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>The substance details.</returns>
-    [HttpGet("by-code/{code}")]
-    [ProducesResponseType(typeof(ControlledSubstanceResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetSubstanceByCode(string code, CancellationToken cancellationToken = default)
-    {
-        var substance = await _substanceService.GetByInternalCodeAsync(code, cancellationToken);
-
-        if (substance == null)
-        {
-            return NotFound(new ErrorResponseDto
-            {
-                ErrorCode = ErrorCodes.SUBSTANCE_NOT_FOUND,
-                Message = $"Controlled substance with code '{code}' not found",
-                TraceId = HttpContext.TraceIdentifier
-            });
-        }
-
-        return Ok(ControlledSubstanceResponseDto.FromDomainModel(substance));
-    }
-
-    /// <summary>
-    /// Creates a new controlled substance.
-    /// Only ComplianceManager role can create substances per FR-031.
-    /// </summary>
-    /// <param name="request">Substance creation request.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Created substance details.</returns>
-    [HttpPost]
+    /// <returns>Updated substance details.</returns>
+    [HttpPost("configure-compliance")]
     [Authorize(Roles = "ComplianceManager")]
-    [ProducesResponseType(typeof(ControlledSubstanceResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ControlledSubstanceResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateSubstance(
-        [FromBody] CreateControlledSubstanceRequestDto request,
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ConfigureCompliance(
+        [FromBody] ConfigureComplianceRequestDto request,
         CancellationToken cancellationToken = default)
     {
-        var substance = request.ToDomainModel();
+        var substance = await _substanceService.GetBySubstanceCodeAsync(request.SubstanceCode, cancellationToken);
 
-        var (id, result) = await _substanceService.CreateAsync(substance, cancellationToken);
+        if (substance == null)
+        {
+            return NotFound(new ErrorResponseDto
+            {
+                ErrorCode = ErrorCodes.SUBSTANCE_NOT_FOUND,
+                Message = $"Controlled substance with code '{request.SubstanceCode}' not found",
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+
+        // Apply compliance extension fields
+        substance.RegulatoryRestrictions = request.RegulatoryRestrictions;
+        substance.IsActive = request.IsActive;
+        substance.ClassificationEffectiveDate = request.ClassificationEffectiveDate;
+
+        var result = await _substanceService.ConfigureComplianceAsync(substance, cancellationToken);
 
         if (!result.IsValid)
         {
             return BadRequest(new ErrorResponseDto
             {
                 ErrorCode = ErrorCodes.VALIDATION_ERROR,
-                Message = "Substance validation failed",
+                Message = "Compliance configuration failed",
                 Details = string.Join("; ", result.Violations.Select(v => v.Message)),
                 TraceId = HttpContext.TraceIdentifier
             });
         }
 
-        substance.SubstanceId = id!.Value;
+        _logger.LogInformation("Configured compliance for substance {SubstanceCode}", request.SubstanceCode);
 
-        _logger.LogInformation("Created controlled substance {Name} ({Code}) with ID {Id}",
-            substance.SubstanceName, substance.InternalCode, id);
-
-        return CreatedAtAction(
-            nameof(GetSubstance),
-            new { id = id },
-            ControlledSubstanceResponseDto.FromDomainModel(substance));
+        var updated = await _substanceService.GetBySubstanceCodeAsync(request.SubstanceCode, cancellationToken);
+        return Ok(ControlledSubstanceResponseDto.FromDomainModel(updated!));
     }
 
     /// <summary>
-    /// Updates an existing controlled substance.
-    /// Only ComplianceManager role can modify substances per FR-031.
+    /// Updates an existing compliance extension for a substance.
+    /// Only ComplianceManager role can modify compliance per FR-031.
     /// </summary>
-    /// <param name="id">Substance ID.</param>
-    /// <param name="request">Updated substance data.</param>
+    /// <param name="substanceCode">Substance code.</param>
+    /// <param name="request">Updated compliance data.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Updated substance details.</returns>
-    [HttpPut("{id:guid}")]
+    [HttpPut("{substanceCode}/compliance")]
     [Authorize(Roles = "ComplianceManager")]
     [ProducesResponseType(typeof(ControlledSubstanceResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateSubstance(
-        Guid id,
-        [FromBody] UpdateControlledSubstanceRequestDto request,
+    public async Task<IActionResult> UpdateCompliance(
+        string substanceCode,
+        [FromBody] UpdateComplianceRequestDto request,
         CancellationToken cancellationToken = default)
     {
-        var substance = request.ToDomainModel(id);
+        var substance = await _substanceService.GetBySubstanceCodeAsync(substanceCode, cancellationToken);
 
-        var result = await _substanceService.UpdateAsync(substance, cancellationToken);
+        if (substance == null)
+        {
+            return NotFound(new ErrorResponseDto
+            {
+                ErrorCode = ErrorCodes.SUBSTANCE_NOT_FOUND,
+                Message = $"Controlled substance with code '{substanceCode}' not found",
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+
+        // Apply compliance extension fields
+        substance.RegulatoryRestrictions = request.RegulatoryRestrictions;
+        substance.IsActive = request.IsActive;
+        substance.ClassificationEffectiveDate = request.ClassificationEffectiveDate;
+
+        var result = await _substanceService.UpdateComplianceAsync(substance, cancellationToken);
 
         if (!result.IsValid)
         {
             var errorCode = result.Violations.FirstOrDefault()?.ErrorCode ?? ErrorCodes.VALIDATION_ERROR;
 
-            if (errorCode == ErrorCodes.SUBSTANCE_NOT_FOUND)
-            {
-                return NotFound(new ErrorResponseDto
-                {
-                    ErrorCode = errorCode,
-                    Message = $"Controlled substance with ID '{id}' not found",
-                    TraceId = HttpContext.TraceIdentifier
-                });
-            }
-
             return BadRequest(new ErrorResponseDto
             {
                 ErrorCode = errorCode,
-                Message = "Substance validation failed",
+                Message = "Compliance update failed",
                 Details = string.Join("; ", result.Violations.Select(v => v.Message)),
                 TraceId = HttpContext.TraceIdentifier
             });
         }
 
-        _logger.LogInformation("Updated controlled substance {Id}", id);
+        _logger.LogInformation("Updated compliance for substance {SubstanceCode}", substanceCode);
 
-        var updated = await _substanceService.GetByIdAsync(id, cancellationToken);
+        var updated = await _substanceService.GetBySubstanceCodeAsync(substanceCode, cancellationToken);
         return Ok(ControlledSubstanceResponseDto.FromDomainModel(updated!));
-    }
-
-    /// <summary>
-    /// Deletes a controlled substance.
-    /// Only ComplianceManager role can delete substances per FR-031.
-    /// </summary>
-    /// <param name="id">Substance ID.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>No content on success.</returns>
-    [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "ComplianceManager")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteSubstance(Guid id, CancellationToken cancellationToken = default)
-    {
-        var result = await _substanceService.DeleteAsync(id, cancellationToken);
-
-        if (!result.IsValid)
-        {
-            return NotFound(new ErrorResponseDto
-            {
-                ErrorCode = ErrorCodes.SUBSTANCE_NOT_FOUND,
-                Message = $"Controlled substance with ID '{id}' not found",
-                TraceId = HttpContext.TraceIdentifier
-            });
-        }
-
-        _logger.LogInformation("Deleted controlled substance {Id}", id);
-
-        return NoContent();
     }
 
     /// <summary>
     /// Deactivates a controlled substance (soft delete).
     /// Only ComplianceManager role can deactivate substances per FR-031.
     /// </summary>
-    /// <param name="id">Substance ID.</param>
+    /// <param name="substanceCode">Substance code.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Updated substance details.</returns>
-    [HttpPost("{id:guid}/deactivate")]
+    [HttpPost("{substanceCode}/deactivate")]
     [Authorize(Roles = "ComplianceManager")]
     [ProducesResponseType(typeof(ControlledSubstanceResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeactivateSubstance(Guid id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> DeactivateSubstance(string substanceCode, CancellationToken cancellationToken = default)
     {
-        var result = await _substanceService.DeactivateAsync(id, cancellationToken);
+        var result = await _substanceService.DeactivateAsync(substanceCode, cancellationToken);
 
         if (!result.IsValid)
         {
@@ -271,7 +231,7 @@ public class ControlledSubstancesController : ControllerBase
                 return NotFound(new ErrorResponseDto
                 {
                     ErrorCode = errorCode,
-                    Message = $"Controlled substance with ID '{id}' not found",
+                    Message = $"Controlled substance with code '{substanceCode}' not found",
                     TraceId = HttpContext.TraceIdentifier
                 });
             }
@@ -284,9 +244,9 @@ public class ControlledSubstancesController : ControllerBase
             });
         }
 
-        _logger.LogInformation("Deactivated controlled substance {Id}", id);
+        _logger.LogInformation("Deactivated controlled substance {SubstanceCode}", substanceCode);
 
-        var updated = await _substanceService.GetByIdAsync(id, cancellationToken);
+        var updated = await _substanceService.GetBySubstanceCodeAsync(substanceCode, cancellationToken);
         return Ok(ControlledSubstanceResponseDto.FromDomainModel(updated!));
     }
 
@@ -294,17 +254,17 @@ public class ControlledSubstancesController : ControllerBase
     /// Reactivates a previously deactivated controlled substance.
     /// Only ComplianceManager role can reactivate substances per FR-031.
     /// </summary>
-    /// <param name="id">Substance ID.</param>
+    /// <param name="substanceCode">Substance code.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Updated substance details.</returns>
-    [HttpPost("{id:guid}/reactivate")]
+    [HttpPost("{substanceCode}/reactivate")]
     [Authorize(Roles = "ComplianceManager")]
     [ProducesResponseType(typeof(ControlledSubstanceResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> ReactivateSubstance(Guid id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> ReactivateSubstance(string substanceCode, CancellationToken cancellationToken = default)
     {
-        var result = await _substanceService.ReactivateAsync(id, cancellationToken);
+        var result = await _substanceService.ReactivateAsync(substanceCode, cancellationToken);
 
         if (!result.IsValid)
         {
@@ -315,7 +275,7 @@ public class ControlledSubstancesController : ControllerBase
                 return NotFound(new ErrorResponseDto
                 {
                     ErrorCode = errorCode,
-                    Message = $"Controlled substance with ID '{id}' not found",
+                    Message = $"Controlled substance with code '{substanceCode}' not found",
                     TraceId = HttpContext.TraceIdentifier
                 });
             }
@@ -328,9 +288,9 @@ public class ControlledSubstancesController : ControllerBase
             });
         }
 
-        _logger.LogInformation("Reactivated controlled substance {Id}", id);
+        _logger.LogInformation("Reactivated controlled substance {SubstanceCode}", substanceCode);
 
-        var updated = await _substanceService.GetByIdAsync(id, cancellationToken);
+        var updated = await _substanceService.GetBySubstanceCodeAsync(substanceCode, cancellationToken);
         return Ok(ControlledSubstanceResponseDto.FromDomainModel(updated!));
     }
 }
@@ -342,11 +302,12 @@ public class ControlledSubstancesController : ControllerBase
 /// </summary>
 public class ControlledSubstanceResponseDto
 {
-    public Guid SubstanceId { get; set; }
+    public required string SubstanceCode { get; set; }
     public required string SubstanceName { get; set; }
-    public required string InternalCode { get; set; }
     public SubstanceCategories.OpiumActList OpiumActList { get; set; }
     public SubstanceCategories.PrecursorCategory PrecursorCategory { get; set; }
+    public Guid ComplianceExtensionId { get; set; }
+    public bool IsComplianceConfigured { get; set; }
     public string? RegulatoryRestrictions { get; set; }
     public bool IsActive { get; set; }
     public DateOnly? ClassificationEffectiveDate { get; set; }
@@ -357,11 +318,12 @@ public class ControlledSubstanceResponseDto
     {
         return new ControlledSubstanceResponseDto
         {
-            SubstanceId = substance.SubstanceId,
+            SubstanceCode = substance.SubstanceCode,
             SubstanceName = substance.SubstanceName,
-            InternalCode = substance.InternalCode,
             OpiumActList = substance.OpiumActList,
             PrecursorCategory = substance.PrecursorCategory,
+            ComplianceExtensionId = substance.ComplianceExtensionId,
+            IsComplianceConfigured = substance.IsComplianceConfigured,
             RegulatoryRestrictions = substance.RegulatoryRestrictions,
             IsActive = substance.IsActive,
             ClassificationEffectiveDate = substance.ClassificationEffectiveDate,
@@ -372,61 +334,24 @@ public class ControlledSubstanceResponseDto
 }
 
 /// <summary>
-/// Request DTO for creating a new controlled substance.
+/// Request DTO for configuring compliance extension on a D365-discovered substance.
 /// </summary>
-public class CreateControlledSubstanceRequestDto
+public class ConfigureComplianceRequestDto
 {
-    public required string SubstanceName { get; set; }
-    public required string InternalCode { get; set; }
-    public SubstanceCategories.OpiumActList OpiumActList { get; set; } = SubstanceCategories.OpiumActList.None;
-    public SubstanceCategories.PrecursorCategory PrecursorCategory { get; set; } = SubstanceCategories.PrecursorCategory.None;
+    public required string SubstanceCode { get; set; }
     public string? RegulatoryRestrictions { get; set; }
     public bool IsActive { get; set; } = true;
     public DateOnly? ClassificationEffectiveDate { get; set; }
-
-    public ControlledSubstance ToDomainModel()
-    {
-        return new ControlledSubstance
-        {
-            SubstanceId = Guid.NewGuid(),
-            SubstanceName = SubstanceName,
-            InternalCode = InternalCode,
-            OpiumActList = OpiumActList,
-            PrecursorCategory = PrecursorCategory,
-            RegulatoryRestrictions = RegulatoryRestrictions,
-            IsActive = IsActive,
-            ClassificationEffectiveDate = ClassificationEffectiveDate
-        };
-    }
 }
 
 /// <summary>
-/// Request DTO for updating a controlled substance.
+/// Request DTO for updating a compliance extension on a substance.
 /// </summary>
-public class UpdateControlledSubstanceRequestDto
+public class UpdateComplianceRequestDto
 {
-    public required string SubstanceName { get; set; }
-    public required string InternalCode { get; set; }
-    public SubstanceCategories.OpiumActList OpiumActList { get; set; }
-    public SubstanceCategories.PrecursorCategory PrecursorCategory { get; set; }
     public string? RegulatoryRestrictions { get; set; }
     public bool IsActive { get; set; }
     public DateOnly? ClassificationEffectiveDate { get; set; }
-
-    public ControlledSubstance ToDomainModel(Guid substanceId)
-    {
-        return new ControlledSubstance
-        {
-            SubstanceId = substanceId,
-            SubstanceName = SubstanceName,
-            InternalCode = InternalCode,
-            OpiumActList = OpiumActList,
-            PrecursorCategory = PrecursorCategory,
-            RegulatoryRestrictions = RegulatoryRestrictions,
-            IsActive = IsActive,
-            ClassificationEffectiveDate = ClassificationEffectiveDate
-        };
-    }
 }
 
 #endregion

@@ -1,0 +1,151 @@
+@model RE2.ComplianceWeb.Controllers.SubstanceConfigureViewModel
+@using RE2.Shared.Constants
+@{
+    ViewData["Title"] = Model.IsComplianceConfigured ? "Update Compliance Configuration" : "Configure Compliance";
+}
+
+<div class="container">
+    <h1>@(Model.IsComplianceConfigured ? "Update" : "Configure") Compliance Extension</h1>
+    <p class="text-muted">Configure compliance metadata for substance <strong>@Model.SubstanceName</strong> (<code>@Model.SubstanceCode</code>)</p>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- D365 Classification (read-only) -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-shield-check"></i> D365 Classification (Read-Only)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6 class="text-muted">Substance Code</h6>
+                            <p><code>@Model.SubstanceCode</code></p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="text-muted">Opium Act List</h6>
+                            @if (Model.OpiumActList != SubstanceCategories.OpiumActList.None)
+                            {
+                                var opiumClass = Model.OpiumActList == SubstanceCategories.OpiumActList.ListI
+                                    ? "bg-danger" : "bg-warning text-dark";
+                                <span class="badge @opiumClass">@Model.OpiumActList</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">None</span>
+                            }
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="text-muted">Precursor Category</h6>
+                            @if (Model.PrecursorCategory != SubstanceCategories.PrecursorCategory.None)
+                            {
+                                var precursorClass = Model.PrecursorCategory switch
+                                {
+                                    SubstanceCategories.PrecursorCategory.Category1 => "bg-danger",
+                                    SubstanceCategories.PrecursorCategory.Category2 => "bg-warning text-dark",
+                                    _ => "bg-info"
+                                };
+                                <span class="badge @precursorClass">@Model.PrecursorCategory</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">None</span>
+                            }
+                        </div>
+                    </div>
+                    <p class="small text-muted mt-2 mb-0">
+                        <i class="bi bi-info-circle"></i> Classification is sourced from D365 F&O product attributes. To change classification, update the product attributes in D365.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Compliance Extension (editable) -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-gear"></i> Compliance Extension</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Configure" asp-route-substanceCode="@Model.SubstanceCode" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="SubstanceCode" />
+                        <input type="hidden" asp-for="SubstanceName" />
+                        <input type="hidden" asp-for="OpiumActList" />
+                        <input type="hidden" asp-for="PrecursorCategory" />
+                        <input type="hidden" asp-for="IsComplianceConfigured" />
+                        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="ClassificationEffectiveDate" class="form-label">Classification Effective Date</label>
+                            <input asp-for="ClassificationEffectiveDate" type="date" class="form-control" />
+                            <span asp-validation-for="ClassificationEffectiveDate" class="text-danger"></span>
+                            <small class="form-text text-muted">When this compliance configuration became/becomes effective</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="RegulatoryRestrictions" class="form-label">Regulatory Restrictions</label>
+                            <textarea asp-for="RegulatoryRestrictions" class="form-control" rows="3"
+                                      placeholder="Additional compliance restrictions or notes..."></textarea>
+                            <span asp-validation-for="RegulatoryRestrictions" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+                                <label asp-for="IsActive" class="form-check-label">Active</label>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Index" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> @(Model.IsComplianceConfigured ? "Update Configuration" : "Save Configuration")
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            @if (Model.IsComplianceConfigured)
+            {
+                <div class="card bg-light mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">Audit Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="small mb-1"><strong>Created:</strong></p>
+                        <p class="small">@Model.CreatedDate.ToString("yyyy-MM-dd HH:mm")</p>
+                        <p class="small mb-1"><strong>Last Modified:</strong></p>
+                        <p class="small mb-0">@Model.ModifiedDate.ToString("yyyy-MM-dd HH:mm")</p>
+                    </div>
+                </div>
+            }
+
+            <div class="card bg-light">
+                <div class="card-header">
+                    <h6 class="mb-0">About Compliance Extensions</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small">
+                        Compliance extensions store RE2-specific metadata in Dataverse for substances
+                        discovered from D365 product attributes.
+                    </p>
+                    <p class="small mb-0">
+                        <strong>Fields you can configure:</strong>
+                    </p>
+                    <ul class="small mb-0">
+                        <li>Classification effective date</li>
+                        <li>Regulatory restrictions / notes</li>
+                        <li>Active/inactive status</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

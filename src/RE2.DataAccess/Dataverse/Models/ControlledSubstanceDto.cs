@@ -4,68 +4,73 @@ using RE2.Shared.Constants;
 namespace RE2.DataAccess.Dataverse.Models;
 
 /// <summary>
-/// Data transfer object for Dataverse phr_controlledsubstance virtual table.
-/// T065: Dataverse DTO for ControlledSubstance.
-/// Maps to data-model.md entity 3.
+/// Data transfer object for Dataverse phr_substancecomplianceextension table.
+/// Stores compliance-specific metadata only — classification comes from D365 F&O product attributes.
 /// </summary>
-public class ControlledSubstanceDto
+public class SubstanceComplianceExtensionDto
 {
-    public Guid phr_controlledsubstanceid { get; set; }
+    public Guid phr_complianceextensionid { get; set; }
+    public string? phr_substancecode { get; set; }
     public string? phr_substancename { get; set; }
-    public int? phr_opiumactlist { get; set; }
-    public int? phr_precursorcategory { get; set; }
-    public string? phr_internalcode { get; set; }
     public string? phr_regulatoryrestrictions { get; set; }
     public bool phr_isactive { get; set; }
-
-    /// <summary>
-    /// T080c: When current classification became effective.
-    /// </summary>
     public DateTime? phr_classificationeffectivedate { get; set; }
+    public DateTime phr_createddate { get; set; }
+    public DateTime phr_modifieddate { get; set; }
+    public string? phr_rowversion { get; set; }
 
     /// <summary>
-    /// Record creation timestamp.
+    /// Applies compliance extension data onto an existing domain model
+    /// (which already has D365 classification data populated).
     /// </summary>
-    public DateTime phr_createdon { get; set; }
+    public void ApplyToDomainModel(ControlledSubstance substance)
+    {
+        substance.ComplianceExtensionId = phr_complianceextensionid;
+        substance.RegulatoryRestrictions = phr_regulatoryrestrictions;
+        substance.IsActive = phr_isactive;
+        substance.ClassificationEffectiveDate = phr_classificationeffectivedate.HasValue
+            ? DateOnly.FromDateTime(phr_classificationeffectivedate.Value)
+            : null;
+        substance.CreatedDate = phr_createddate;
+        substance.ModifiedDate = phr_modifieddate;
+    }
 
     /// <summary>
-    /// Last modification timestamp.
+    /// Creates a domain model from compliance extension data only (for discovery).
+    /// Classification fields will be defaults until merged with D365 data.
     /// </summary>
-    public DateTime phr_modifiedon { get; set; }
-
     public ControlledSubstance ToDomainModel()
     {
         return new ControlledSubstance
         {
-            SubstanceId = phr_controlledsubstanceid,
+            SubstanceCode = phr_substancecode ?? string.Empty,
             SubstanceName = phr_substancename ?? string.Empty,
-            OpiumActList = (SubstanceCategories.OpiumActList)(phr_opiumactlist ?? 0),
-            PrecursorCategory = (SubstanceCategories.PrecursorCategory)(phr_precursorcategory ?? 0),
-            InternalCode = phr_internalcode ?? string.Empty,
+            ComplianceExtensionId = phr_complianceextensionid,
             RegulatoryRestrictions = phr_regulatoryrestrictions,
             IsActive = phr_isactive,
             ClassificationEffectiveDate = phr_classificationeffectivedate.HasValue
                 ? DateOnly.FromDateTime(phr_classificationeffectivedate.Value)
                 : null,
-            CreatedDate = phr_createdon,
-            ModifiedDate = phr_modifiedon
+            CreatedDate = phr_createddate,
+            ModifiedDate = phr_modifieddate
         };
     }
 
-    public static ControlledSubstanceDto FromDomainModel(ControlledSubstance model)
+    /// <summary>
+    /// Creates a DTO from domain model for writing to Dataverse.
+    /// </summary>
+    public static SubstanceComplianceExtensionDto FromDomainModel(ControlledSubstance model)
     {
-        return new ControlledSubstanceDto
+        return new SubstanceComplianceExtensionDto
         {
-            phr_controlledsubstanceid = model.SubstanceId,
+            phr_complianceextensionid = model.ComplianceExtensionId,
+            phr_substancecode = model.SubstanceCode,
             phr_substancename = model.SubstanceName,
-            phr_opiumactlist = (int)model.OpiumActList,
-            phr_precursorcategory = (int)model.PrecursorCategory,
-            phr_internalcode = model.InternalCode,
             phr_regulatoryrestrictions = model.RegulatoryRestrictions,
             phr_isactive = model.IsActive,
             phr_classificationeffectivedate = model.ClassificationEffectiveDate?.ToDateTime(TimeOnly.MinValue),
-            phr_createdon = model.CreatedDate,
-            phr_modifiedon = model.ModifiedDate
+            phr_createddate = model.CreatedDate,
+            phr_modifieddate = model.ModifiedDate
         };
     }
 }

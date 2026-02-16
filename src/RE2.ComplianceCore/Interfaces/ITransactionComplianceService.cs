@@ -127,7 +127,7 @@ public interface ITransactionComplianceService
     Task<decimal> GetCumulativeUsageAsync(
         string customerAccount,
         string customerDataAreaId,
-        Guid substanceId,
+        string substanceCode,
         DateTime fromDate,
         DateTime toDate,
         CancellationToken cancellationToken = default);

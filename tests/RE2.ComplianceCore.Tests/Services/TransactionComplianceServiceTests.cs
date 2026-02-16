@@ -20,6 +20,7 @@ public class TransactionComplianceServiceTests
     private readonly Mock<ILicenceRepository> _licenceRepoMock;
     private readonly Mock<ICustomerRepository> _customerRepoMock;
     private readonly Mock<IControlledSubstanceRepository> _substanceRepoMock;
+    private readonly Mock<IProductRepository> _productRepoMock;
     private readonly Mock<ILogger<TransactionComplianceService>> _loggerMock;
     private readonly TransactionComplianceService _service;
 
@@ -30,6 +31,7 @@ public class TransactionComplianceServiceTests
         _licenceRepoMock = new Mock<ILicenceRepository>();
         _customerRepoMock = new Mock<ICustomerRepository>();
         _substanceRepoMock = new Mock<IControlledSubstanceRepository>();
+        _productRepoMock = new Mock<IProductRepository>();
         _loggerMock = new Mock<ILogger<TransactionComplianceService>>();
 
         _service = new TransactionComplianceService(
@@ -38,6 +40,7 @@ public class TransactionComplianceServiceTests
             _licenceRepoMock.Object,
             _customerRepoMock.Object,
             _substanceRepoMock.Object,
+            _productRepoMock.Object,
             _loggerMock.Object);
     }
 
@@ -47,13 +50,13 @@ public class TransactionComplianceServiceTests
     public async Task ValidateTransactionAsync_PassesValidation_WhenAllRequirementsMet()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "MORPH-001";
         var licenceId = Guid.NewGuid();
 
         var customer = CreateApprovedCustomer();
-        var substance = CreateControlledSubstance(substanceId);
+        var substance = CreateControlledSubstance(substanceCode);
         var licence = CreateValidLicence(licenceId, customer.ComplianceExtensionId);
-        var transaction = CreateTransaction(customer.CustomerAccount, customer.DataAreaId, substanceId);
+        var transaction = CreateTransaction(customer.CustomerAccount, customer.DataAreaId, substanceCode);
 
         SetupMocks(customer, substance, licence);
 
@@ -70,8 +73,8 @@ public class TransactionComplianceServiceTests
     public async Task ValidateTransactionAsync_FailsValidation_WhenCustomerNotFound()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
-        var transaction = CreateTransaction("CUST-NOTFOUND", "nlpd", substanceId);
+        var substanceCode = "MORPH-001";
+        var transaction = CreateTransaction("CUST-NOTFOUND", "nlpd", substanceCode);
 
         _customerRepoMock.Setup(r => r.GetByAccountAsync("CUST-NOTFOUND", "nlpd", It.IsAny<CancellationToken>()))
             .ReturnsAsync((Customer?)null);
@@ -88,13 +91,13 @@ public class TransactionComplianceServiceTests
     public async Task ValidateTransactionAsync_FailsValidation_WhenCustomerSuspended()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "MORPH-001";
         var customer = CreateApprovedCustomer();
         customer.IsSuspended = true;
         customer.SuspensionReason = "Compliance violation";
 
-        var substance = CreateControlledSubstance(substanceId);
-        var transaction = CreateTransaction(customer.CustomerAccount, customer.DataAreaId, substanceId);
+        var substance = CreateControlledSubstance(substanceCode);
+        var transaction = CreateTransaction(customer.CustomerAccount, customer.DataAreaId, substanceCode);
 
         SetupMocks(customer, substance, null);
 
@@ -111,12 +114,12 @@ public class TransactionComplianceServiceTests
     public async Task ValidateTransactionAsync_FailsValidation_WhenCustomerNotApproved()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "MORPH-001";
         var customer = CreateApprovedCustomer();
         customer.ApprovalStatus = ApprovalStatus.Pending;
 
-        var substance = CreateControlledSubstance(substanceId);
-        var transaction = CreateTransaction(customer.CustomerAccount, customer.DataAreaId, substanceId);
+        var substance = CreateControlledSubstance(substanceCode);
+        var transaction = CreateTransaction(customer.CustomerAccount, customer.DataAreaId, substanceCode);
 
         SetupMocks(customer, substance, null);
 
@@ -132,10 +135,10 @@ public class TransactionComplianceServiceTests
     public async Task ValidateTransactionAsync_FailsValidation_WhenNoLicenceCoverage()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "MORPH-001";
         var customer = CreateApprovedCustomer();
-        var substance = CreateControlledSubstance(substanceId);
-        var transaction = CreateTransaction(customer.CustomerAccount, customer.DataAreaId, substanceId);
+        var substance = CreateControlledSubstance(substanceCode);
+        var transaction = CreateTransaction(customer.CustomerAccount, customer.DataAreaId, substanceCode);
 
         SetupMocks(customer, substance, null); // No licence
 
@@ -152,16 +155,16 @@ public class TransactionComplianceServiceTests
     public async Task ValidateTransactionAsync_FailsValidation_WhenLicenceExpired()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "MORPH-001";
         var licenceId = Guid.NewGuid();
 
         var customer = CreateApprovedCustomer();
-        var substance = CreateControlledSubstance(substanceId);
+        var substance = CreateControlledSubstance(substanceCode);
         var licence = CreateValidLicence(licenceId, customer.ComplianceExtensionId);
         licence.Status = "Expired";
         licence.ExpiryDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
 
-        var transaction = CreateTransaction(customer.CustomerAccount, customer.DataAreaId, substanceId);
+        var transaction = CreateTransaction(customer.CustomerAccount, customer.DataAreaId, substanceCode);
 
         SetupMocks(customer, substance, licence);
 
@@ -177,15 +180,15 @@ public class TransactionComplianceServiceTests
     public async Task ValidateTransactionAsync_FailsValidation_WhenLicenceSuspended()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "MORPH-001";
         var licenceId = Guid.NewGuid();
 
         var customer = CreateApprovedCustomer();
-        var substance = CreateControlledSubstance(substanceId);
+        var substance = CreateControlledSubstance(substanceCode);
         var licence = CreateValidLicence(licenceId, customer.ComplianceExtensionId);
         licence.Status = "Suspended";
 
-        var transaction = CreateTransaction(customer.CustomerAccount, customer.DataAreaId, substanceId);
+        var transaction = CreateTransaction(customer.CustomerAccount, customer.DataAreaId, substanceCode);
 
         SetupMocks(customer, substance, licence);
 
@@ -202,17 +205,19 @@ public class TransactionComplianceServiceTests
     public async Task ValidateTransactionAsync_FailsValidation_WhenSubstanceNotFound()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "MORPH-001";
         var customer = CreateApprovedCustomer();
-        var transaction = CreateTransaction(customer.CustomerAccount, customer.DataAreaId, substanceId);
+        var transaction = CreateTransaction(customer.CustomerAccount, customer.DataAreaId, substanceCode);
 
         _customerRepoMock.Setup(r => r.GetByAccountAsync(customer.CustomerAccount, customer.DataAreaId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(customer);
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ControlledSubstance?)null);
+        _productRepoMock.Setup(r => r.ResolveSubstanceCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
         _licenceRepoMock.Setup(r => r.GetByHolderAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Enumerable.Empty<Licence>());
-        _thresholdRepoMock.Setup(r => r.GetApplicableThresholdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<Guid>(), It.IsAny<BusinessCategory>(), It.IsAny<CancellationToken>()))
+        _thresholdRepoMock.Setup(r => r.GetApplicableThresholdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<Guid>(), It.IsAny<BusinessCategory>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Enumerable.Empty<Threshold>());
         _thresholdRepoMock.Setup(r => r.GetByTypeAsync(It.IsAny<ThresholdType>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Enumerable.Empty<Threshold>());
@@ -428,7 +433,7 @@ public class TransactionComplianceServiceTests
     {
         // Arrange
         var transactionId = Guid.NewGuid();
-        var transaction = CreateTransaction("CUST-001", "nlpd", Guid.NewGuid());
+        var transaction = CreateTransaction("CUST-001", "nlpd", "MORPH-001");
         transaction.Id = transactionId;
 
         _transactionRepoMock.Setup(r => r.GetByIdAsync(transactionId, It.IsAny<CancellationToken>()))
@@ -472,15 +477,17 @@ public class TransactionComplianceServiceTests
 
         if (substance != null)
         {
-            _substanceRepoMock.Setup(r => r.GetByIdAsync(substance.SubstanceId, It.IsAny<CancellationToken>()))
+            _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substance.SubstanceCode, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(substance);
+            _productRepoMock.Setup(r => r.ResolveSubstanceCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((string?)null);
         }
 
         var licences = licence != null ? new[] { licence } : Array.Empty<Licence>();
         _licenceRepoMock.Setup(r => r.GetByHolderAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(licences);
 
-        _thresholdRepoMock.Setup(r => r.GetApplicableThresholdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<Guid>(), It.IsAny<BusinessCategory>(), It.IsAny<CancellationToken>()))
+        _thresholdRepoMock.Setup(r => r.GetApplicableThresholdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<Guid>(), It.IsAny<BusinessCategory>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Enumerable.Empty<Threshold>());
         _thresholdRepoMock.Setup(r => r.GetByTypeAsync(It.IsAny<ThresholdType>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Enumerable.Empty<Threshold>());
@@ -502,13 +509,12 @@ public class TransactionComplianceServiceTests
         };
     }
 
-    private static ControlledSubstance CreateControlledSubstance(Guid substanceId)
+    private static ControlledSubstance CreateControlledSubstance(string substanceCode)
     {
         return new ControlledSubstance
         {
-            SubstanceId = substanceId,
+            SubstanceCode = substanceCode,
             SubstanceName = "Morphine Sulfate",
-            InternalCode = "MORPH-001",
             OpiumActList = SubstanceCategories.OpiumActList.ListI,
             PrecursorCategory = SubstanceCategories.PrecursorCategory.None,
             IsActive = true
@@ -534,7 +540,7 @@ public class TransactionComplianceServiceTests
         };
     }
 
-    private static Transaction CreateTransaction(string customerAccount, string customerDataAreaId, Guid substanceId)
+    private static Transaction CreateTransaction(string customerAccount, string customerDataAreaId, string substanceCode)
     {
         var transaction = new Transaction
         {
@@ -556,8 +562,9 @@ public class TransactionComplianceServiceTests
             Id = Guid.NewGuid(),
             TransactionId = transaction.Id,
             LineNumber = 1,
-            SubstanceId = substanceId,
-            SubstanceCode = "MORPH-001",
+            ItemNumber = "ITEM-001",
+            DataAreaId = customerDataAreaId,
+            SubstanceCode = substanceCode,
             Quantity = 100,
             BaseUnitQuantity = 100,
             BaseUnit = "g",
@@ -571,7 +578,7 @@ public class TransactionComplianceServiceTests
 
     private static Transaction CreateFailedTransaction(Guid transactionId)
     {
-        var transaction = CreateTransaction("CUST-001", "nlpd", Guid.NewGuid());
+        var transaction = CreateTransaction("CUST-001", "nlpd", "MORPH-001");
         transaction.Id = transactionId;
         transaction.ValidationStatus = ValidationStatus.Failed;
         return transaction;

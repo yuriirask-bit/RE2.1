@@ -38,14 +38,14 @@ public class SubstanceReclassificationControllerTests
         };
     }
 
-    #region POST /api/v1/substances/{substanceId}/reclassify Tests
+    #region POST /api/v1/substances/{substanceCode}/reclassify Tests
 
     [Fact]
     public async Task CreateReclassification_ReturnsCreated_WhenValid()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
-        var substance = CreateTestSubstance(substanceId);
+        var substanceCode = "Morphine";
+        var substance = CreateTestSubstance(substanceCode);
         var reclassificationId = Guid.NewGuid();
 
         var request = new CreateReclassificationRequestDto
@@ -57,10 +57,10 @@ public class SubstanceReclassificationControllerTests
             RegulatoryAuthority = "Ministry of Health"
         };
 
-        var createdReclassification = CreateTestReclassification(reclassificationId, substanceId);
+        var createdReclassification = CreateTestReclassification(reclassificationId, substanceCode);
 
         _mockSubstanceRepository
-            .Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
 
         _mockReclassificationService
@@ -72,7 +72,7 @@ public class SubstanceReclassificationControllerTests
             .ReturnsAsync(createdReclassification);
 
         // Act
-        var result = await _controller.CreateReclassification(substanceId, request);
+        var result = await _controller.CreateReclassification(substanceCode, request);
 
         // Assert
         var createdResult = result.Should().BeOfType<CreatedAtActionResult>().Subject;
@@ -85,7 +85,7 @@ public class SubstanceReclassificationControllerTests
     public async Task CreateReclassification_ReturnsNotFound_WhenSubstanceDoesNotExist()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "NONEXISTENT";
         var request = new CreateReclassificationRequestDto
         {
             NewOpiumActList = (int)SubstanceCategories.OpiumActList.ListI,
@@ -96,11 +96,11 @@ public class SubstanceReclassificationControllerTests
         };
 
         _mockSubstanceRepository
-            .Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ControlledSubstance?)null);
 
         // Act
-        var result = await _controller.CreateReclassification(substanceId, request);
+        var result = await _controller.CreateReclassification(substanceCode, request);
 
         // Assert
         var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
@@ -112,8 +112,8 @@ public class SubstanceReclassificationControllerTests
     public async Task CreateReclassification_ReturnsBadRequest_WhenValidationFails()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
-        var substance = CreateTestSubstance(substanceId);
+        var substanceCode = "Morphine";
+        var substance = CreateTestSubstance(substanceCode);
         var request = new CreateReclassificationRequestDto
         {
             NewOpiumActList = (int)SubstanceCategories.OpiumActList.ListII, // Same as current - should fail
@@ -129,7 +129,7 @@ public class SubstanceReclassificationControllerTests
         });
 
         _mockSubstanceRepository
-            .Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
 
         _mockReclassificationService
@@ -137,7 +137,7 @@ public class SubstanceReclassificationControllerTests
             .ReturnsAsync((null, validationResult));
 
         // Act
-        var result = await _controller.CreateReclassification(substanceId, request);
+        var result = await _controller.CreateReclassification(substanceCode, request);
 
         // Assert
         var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
@@ -154,7 +154,7 @@ public class SubstanceReclassificationControllerTests
     {
         // Arrange
         var reclassificationId = Guid.NewGuid();
-        var reclassification = CreateTestReclassification(reclassificationId, Guid.NewGuid());
+        var reclassification = CreateTestReclassification(reclassificationId, "Morphine");
 
         _mockReclassificationService
             .Setup(s => s.GetByIdAsync(reclassificationId, It.IsAny<CancellationToken>()))
@@ -190,25 +190,25 @@ public class SubstanceReclassificationControllerTests
 
     #endregion
 
-    #region GET /api/v1/substances/{substanceId}/reclassifications Tests
+    #region GET /api/v1/substances/{substanceCode}/reclassifications Tests
 
     [Fact]
     public async Task GetSubstanceReclassifications_ReturnsOk_WithList()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "Morphine";
         var reclassifications = new[]
         {
-            CreateTestReclassification(Guid.NewGuid(), substanceId),
-            CreateTestReclassification(Guid.NewGuid(), substanceId)
+            CreateTestReclassification(Guid.NewGuid(), substanceCode),
+            CreateTestReclassification(Guid.NewGuid(), substanceCode)
         };
 
         _mockReclassificationService
-            .Setup(s => s.GetBySubstanceIdAsync(substanceId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(reclassifications);
 
         // Act
-        var result = await _controller.GetSubstanceReclassifications(substanceId);
+        var result = await _controller.GetSubstanceReclassifications(substanceCode);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
@@ -220,14 +220,14 @@ public class SubstanceReclassificationControllerTests
     public async Task GetSubstanceReclassifications_ReturnsEmptyList_WhenNoReclassifications()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "Morphine";
 
         _mockReclassificationService
-            .Setup(s => s.GetBySubstanceIdAsync(substanceId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Enumerable.Empty<SubstanceReclassification>());
 
         // Act
-        var result = await _controller.GetSubstanceReclassifications(substanceId);
+        var result = await _controller.GetSubstanceReclassifications(substanceCode);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
@@ -245,8 +245,8 @@ public class SubstanceReclassificationControllerTests
         // Arrange
         var reclassifications = new[]
         {
-            CreateTestReclassification(Guid.NewGuid(), Guid.NewGuid()),
-            CreateTestReclassification(Guid.NewGuid(), Guid.NewGuid())
+            CreateTestReclassification(Guid.NewGuid(), "Morphine"),
+            CreateTestReclassification(Guid.NewGuid(), "Fentanyl")
         };
 
         _mockReclassificationService
@@ -271,7 +271,7 @@ public class SubstanceReclassificationControllerTests
     {
         // Arrange
         var reclassificationId = Guid.NewGuid();
-        var reclassification = CreateTestReclassification(reclassificationId, Guid.NewGuid());
+        var reclassification = CreateTestReclassification(reclassificationId, "Morphine");
         reclassification.Status = ReclassificationStatus.Completed;
         reclassification.AffectedCustomerCount = 5;
         reclassification.FlaggedCustomerCount = 2;
@@ -327,7 +327,7 @@ public class SubstanceReclassificationControllerTests
     {
         // Arrange
         var reclassificationId = Guid.NewGuid();
-        var reclassification = CreateTestReclassification(reclassificationId, Guid.NewGuid());
+        var reclassification = CreateTestReclassification(reclassificationId, "Morphine");
         var analysis = new ReclassificationImpactAnalysis
         {
             Reclassification = reclassification,
@@ -525,32 +525,32 @@ public class SubstanceReclassificationControllerTests
 
     #endregion
 
-    #region GET /api/v1/substances/{substanceId}/classification Tests
+    #region GET /api/v1/substances/{substanceCode}/classification Tests
 
     [Fact]
     public async Task GetEffectiveClassification_ReturnsOk_WithCurrentDate()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "Morphine";
         var classification = new SubstanceClassification
         {
-            SubstanceId = substanceId,
+            SubstanceCode = substanceCode,
             AsOfDate = DateOnly.FromDateTime(DateTime.UtcNow),
             OpiumActList = SubstanceCategories.OpiumActList.ListI,
             PrecursorCategory = SubstanceCategories.PrecursorCategory.None
         };
 
         _mockReclassificationService
-            .Setup(s => s.GetEffectiveClassificationAsync(substanceId, It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetEffectiveClassificationAsync(substanceCode, It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(classification);
 
         // Act
-        var result = await _controller.GetEffectiveClassification(substanceId);
+        var result = await _controller.GetEffectiveClassification(substanceCode);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
         var response = okResult.Value.Should().BeOfType<SubstanceClassification>().Subject;
-        response.SubstanceId.Should().Be(substanceId);
+        response.SubstanceCode.Should().Be(substanceCode);
         response.OpiumActList.Should().Be(SubstanceCategories.OpiumActList.ListI);
     }
 
@@ -558,22 +558,22 @@ public class SubstanceReclassificationControllerTests
     public async Task GetEffectiveClassification_ReturnsOk_WithSpecificDate()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "Morphine";
         var asOfDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-1));
         var classification = new SubstanceClassification
         {
-            SubstanceId = substanceId,
+            SubstanceCode = substanceCode,
             AsOfDate = asOfDate,
             OpiumActList = SubstanceCategories.OpiumActList.ListII,
             PrecursorCategory = SubstanceCategories.PrecursorCategory.None
         };
 
         _mockReclassificationService
-            .Setup(s => s.GetEffectiveClassificationAsync(substanceId, asOfDate, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetEffectiveClassificationAsync(substanceCode, asOfDate, It.IsAny<CancellationToken>()))
             .ReturnsAsync(classification);
 
         // Act
-        var result = await _controller.GetEffectiveClassification(substanceId, asOfDate);
+        var result = await _controller.GetEffectiveClassification(substanceCode, asOfDate);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
@@ -586,14 +586,14 @@ public class SubstanceReclassificationControllerTests
     public async Task GetEffectiveClassification_ReturnsNotFound_WhenSubstanceDoesNotExist()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "NONEXISTENT";
 
         _mockReclassificationService
-            .Setup(s => s.GetEffectiveClassificationAsync(substanceId, It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException($"Substance {substanceId} not found"));
+            .Setup(s => s.GetEffectiveClassificationAsync(substanceCode, It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException($"Substance {substanceCode} not found"));
 
         // Act
-        var result = await _controller.GetEffectiveClassification(substanceId);
+        var result = await _controller.GetEffectiveClassification(substanceCode);
 
         // Assert
         var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
@@ -605,25 +605,24 @@ public class SubstanceReclassificationControllerTests
 
     #region Helper Methods
 
-    private static ControlledSubstance CreateTestSubstance(Guid substanceId)
+    private static ControlledSubstance CreateTestSubstance(string substanceCode)
     {
         return new ControlledSubstance
         {
-            SubstanceId = substanceId,
+            SubstanceCode = substanceCode,
             SubstanceName = "Test Substance",
-            InternalCode = "TEST-001",
             OpiumActList = SubstanceCategories.OpiumActList.ListII,
             PrecursorCategory = SubstanceCategories.PrecursorCategory.None,
             IsActive = true
         };
     }
 
-    private static SubstanceReclassification CreateTestReclassification(Guid reclassificationId, Guid substanceId)
+    private static SubstanceReclassification CreateTestReclassification(Guid reclassificationId, string substanceCode)
     {
         return new SubstanceReclassification
         {
             ReclassificationId = reclassificationId,
-            SubstanceId = substanceId,
+            SubstanceCode = substanceCode,
             PreviousOpiumActList = SubstanceCategories.OpiumActList.ListII,
             NewOpiumActList = SubstanceCategories.OpiumActList.ListI,
             PreviousPrecursorCategory = SubstanceCategories.PrecursorCategory.None,

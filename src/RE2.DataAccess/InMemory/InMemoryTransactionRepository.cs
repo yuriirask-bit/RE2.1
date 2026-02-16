@@ -238,14 +238,15 @@ public class InMemoryTransactionRepository : ITransactionRepository
     }
 
     public Task<IEnumerable<Transaction>> GetBySubstanceAsync(
-        Guid substanceId,
+        string substanceCode,
         DateTime fromDate,
         DateTime toDate,
         CancellationToken cancellationToken = default)
     {
         // Get all transactions in date range that have lines with the given substance
         var transactionIds = _transactionLines.Values
-            .Where(l => l.SubstanceId == substanceId)
+            .Where(l => !string.IsNullOrWhiteSpace(l.SubstanceCode) &&
+                        l.SubstanceCode.Equals(substanceCode, StringComparison.OrdinalIgnoreCase))
             .Select(l => l.TransactionId)
             .Distinct()
             .ToHashSet();
@@ -287,7 +288,7 @@ public class InMemoryTransactionRepository : ITransactionRepository
     }
 
     public Task<IEnumerable<TransactionLine>> GetLinesBySubstanceInPeriodAsync(
-        Guid substanceId,
+        string substanceCode,
         DateTime fromDate,
         DateTime toDate,
         CancellationToken cancellationToken = default)
@@ -300,7 +301,8 @@ public class InMemoryTransactionRepository : ITransactionRepository
             .ToHashSet();
 
         var lines = _transactionLines.Values
-            .Where(l => l.SubstanceId == substanceId &&
+            .Where(l => !string.IsNullOrWhiteSpace(l.SubstanceCode) &&
+                        l.SubstanceCode.Equals(substanceCode, StringComparison.OrdinalIgnoreCase) &&
                         transactionIdsInPeriod.Contains(l.TransactionId))
             .ToList();
 
@@ -310,7 +312,7 @@ public class InMemoryTransactionRepository : ITransactionRepository
     public Task<IEnumerable<TransactionLine>> GetCustomerSubstanceLinesInPeriodAsync(
         string customerAccount,
         string customerDataAreaId,
-        Guid substanceId,
+        string substanceCode,
         DateTime fromDate,
         DateTime toDate,
         CancellationToken cancellationToken = default)
@@ -325,7 +327,8 @@ public class InMemoryTransactionRepository : ITransactionRepository
             .ToHashSet();
 
         var lines = _transactionLines.Values
-            .Where(l => l.SubstanceId == substanceId &&
+            .Where(l => !string.IsNullOrWhiteSpace(l.SubstanceCode) &&
+                        l.SubstanceCode.Equals(substanceCode, StringComparison.OrdinalIgnoreCase) &&
                         transactionIdsInPeriod.Contains(l.TransactionId))
             .ToList();
 

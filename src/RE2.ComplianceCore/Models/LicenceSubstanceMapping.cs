@@ -21,10 +21,10 @@ public class LicenceSubstanceMapping
     public Guid LicenceId { get; set; }
 
     /// <summary>
-    /// Reference to ControlledSubstance.
+    /// Reference to ControlledSubstance by SubstanceCode (business key).
     /// Required.
     /// </summary>
-    public Guid SubstanceId { get; set; }
+    public string SubstanceCode { get; set; } = string.Empty;
 
     /// <summary>
     /// Maximum quantity per single transaction (nullable for unlimited).
@@ -85,12 +85,12 @@ public class LicenceSubstanceMapping
             });
         }
 
-        if (SubstanceId == Guid.Empty)
+        if (string.IsNullOrWhiteSpace(SubstanceCode))
         {
             violations.Add(new ValidationViolation
             {
                 ErrorCode = ErrorCodes.VALIDATION_ERROR,
-                Message = "SubstanceId is required"
+                Message = "SubstanceCode is required"
             });
         }
 

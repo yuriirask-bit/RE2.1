@@ -115,7 +115,7 @@ public class ControlledSubstancesControllerTests
         var searchTerm = "morphine";
         var matchingSubstances = CreateTestSubstances().Where(s =>
             s.SubstanceName.ToLowerInvariant().Contains(searchTerm) ||
-            s.InternalCode.ToLowerInvariant().Contains(searchTerm));
+            s.SubstanceCode.ToLowerInvariant().Contains(searchTerm));
 
         _mockSubstanceService
             .Setup(s => s.SearchAsync(searchTerm, It.IsAny<CancellationToken>()))
@@ -149,38 +149,38 @@ public class ControlledSubstancesControllerTests
 
     #endregion
 
-    #region GET /api/v1/controlledsubstances/{id} Tests
+    #region GET /api/v1/controlledsubstances/{substanceCode} Tests
 
     [Fact]
     public async Task GetSubstance_ReturnsSubstance_WhenExists()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
-        var substance = CreateTestSubstance(substanceId);
+        var substanceCode = "Morphine";
+        var substance = CreateTestSubstance(substanceCode: substanceCode);
         _mockSubstanceService
-            .Setup(s => s.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
 
         // Act
-        var result = await _controller.GetSubstance(substanceId);
+        var result = await _controller.GetSubstance(substanceCode);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
         var response = okResult.Value.Should().BeOfType<ControlledSubstanceResponseDto>().Subject;
-        response.SubstanceId.Should().Be(substanceId);
+        response.SubstanceCode.Should().Be(substanceCode);
     }
 
     [Fact]
     public async Task GetSubstance_ReturnsNotFound_WhenDoesNotExist()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "NONEXISTENT";
         _mockSubstanceService
-            .Setup(s => s.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ControlledSubstance?)null);
 
         // Act
-        var result = await _controller.GetSubstance(substanceId);
+        var result = await _controller.GetSubstance(substanceCode);
 
         // Assert
         var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
@@ -190,39 +190,55 @@ public class ControlledSubstancesControllerTests
 
     #endregion
 
-    #region GET /api/v1/controlledsubstances/by-code/{code} Tests
+    #region POST /api/v1/controlledsubstances/configure-compliance Tests
 
     [Fact]
-    public async Task GetSubstanceByCode_ReturnsSubstance_WhenExists()
+    public async Task ConfigureCompliance_ReturnsOk_WhenValid()
     {
         // Arrange
-        var internalCode = "MOR-001";
-        var substance = CreateTestSubstance(internalCode: internalCode);
+        var substanceCode = "Morphine";
+        var request = new ConfigureComplianceRequestDto
+        {
+            SubstanceCode = substanceCode,
+            RegulatoryRestrictions = "Cold storage required",
+            IsActive = true
+        };
+
+        var substance = CreateTestSubstance(substanceCode: substanceCode);
 
         _mockSubstanceService
-            .Setup(s => s.GetByInternalCodeAsync(internalCode, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
 
+        _mockSubstanceService
+            .Setup(s => s.ConfigureComplianceAsync(It.IsAny<ControlledSubstance>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ValidationResult.Success());
+
         // Act
-        var result = await _controller.GetSubstanceByCode(internalCode);
+        var result = await _controller.ConfigureCompliance(request);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
         var response = okResult.Value.Should().BeOfType<ControlledSubstanceResponseDto>().Subject;
-        response.InternalCode.Should().Be(internalCode);
+        response.SubstanceCode.Should().Be(substanceCode);
     }
 
     [Fact]
-    public async Task GetSubstanceByCode_ReturnsNotFound_WhenDoesNotExist()
+    public async Task ConfigureCompliance_ReturnsNotFound_WhenSubstanceDoesNotExist()
     {
         // Arrange
-        var internalCode = "NONEXISTENT-001";
+        var request = new ConfigureComplianceRequestDto
+        {
+            SubstanceCode = "NONEXISTENT",
+            IsActive = true
+        };
+
         _mockSubstanceService
-            .Setup(s => s.GetByInternalCodeAsync(internalCode, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetBySubstanceCodeAsync("NONEXISTENT", It.IsAny<CancellationToken>()))
             .ReturnsAsync((ControlledSubstance?)null);
 
         // Act
-        var result = await _controller.GetSubstanceByCode(internalCode);
+        var result = await _controller.ConfigureCompliance(request);
 
         // Assert
         var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
@@ -230,62 +246,34 @@ public class ControlledSubstancesControllerTests
         errorResponse.ErrorCode.Should().Be(ErrorCodes.SUBSTANCE_NOT_FOUND);
     }
 
-    #endregion
-
-    #region POST /api/v1/controlledsubstances Tests
-
     [Fact]
-    public async Task CreateSubstance_ReturnsCreated_WhenValid()
+    public async Task ConfigureCompliance_ReturnsBadRequest_WhenValidationFails()
     {
         // Arrange
-        var request = new CreateControlledSubstanceRequestDto
+        var substanceCode = "Morphine";
+        var request = new ConfigureComplianceRequestDto
         {
-            SubstanceName = "Morphine",
-            InternalCode = "MOR-NEW",
-            OpiumActList = SubstanceCategories.OpiumActList.ListII,
-            PrecursorCategory = SubstanceCategories.PrecursorCategory.None,
+            SubstanceCode = substanceCode,
             IsActive = true
         };
 
-        var createdId = Guid.NewGuid();
-
-        _mockSubstanceService
-            .Setup(s => s.CreateAsync(It.IsAny<ControlledSubstance>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((createdId, ValidationResult.Success()));
-
-        // Act
-        var result = await _controller.CreateSubstance(request);
-
-        // Assert
-        var createdResult = result.Should().BeOfType<CreatedAtActionResult>().Subject;
-        createdResult.ActionName.Should().Be(nameof(ControlledSubstancesController.GetSubstance));
-        var response = createdResult.Value.Should().BeOfType<ControlledSubstanceResponseDto>().Subject;
-        response.SubstanceId.Should().Be(createdId);
-    }
-
-    [Fact]
-    public async Task CreateSubstance_ReturnsBadRequest_WhenValidationFails()
-    {
-        // Arrange
-        var request = new CreateControlledSubstanceRequestDto
-        {
-            SubstanceName = "",
-            InternalCode = "",
-            OpiumActList = SubstanceCategories.OpiumActList.None,
-            PrecursorCategory = SubstanceCategories.PrecursorCategory.None
-        };
+        var substance = CreateTestSubstance(substanceCode: substanceCode);
 
         var validationResult = ValidationResult.Failure(new[]
         {
-            new ValidationViolation { ErrorCode = ErrorCodes.VALIDATION_ERROR, Message = "SubstanceName is required" }
+            new ValidationViolation { ErrorCode = ErrorCodes.VALIDATION_ERROR, Message = "Compliance configuration failed" }
         });
 
         _mockSubstanceService
-            .Setup(s => s.CreateAsync(It.IsAny<ControlledSubstance>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((null, validationResult));
+            .Setup(s => s.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(substance);
+
+        _mockSubstanceService
+            .Setup(s => s.ConfigureComplianceAsync(It.IsAny<ControlledSubstance>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(validationResult);
 
         // Act
-        var result = await _controller.CreateSubstance(request);
+        var result = await _controller.ConfigureCompliance(request);
 
         // Assert
         var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
@@ -295,66 +283,54 @@ public class ControlledSubstancesControllerTests
 
     #endregion
 
-    #region PUT /api/v1/controlledsubstances/{id} Tests
+    #region PUT /api/v1/controlledsubstances/{substanceCode}/compliance Tests
 
     [Fact]
-    public async Task UpdateSubstance_ReturnsOk_WhenValid()
+    public async Task UpdateCompliance_ReturnsOk_WhenValid()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
-        var request = new UpdateControlledSubstanceRequestDto
+        var substanceCode = "Morphine";
+        var request = new UpdateComplianceRequestDto
         {
-            SubstanceName = "Morphine Updated",
-            InternalCode = "MOR-001",
-            OpiumActList = SubstanceCategories.OpiumActList.ListII,
-            PrecursorCategory = SubstanceCategories.PrecursorCategory.None,
+            RegulatoryRestrictions = "Updated restrictions",
             IsActive = true
         };
 
-        var updatedSubstance = CreateTestSubstance(substanceId, substanceName: request.SubstanceName);
+        var substance = CreateTestSubstance(substanceCode: substanceCode, substanceName: "Morphine Updated");
 
         _mockSubstanceService
-            .Setup(s => s.UpdateAsync(It.IsAny<ControlledSubstance>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(substance);
+
+        _mockSubstanceService
+            .Setup(s => s.UpdateComplianceAsync(It.IsAny<ControlledSubstance>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(ValidationResult.Success());
 
-        _mockSubstanceService
-            .Setup(s => s.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(updatedSubstance);
-
         // Act
-        var result = await _controller.UpdateSubstance(substanceId, request);
+        var result = await _controller.UpdateCompliance(substanceCode, request);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
         var response = okResult.Value.Should().BeOfType<ControlledSubstanceResponseDto>().Subject;
-        response.SubstanceName.Should().Be(request.SubstanceName);
+        response.SubstanceName.Should().Be("Morphine Updated");
     }
 
     [Fact]
-    public async Task UpdateSubstance_ReturnsNotFound_WhenDoesNotExist()
+    public async Task UpdateCompliance_ReturnsNotFound_WhenDoesNotExist()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
-        var request = new UpdateControlledSubstanceRequestDto
+        var substanceCode = "NONEXISTENT";
+        var request = new UpdateComplianceRequestDto
         {
-            SubstanceName = "Test",
-            InternalCode = "TEST-001",
-            OpiumActList = SubstanceCategories.OpiumActList.ListI,
-            PrecursorCategory = SubstanceCategories.PrecursorCategory.None,
             IsActive = true
         };
 
-        var validationResult = ValidationResult.Failure(new[]
-        {
-            new ValidationViolation { ErrorCode = ErrorCodes.SUBSTANCE_NOT_FOUND, Message = "Substance not found" }
-        });
-
         _mockSubstanceService
-            .Setup(s => s.UpdateAsync(It.IsAny<ControlledSubstance>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(validationResult);
+            .Setup(s => s.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ControlledSubstance?)null);
 
         // Act
-        var result = await _controller.UpdateSubstance(substanceId, request);
+        var result = await _controller.UpdateCompliance(substanceCode, request);
 
         // Assert
         var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
@@ -363,30 +339,32 @@ public class ControlledSubstancesControllerTests
     }
 
     [Fact]
-    public async Task UpdateSubstance_ReturnsBadRequest_WhenValidationFails()
+    public async Task UpdateCompliance_ReturnsBadRequest_WhenValidationFails()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
-        var request = new UpdateControlledSubstanceRequestDto
+        var substanceCode = "Morphine";
+        var request = new UpdateComplianceRequestDto
         {
-            SubstanceName = "",
-            InternalCode = "",
-            OpiumActList = SubstanceCategories.OpiumActList.None,
-            PrecursorCategory = SubstanceCategories.PrecursorCategory.None,
             IsActive = true
         };
 
+        var substance = CreateTestSubstance(substanceCode: substanceCode);
+
         var validationResult = ValidationResult.Failure(new[]
         {
-            new ValidationViolation { ErrorCode = ErrorCodes.VALIDATION_ERROR, Message = "Invalid substance data" }
+            new ValidationViolation { ErrorCode = ErrorCodes.VALIDATION_ERROR, Message = "Invalid compliance data" }
         });
 
         _mockSubstanceService
-            .Setup(s => s.UpdateAsync(It.IsAny<ControlledSubstance>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(substance);
+
+        _mockSubstanceService
+            .Setup(s => s.UpdateComplianceAsync(It.IsAny<ControlledSubstance>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(validationResult);
 
         // Act
-        var result = await _controller.UpdateSubstance(substanceId, request);
+        var result = await _controller.UpdateCompliance(substanceCode, request);
 
         // Assert
         var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
@@ -396,71 +374,26 @@ public class ControlledSubstancesControllerTests
 
     #endregion
 
-    #region DELETE /api/v1/controlledsubstances/{id} Tests
-
-    [Fact]
-    public async Task DeleteSubstance_ReturnsNoContent_WhenSuccess()
-    {
-        // Arrange
-        var substanceId = Guid.NewGuid();
-
-        _mockSubstanceService
-            .Setup(s => s.DeleteAsync(substanceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ValidationResult.Success());
-
-        // Act
-        var result = await _controller.DeleteSubstance(substanceId);
-
-        // Assert
-        result.Should().BeOfType<NoContentResult>();
-    }
-
-    [Fact]
-    public async Task DeleteSubstance_ReturnsNotFound_WhenDoesNotExist()
-    {
-        // Arrange
-        var substanceId = Guid.NewGuid();
-
-        var validationResult = ValidationResult.Failure(new[]
-        {
-            new ValidationViolation { ErrorCode = ErrorCodes.SUBSTANCE_NOT_FOUND, Message = "Substance not found" }
-        });
-
-        _mockSubstanceService
-            .Setup(s => s.DeleteAsync(substanceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(validationResult);
-
-        // Act
-        var result = await _controller.DeleteSubstance(substanceId);
-
-        // Assert
-        var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
-        var errorResponse = notFoundResult.Value.Should().BeOfType<ErrorResponseDto>().Subject;
-        errorResponse.ErrorCode.Should().Be(ErrorCodes.SUBSTANCE_NOT_FOUND);
-    }
-
-    #endregion
-
-    #region POST /api/v1/controlledsubstances/{id}/deactivate Tests
+    #region POST /api/v1/controlledsubstances/{substanceCode}/deactivate Tests
 
     [Fact]
     public async Task DeactivateSubstance_ReturnsOk_WhenSuccess()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
-        var substance = CreateTestSubstance(substanceId);
+        var substanceCode = "Morphine";
+        var substance = CreateTestSubstance(substanceCode: substanceCode);
         substance.IsActive = false;
 
         _mockSubstanceService
-            .Setup(s => s.DeactivateAsync(substanceId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.DeactivateAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ValidationResult.Success());
 
         _mockSubstanceService
-            .Setup(s => s.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
 
         // Act
-        var result = await _controller.DeactivateSubstance(substanceId);
+        var result = await _controller.DeactivateSubstance(substanceCode);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
@@ -472,7 +405,7 @@ public class ControlledSubstancesControllerTests
     public async Task DeactivateSubstance_ReturnsNotFound_WhenDoesNotExist()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "NONEXISTENT";
 
         var validationResult = ValidationResult.Failure(new[]
         {
@@ -480,11 +413,11 @@ public class ControlledSubstancesControllerTests
         });
 
         _mockSubstanceService
-            .Setup(s => s.DeactivateAsync(substanceId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.DeactivateAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(validationResult);
 
         // Act
-        var result = await _controller.DeactivateSubstance(substanceId);
+        var result = await _controller.DeactivateSubstance(substanceCode);
 
         // Assert
         var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
@@ -496,7 +429,7 @@ public class ControlledSubstancesControllerTests
     public async Task DeactivateSubstance_ReturnsBadRequest_WhenAlreadyInactive()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "Morphine";
 
         var validationResult = ValidationResult.Failure(new[]
         {
@@ -504,11 +437,11 @@ public class ControlledSubstancesControllerTests
         });
 
         _mockSubstanceService
-            .Setup(s => s.DeactivateAsync(substanceId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.DeactivateAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(validationResult);
 
         // Act
-        var result = await _controller.DeactivateSubstance(substanceId);
+        var result = await _controller.DeactivateSubstance(substanceCode);
 
         // Assert
         var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
@@ -518,26 +451,26 @@ public class ControlledSubstancesControllerTests
 
     #endregion
 
-    #region POST /api/v1/controlledsubstances/{id}/reactivate Tests
+    #region POST /api/v1/controlledsubstances/{substanceCode}/reactivate Tests
 
     [Fact]
     public async Task ReactivateSubstance_ReturnsOk_WhenSuccess()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
-        var substance = CreateTestSubstance(substanceId);
+        var substanceCode = "Morphine";
+        var substance = CreateTestSubstance(substanceCode: substanceCode);
         substance.IsActive = true;
 
         _mockSubstanceService
-            .Setup(s => s.ReactivateAsync(substanceId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.ReactivateAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ValidationResult.Success());
 
         _mockSubstanceService
-            .Setup(s => s.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
 
         // Act
-        var result = await _controller.ReactivateSubstance(substanceId);
+        var result = await _controller.ReactivateSubstance(substanceCode);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
@@ -549,7 +482,7 @@ public class ControlledSubstancesControllerTests
     public async Task ReactivateSubstance_ReturnsNotFound_WhenDoesNotExist()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "NONEXISTENT";
 
         var validationResult = ValidationResult.Failure(new[]
         {
@@ -557,11 +490,11 @@ public class ControlledSubstancesControllerTests
         });
 
         _mockSubstanceService
-            .Setup(s => s.ReactivateAsync(substanceId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.ReactivateAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(validationResult);
 
         // Act
-        var result = await _controller.ReactivateSubstance(substanceId);
+        var result = await _controller.ReactivateSubstance(substanceCode);
 
         // Assert
         var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
@@ -573,7 +506,7 @@ public class ControlledSubstancesControllerTests
     public async Task ReactivateSubstance_ReturnsBadRequest_WhenAlreadyActive()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "Morphine";
 
         var validationResult = ValidationResult.Failure(new[]
         {
@@ -581,11 +514,11 @@ public class ControlledSubstancesControllerTests
         });
 
         _mockSubstanceService
-            .Setup(s => s.ReactivateAsync(substanceId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.ReactivateAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(validationResult);
 
         // Act
-        var result = await _controller.ReactivateSubstance(substanceId);
+        var result = await _controller.ReactivateSubstance(substanceCode);
 
         // Assert
         var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
@@ -598,17 +531,15 @@ public class ControlledSubstancesControllerTests
     #region Helper Methods
 
     private static ControlledSubstance CreateTestSubstance(
-        Guid? substanceId = null,
+        string substanceCode = "Morphine",
         string substanceName = "Morphine",
-        string internalCode = "MOR-001",
         SubstanceCategories.OpiumActList opiumActList = SubstanceCategories.OpiumActList.ListII,
         SubstanceCategories.PrecursorCategory precursorCategory = SubstanceCategories.PrecursorCategory.None)
     {
         return new ControlledSubstance
         {
-            SubstanceId = substanceId ?? Guid.NewGuid(),
+            SubstanceCode = substanceCode,
             SubstanceName = substanceName,
-            InternalCode = internalCode,
             OpiumActList = opiumActList,
             PrecursorCategory = precursorCategory,
             IsActive = true,
@@ -622,19 +553,16 @@ public class ControlledSubstancesControllerTests
         return new List<ControlledSubstance>
         {
             CreateTestSubstance(
-                substanceId: Guid.NewGuid(),
+                substanceCode: "Morphine",
                 substanceName: "Morphine",
-                internalCode: "MOR-001",
                 opiumActList: SubstanceCategories.OpiumActList.ListII),
             CreateTestSubstance(
-                substanceId: Guid.NewGuid(),
+                substanceCode: "MDMA",
                 substanceName: "MDMA",
-                internalCode: "MDM-001",
                 opiumActList: SubstanceCategories.OpiumActList.ListI),
             CreateTestSubstance(
-                substanceId: Guid.NewGuid(),
+                substanceCode: "Ephedrine",
                 substanceName: "Ephedrine",
-                internalCode: "EPH-001",
                 opiumActList: SubstanceCategories.OpiumActList.None,
                 precursorCategory: SubstanceCategories.PrecursorCategory.Category1)
         };

@@ -284,19 +284,19 @@ public class TransactionLineDto
     public int LineNumber { get; set; }
 
     /// <summary>
-    /// Controlled substance ID.
+    /// D365 product item number.
     /// </summary>
-    public Guid SubstanceId { get; set; }
+    public string ItemNumber { get; set; } = string.Empty;
 
     /// <summary>
-    /// Substance internal code.
+    /// Legal entity (data area ID).
     /// </summary>
-    public string SubstanceCode { get; set; } = string.Empty;
+    public string DataAreaId { get; set; } = string.Empty;
 
     /// <summary>
-    /// Product/item number from ERP.
+    /// Resolved substance code (from product attributes).
     /// </summary>
-    public string? ProductCode { get; set; }
+    public string? SubstanceCode { get; set; }
 
     /// <summary>
     /// Product description.
@@ -374,9 +374,9 @@ public class TransactionLineDto
             Id = TransactionLineId,
             TransactionId = TransactionId,
             LineNumber = LineNumber,
-            SubstanceId = SubstanceId,
+            ItemNumber = ItemNumber,
+            DataAreaId = DataAreaId,
             SubstanceCode = SubstanceCode,
-            ProductCode = ProductCode,
             ProductDescription = ProductDescription,
             BatchNumber = BatchNumber,
             Quantity = Quantity,
@@ -405,9 +405,9 @@ public class TransactionLineDto
             TransactionLineId = model.Id,
             TransactionId = model.TransactionId,
             LineNumber = model.LineNumber,
-            SubstanceId = model.SubstanceId,
+            ItemNumber = model.ItemNumber,
+            DataAreaId = model.DataAreaId,
             SubstanceCode = model.SubstanceCode,
-            ProductCode = model.ProductCode,
             ProductDescription = model.ProductDescription,
             BatchNumber = model.BatchNumber,
             Quantity = model.Quantity,

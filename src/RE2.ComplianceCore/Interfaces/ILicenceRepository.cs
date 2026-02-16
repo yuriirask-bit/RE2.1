@@ -24,7 +24,7 @@ public interface ILicenceRepository
     /// Gets all valid licences that cover a specific substance.
     /// T080g: Used for reclassification customer impact analysis per FR-066.
     /// </summary>
-    Task<IEnumerable<Licence>> GetBySubstanceIdAsync(Guid substanceId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Licence>> GetBySubstanceCodeAsync(string substanceCode, CancellationToken cancellationToken = default);
 
     #endregion
 

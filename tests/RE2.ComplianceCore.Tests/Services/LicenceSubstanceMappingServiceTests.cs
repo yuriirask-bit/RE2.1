@@ -42,13 +42,13 @@ public class LicenceSubstanceMappingServiceTests
         // Arrange
         var mapping = CreateMapping();
         var licence = CreateLicence(mapping.LicenceId);
-        var substance = CreateSubstance(mapping.SubstanceId);
+        var substance = CreateSubstance(mapping.SubstanceCode);
 
         _mappingRepoMock.Setup(r => r.GetByIdAsync(mapping.MappingId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(mapping);
         _licenceRepoMock.Setup(r => r.GetByIdAsync(mapping.LicenceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(licence);
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(mapping.SubstanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(mapping.SubstanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
 
         // Act
@@ -87,8 +87,8 @@ public class LicenceSubstanceMappingServiceTests
         var licenceId = Guid.NewGuid();
         var mappings = new List<LicenceSubstanceMapping>
         {
-            CreateMapping(licenceId: licenceId),
-            CreateMapping(licenceId: licenceId)
+            CreateMapping(licenceId: licenceId, substanceCode: "Morphine"),
+            CreateMapping(licenceId: licenceId, substanceCode: "Fentanyl")
         };
 
         _mappingRepoMock.Setup(r => r.GetByLicenceIdAsync(licenceId, It.IsAny<CancellationToken>()))
@@ -146,14 +146,14 @@ public class LicenceSubstanceMappingServiceTests
         var mapping = CreateMapping();
         var expectedId = Guid.NewGuid();
         var licence = CreateLicence(mapping.LicenceId);
-        var substance = CreateSubstance(mapping.SubstanceId);
+        var substance = CreateSubstance(mapping.SubstanceCode);
 
         _licenceRepoMock.Setup(r => r.GetByIdAsync(mapping.LicenceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(licence);
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(mapping.SubstanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(mapping.SubstanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
         _mappingRepoMock.Setup(r => r.GetByLicenceSubstanceEffectiveDateAsync(
-            mapping.LicenceId, mapping.SubstanceId, mapping.EffectiveDate, It.IsAny<CancellationToken>()))
+            mapping.LicenceId, mapping.SubstanceCode, mapping.EffectiveDate, It.IsAny<CancellationToken>()))
             .ReturnsAsync((LicenceSubstanceMapping?)null);
         _mappingRepoMock.Setup(r => r.CreateAsync(It.IsAny<LicenceSubstanceMapping>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedId);
@@ -194,7 +194,7 @@ public class LicenceSubstanceMappingServiceTests
 
         _licenceRepoMock.Setup(r => r.GetByIdAsync(mapping.LicenceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(licence);
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(mapping.SubstanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(mapping.SubstanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ControlledSubstance?)null);
 
         // Act
@@ -212,11 +212,11 @@ public class LicenceSubstanceMappingServiceTests
         // Arrange
         var mapping = CreateMapping();
         var licence = CreateLicence(mapping.LicenceId);
-        var inactiveSubstance = CreateSubstance(mapping.SubstanceId, isActive: false);
+        var inactiveSubstance = CreateSubstance(mapping.SubstanceCode, isActive: false);
 
         _licenceRepoMock.Setup(r => r.GetByIdAsync(mapping.LicenceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(licence);
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(mapping.SubstanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(mapping.SubstanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(inactiveSubstance);
 
         // Act
@@ -234,15 +234,15 @@ public class LicenceSubstanceMappingServiceTests
         // Arrange
         var mapping = CreateMapping();
         var licence = CreateLicence(mapping.LicenceId);
-        var substance = CreateSubstance(mapping.SubstanceId);
-        var existingMapping = CreateMapping(mapping.LicenceId, mapping.SubstanceId, mapping.EffectiveDate);
+        var substance = CreateSubstance(mapping.SubstanceCode);
+        var existingMapping = CreateMapping(mapping.LicenceId, mapping.SubstanceCode, mapping.EffectiveDate);
 
         _licenceRepoMock.Setup(r => r.GetByIdAsync(mapping.LicenceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(licence);
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(mapping.SubstanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(mapping.SubstanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
         _mappingRepoMock.Setup(r => r.GetByLicenceSubstanceEffectiveDateAsync(
-            mapping.LicenceId, mapping.SubstanceId, mapping.EffectiveDate, It.IsAny<CancellationToken>()))
+            mapping.LicenceId, mapping.SubstanceCode, mapping.EffectiveDate, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingMapping);
 
         // Act
@@ -263,14 +263,14 @@ public class LicenceSubstanceMappingServiceTests
         var substance = CreateSubstance();
         var mapping = CreateMapping(
             licenceId: licenceId,
-            substanceId: substance.SubstanceId,
+            substanceCode: substance.SubstanceCode,
             effectiveDate: DateOnly.FromDateTime(DateTime.Today),
             expiryDate: DateOnly.FromDateTime(DateTime.Today.AddYears(2)) // Exceeds licence expiry
         );
 
         _licenceRepoMock.Setup(r => r.GetByIdAsync(licenceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(licence);
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(mapping.SubstanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(mapping.SubstanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
 
         // Act
@@ -291,13 +291,13 @@ public class LicenceSubstanceMappingServiceTests
         var substance = CreateSubstance();
         var mapping = CreateMapping(
             licenceId: licenceId,
-            substanceId: substance.SubstanceId,
+            substanceCode: substance.SubstanceCode,
             effectiveDate: DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)) // Before licence issue
         );
 
         _licenceRepoMock.Setup(r => r.GetByIdAsync(licenceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(licence);
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(mapping.SubstanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(mapping.SubstanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
 
         // Act
@@ -318,11 +318,11 @@ public class LicenceSubstanceMappingServiceTests
             expiryDate: DateOnly.FromDateTime(DateTime.Today) // Expiry before effective
         );
         var licence = CreateLicence(mapping.LicenceId);
-        var substance = CreateSubstance(mapping.SubstanceId);
+        var substance = CreateSubstance(mapping.SubstanceCode);
 
         _licenceRepoMock.Setup(r => r.GetByIdAsync(mapping.LicenceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(licence);
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(mapping.SubstanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(mapping.SubstanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
 
         // Act
@@ -341,11 +341,11 @@ public class LicenceSubstanceMappingServiceTests
         var mapping = CreateMapping();
         mapping.MaxQuantityPerTransaction = -100;
         var licence = CreateLicence(mapping.LicenceId);
-        var substance = CreateSubstance(mapping.SubstanceId);
+        var substance = CreateSubstance(mapping.SubstanceCode);
 
         _licenceRepoMock.Setup(r => r.GetByIdAsync(mapping.LicenceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(licence);
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(mapping.SubstanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(mapping.SubstanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
 
         // Act
@@ -366,15 +366,15 @@ public class LicenceSubstanceMappingServiceTests
     {
         // Arrange
         var mapping = CreateMapping();
-        var existingMapping = CreateMapping(mapping.MappingId);
+        var existingMapping = CreateMapping(mappingId: mapping.MappingId);
         var licence = CreateLicence(mapping.LicenceId);
-        var substance = CreateSubstance(mapping.SubstanceId);
+        var substance = CreateSubstance(mapping.SubstanceCode);
 
         _mappingRepoMock.Setup(r => r.GetByIdAsync(mapping.MappingId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingMapping);
         _licenceRepoMock.Setup(r => r.GetByIdAsync(mapping.LicenceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(licence);
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(mapping.SubstanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(mapping.SubstanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
 
         // Act
@@ -409,26 +409,26 @@ public class LicenceSubstanceMappingServiceTests
         // Create updated mapping with same MappingId but different effective date
         var updatedMapping = CreateMapping(
             licenceId: existingMapping.LicenceId,
-            substanceId: existingMapping.SubstanceId,
+            substanceCode: existingMapping.SubstanceCode,
             mappingId: existingMapping.MappingId);
         updatedMapping.EffectiveDate = DateOnly.FromDateTime(DateTime.Today.AddDays(1)); // Changed effective date
         // Create another mapping that already exists with the new composite key
         var duplicateMapping = CreateMapping(
             licenceId: existingMapping.LicenceId,
-            substanceId: existingMapping.SubstanceId,
+            substanceCode: existingMapping.SubstanceCode,
             effectiveDate: updatedMapping.EffectiveDate);
         duplicateMapping.MappingId = Guid.NewGuid(); // Different mapping ID
         var licence = CreateLicence(updatedMapping.LicenceId);
-        var substance = CreateSubstance(updatedMapping.SubstanceId);
+        var substance = CreateSubstance(updatedMapping.SubstanceCode);
 
         _mappingRepoMock.Setup(r => r.GetByIdAsync(existingMapping.MappingId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingMapping);
         _mappingRepoMock.Setup(r => r.GetByLicenceSubstanceEffectiveDateAsync(
-            updatedMapping.LicenceId, updatedMapping.SubstanceId, updatedMapping.EffectiveDate, It.IsAny<CancellationToken>()))
+            updatedMapping.LicenceId, updatedMapping.SubstanceCode, updatedMapping.EffectiveDate, It.IsAny<CancellationToken>()))
             .ReturnsAsync(duplicateMapping);
         _licenceRepoMock.Setup(r => r.GetByIdAsync(updatedMapping.LicenceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(licence);
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(updatedMapping.SubstanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(updatedMapping.SubstanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
 
         // Act
@@ -488,11 +488,11 @@ public class LicenceSubstanceMappingServiceTests
         // Arrange
         var mapping = CreateMapping();
         var licence = CreateLicence(mapping.LicenceId);
-        var substance = CreateSubstance(mapping.SubstanceId);
+        var substance = CreateSubstance(mapping.SubstanceCode);
 
         _licenceRepoMock.Setup(r => r.GetByIdAsync(mapping.LicenceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(licence);
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(mapping.SubstanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(mapping.SubstanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
 
         // Act
@@ -518,18 +518,18 @@ public class LicenceSubstanceMappingServiceTests
     }
 
     [Fact]
-    public async Task ValidateMappingAsync_WithEmptySubstanceId_ReturnsValidationError()
+    public async Task ValidateMappingAsync_WithEmptySubstanceCode_ReturnsValidationError()
     {
         // Arrange
         var mapping = CreateMapping();
-        mapping.SubstanceId = Guid.Empty;
+        mapping.SubstanceCode = string.Empty;
 
         // Act
         var result = await _service.ValidateMappingAsync(mapping);
 
         // Assert
         result.IsValid.Should().BeFalse();
-        result.Violations.Should().Contain(v => v.Message.Contains("SubstanceId is required"));
+        result.Violations.Should().Contain(v => v.Message.Contains("SubstanceCode is required"));
     }
 
     #endregion
@@ -541,17 +541,17 @@ public class LicenceSubstanceMappingServiceTests
     {
         // Arrange
         var licenceId = Guid.NewGuid();
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "Morphine";
         var activeMappings = new List<LicenceSubstanceMapping>
         {
-            CreateMapping(licenceId, substanceId, DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)))
+            CreateMapping(licenceId, substanceCode, DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)))
         };
 
         _mappingRepoMock.Setup(r => r.GetActiveMappingsByLicenceIdAsync(licenceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(activeMappings);
 
         // Act
-        var result = await _service.IsSubstanceAuthorizedByLicenceAsync(licenceId, substanceId);
+        var result = await _service.IsSubstanceAuthorizedByLicenceAsync(licenceId, substanceCode);
 
         // Assert
         result.Should().BeTrue();
@@ -562,13 +562,13 @@ public class LicenceSubstanceMappingServiceTests
     {
         // Arrange
         var licenceId = Guid.NewGuid();
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "Fentanyl";
 
         _mappingRepoMock.Setup(r => r.GetActiveMappingsByLicenceIdAsync(licenceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Enumerable.Empty<LicenceSubstanceMapping>());
 
         // Act
-        var result = await _service.IsSubstanceAuthorizedByLicenceAsync(licenceId, substanceId);
+        var result = await _service.IsSubstanceAuthorizedByLicenceAsync(licenceId, substanceCode);
 
         // Assert
         result.Should().BeFalse();
@@ -579,18 +579,18 @@ public class LicenceSubstanceMappingServiceTests
     {
         // Arrange
         var licenceId = Guid.NewGuid();
-        var substanceId = Guid.NewGuid();
-        var otherSubstanceId = Guid.NewGuid();
+        var substanceCode = "Morphine";
+        var otherSubstanceCode = "Fentanyl";
         var activeMappings = new List<LicenceSubstanceMapping>
         {
-            CreateMapping(licenceId, otherSubstanceId) // Different substance
+            CreateMapping(licenceId, otherSubstanceCode) // Different substance
         };
 
         _mappingRepoMock.Setup(r => r.GetActiveMappingsByLicenceIdAsync(licenceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(activeMappings);
 
         // Act
-        var result = await _service.IsSubstanceAuthorizedByLicenceAsync(licenceId, substanceId);
+        var result = await _service.IsSubstanceAuthorizedByLicenceAsync(licenceId, substanceCode);
 
         // Assert
         result.Should().BeFalse();
@@ -602,7 +602,7 @@ public class LicenceSubstanceMappingServiceTests
 
     private static LicenceSubstanceMapping CreateMapping(
         Guid? licenceId = null,
-        Guid? substanceId = null,
+        string? substanceCode = null,
         DateOnly? effectiveDate = null,
         DateOnly? expiryDate = null,
         Guid? mappingId = null)
@@ -611,7 +611,7 @@ public class LicenceSubstanceMappingServiceTests
         {
             MappingId = mappingId ?? Guid.NewGuid(),
             LicenceId = licenceId ?? Guid.NewGuid(),
-            SubstanceId = substanceId ?? Guid.NewGuid(),
+            SubstanceCode = substanceCode ?? "SUB-001",
             EffectiveDate = effectiveDate ?? DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)),
             ExpiryDate = expiryDate,
             MaxQuantityPerTransaction = 100,
@@ -640,14 +640,13 @@ public class LicenceSubstanceMappingServiceTests
     }
 
     private static ControlledSubstance CreateSubstance(
-        Guid? substanceId = null,
+        string? substanceCode = null,
         bool isActive = true)
     {
         return new ControlledSubstance
         {
-            SubstanceId = substanceId ?? Guid.NewGuid(),
+            SubstanceCode = substanceCode ?? "SUB-001",
             SubstanceName = "Morphine",
-            InternalCode = "MOR-001",
             OpiumActList = SubstanceCategories.OpiumActList.ListI,
             IsActive = isActive
         };

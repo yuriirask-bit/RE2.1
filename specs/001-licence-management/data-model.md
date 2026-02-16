@@ -10,9 +10,9 @@ This data model defines the domain entities for the compliance management system
 
 **Storage Strategy**:
 - **Dataverse**: Compliance configuration and extensions (licence records, customer compliance extensions, GDP warehouse extensions, partners, qualifications, inspections, CAPAs, training, documentation)
-- **D365 F&O (read-only master data)**: Customer master data (`CustomersV3`), warehouse master data (`Warehouses`), operational sites (`OperationalSitesV2`)
+- **D365 F&O (read-only master data)**: Customer master data (`CustomersV3`), warehouse master data (`Warehouses`), operational sites (`OperationalSitesV2`), product master data (`ReleasedProductsV2`), product attributes (`ProductAttributeValues`)
 - **D365 F&O (transactional)**: Compliance validation requests/results, audit events, alerts/notifications
-- **Composite Models**: Customer (D365 F&O `CustomersV3` + Dataverse `phr_customercomplianceextension`), GdpSite (D365 F&O `Warehouses` + Dataverse `phr_gdpwarehouseextension`)
+- **Composite Models**: Customer (D365 F&O `CustomersV3` + Dataverse `phr_customercomplianceextension`), GdpSite (D365 F&O `Warehouses` + Dataverse `phr_gdpwarehouseextension`), ControlledSubstance (D365 F&O product attributes + Dataverse `phr_substancecomplianceextension`)
 
 ## Core Entities
 
@@ -78,29 +78,63 @@ Represents a category of legal authorization with defined rules and requirements
 
 ---
 
-### 3. ControlledSubstance
+### 3. ControlledSubstance (Composite: D365 F&O Product Attributes + Dataverse)
 
-Represents a regulated drug or precursor subject to compliance checks.
+Represents a regulated drug or precursor subject to compliance checks. Uses a **composite data model**: classification data (Opium Act list, precursor category) is resolved from D365 F&O product attributes via `SubstanceCode`, while compliance-specific extensions are stored in Dataverse.
 
-**Attributes**:
-- `SubstanceId` (Guid, PK) - Unique identifier
-- `SubstanceName` (string, required, indexed) - Common name
+**Business Key**: `SubstanceCode` (string) - The company's internal substance classification code, sourced from D365 F&O product attributes. This replaces any Guid-based `SubstanceId`.
+
+**D365 F&O Product Attributes** (read-only, resolved from `ProductAttributeValues` via `SubstanceCode`):
+- `SubstanceCode` (string, business key) - Substance classification code from D365 F&O product attribute
+- `SubstanceName` (string) - Common name resolved from product attributes
 - `OpiumActList` (enum: None, ListI, ListII, nullable) - Dutch Opium Act classification
 - `PrecursorCategory` (enum: None, Category1, Category2, Category3, nullable) - EU precursor regulation category
-- `InternalCode` (string, required, unique, indexed) - Company's internal product/substance code
+
+**Dataverse Compliance Extension** (stored in `phr_substancecomplianceextension`):
+- `ComplianceExtensionId` (Guid, Dataverse PK) - Unique Dataverse record identifier
+- `SubstanceCode` (string, FK) - Links to D365 F&O product attribute
 - `RegulatoryRestrictions` (string, nullable) - Additional restrictions or notes
 - `IsActive` (bool, required, default: true) - Whether substance is still in use
+- `CreatedDate` (DateTime, required) - Record creation timestamp
+- `ModifiedDate` (DateTime, required) - Last modification timestamp
+- `RowVersion` (byte[], required) - Optimistic concurrency token
+
+**Computed Properties**:
+- `IsComplianceConfigured` => `ComplianceExtensionId != Guid.Empty`
 
 **Relationships**:
-- Has many `LicenceSubstanceMapping` (one-to-many) - Which licences authorize this substance
-- Has many `TransactionLine` (one-to-many) - Transaction lines involving this substance
-- Has many `Threshold` (one-to-many) - Monitoring thresholds per customer/substance
+- Has many `LicenceSubstanceMapping` (one-to-many, via `SubstanceCode`) - Which licences authorize this substance
+- Has many `Threshold` (one-to-many, via `SubstanceCode`) - Monitoring thresholds per customer/substance
+- Has many `SubstanceReclassification` (one-to-many, via `SubstanceCode`) - Reclassification history
 - Belongs to many `LicenceType` via `LicenceTypeSubstanceCategory` (many-to-many)
+- Referenced by `TransactionLine` via resolved `SubstanceCode` (one-to-many)
 
-**Storage**: Dataverse virtual table `phr_controlledsubstance`
+**Storage**:
+- D365 F&O: `ProductAttributeValues` (read-only classification data)
+- Dataverse: `phr_substancecomplianceextension` table (compliance extensions)
 
 **Validation Rules**:
 - At least one of `OpiumActList` or `PrecursorCategory` must be specified (not both None)
+- Compliance extension can only be created for substance codes that exist in D365 F&O product attributes
+
+---
+
+### 3a. Product (D365 F&O)
+
+Represents a released product from D365 F&O. Products are the items that appear on transaction lines. Each product may be associated with a `SubstanceCode` via D365 F&O product attributes, linking it to controlled substance classification.
+
+**Attributes** (read-only, from D365 F&O `ReleasedProductsV2` OData entity):
+- `ItemNumber` (string, PK part 1) - D365 F&O item number
+- `DataAreaId` (string, PK part 2) - D365 F&O legal entity / data area
+- `ProductNumber` (string) - Global product number
+- `ProductName` (string) - Product display name
+- `SubstanceCode` (string, nullable) - Resolved from product attributes; links to `ControlledSubstance` when the product is a controlled substance
+
+**Relationships**:
+- Has many `TransactionLine` (one-to-many, via `ItemNumber` + `DataAreaId`) - Transaction lines for this product
+- May reference one `ControlledSubstance` (many-to-one, via resolved `SubstanceCode`) - Controlled substance classification
+
+**Storage**: D365 F&O `ReleasedProductsV2` OData entity (read-only) + product attributes from `ProductAttributeValues`
 
 ---
 
@@ -111,18 +145,18 @@ Maps which substances a specific licence authorizes (e.g., "Opium Act exemption 
 **Attributes**:
 - `MappingId` (Guid, PK) - Unique identifier
 - `LicenceId` (Guid, FK → Licence, required) - Which licence
-- `SubstanceId` (Guid, FK → ControlledSubstance, required) - Which substance
+- `SubstanceCode` (string, FK → ControlledSubstance, required) - Which substance (business key from D365 F&O product attributes)
 - `EffectiveDate` (DateOnly, required) - When this authorization became effective
 - `ExpiryDate` (DateOnly, nullable) - When authorization ends (null = same as licence expiry)
 
 **Relationships**:
 - Belongs to one `Licence` (many-to-one)
-- Belongs to one `ControlledSubstance` (many-to-one)
+- Belongs to one `ControlledSubstance` (many-to-one, via `SubstanceCode`)
 
 **Storage**: Dataverse virtual table `phr_licencesubstancemapping`
 
 **Validation Rules**:
-- `LicenceId` + `SubstanceId` + `EffectiveDate` must be unique (allows historical changes)
+- `LicenceId` + `SubstanceCode` + `EffectiveDate` must be unique (allows historical changes)
 - `ExpiryDate` must not exceed licence's `ExpiryDate`
 
 ---
@@ -217,19 +251,22 @@ Represents a compliance validation request/result for a sales order or transfer 
 
 ### 7. TransactionLine
 
-Represents a product/substance line within a transaction.
+Represents a product/substance line within a transaction. Lines reference products by `ItemNumber` + `DataAreaId` (D365 F&O product key). The `SubstanceCode` is resolved during validation by looking up the product's substance classification attribute.
 
 **Attributes**:
 - `TransactionLineId` (Guid, PK) - Unique identifier
 - `TransactionId` (Guid, FK → Transaction, required) - Parent transaction
-- `SubstanceId` (Guid, FK → ControlledSubstance, required) - Substance involved
+- `ItemNumber` (string, required) - D365 F&O item number identifying the product
+- `DataAreaId` (string, required) - D365 F&O legal entity / data area for the product
+- `SubstanceCode` (string, nullable) - Resolved substance classification code (populated during validation from product attributes)
 - `Quantity` (decimal, required) - Amount (units depend on substance)
 - `UnitOfMeasure` (string, required) - Unit (e.g., "g", "kg", "pieces")
 - `LineComplianceStatus` (enum: Pass, Fail, required) - Line-level validation result
 
 **Relationships**:
 - Belongs to one `Transaction` (many-to-one)
-- Belongs to one `ControlledSubstance` (many-to-one)
+- References one `Product` (many-to-one, via `ItemNumber` + `DataAreaId`)
+- References one `ControlledSubstance` (many-to-one, via resolved `SubstanceCode`, nullable)
 - Has many `TransactionViolation` (one-to-many) - Violations specific to this line
 
 **Storage**: D365 F&O virtual data entity `PharmaComplianceTransactionLineEntity`
@@ -277,25 +314,136 @@ Records specific compliance violations found during transaction validation.
 
 ### 10. Threshold
 
-Defines quantity or frequency limits for suspicious-order monitoring.
+Defines quantity, frequency, or value limits for suspicious-order monitoring. Supports flexible scoping by substance, licence type, customer category, or specific customer, with configurable time periods and override settings.
 
 **Attributes**:
-- `ThresholdId` (Guid, PK) - Unique identifier
-- `ComplianceExtensionId` (Guid, FK → CustomerComplianceExtension, required) - Which customer (references `ComplianceExtensionId` from `phr_customercomplianceextension`)
-- `SubstanceId` (Guid, FK → ControlledSubstance, required) - Which substance
-- `ThresholdType` (enum: MonthlyQuantity, AnnualFrequency, required) - Type of limit
-- `LimitValue` (decimal, required) - Threshold value
-- `MonitoringPeriodDays` (int, required) - Period for threshold calculation
+- `Id` (Guid, PK) - Unique identifier
+- `Name` (string, required) - Display name for this threshold rule
+- `Description` (string, nullable) - Description of the threshold rule
+- `ThresholdType` (enum: Quantity, Frequency, Value, CumulativeQuantity, required) - Type of limit
+- `Period` (enum: PerTransaction, Daily, Weekly, Monthly, Yearly, required) - Time period for the threshold
+
+**Scope**:
+- `SubstanceCode` (string, nullable) - Substance code this threshold applies to (null = all substances)
+- `SubstanceName` (string, nullable) - Substance name (denormalized)
+- `LicenceTypeId` (Guid, FK → LicenceType, nullable) - Licence type this threshold applies to (null = all licence types)
+- `LicenceTypeName` (string, nullable) - Licence type name (denormalized)
+- `CustomerCategory` (enum: BusinessCategory, nullable) - Customer business category this applies to (null = all categories)
+- `CustomerId` (Guid, nullable) - Specific customer ID this applies to (null = all customers)
+- `OpiumActList` (string, nullable) - Opium Act List this threshold applies to (null = all lists)
+
+**Limits**:
+- `LimitValue` (decimal, required) - Maximum limit value
+- `LimitUnit` (string, required, default: "g") - Unit of measure for the limit (e.g., "g", "mg", "count", "EUR")
+- `WarningThresholdPercent` (decimal, required, default: 80) - Warning threshold percentage of limit for early warning
+
+**Override Settings**:
+- `AllowOverride` (bool, required, default: true) - Whether exceeding this threshold can be overridden by ComplianceManager
+- `MaxOverridePercent` (decimal, nullable) - Maximum override percentage allowed (e.g., 120 = can override up to 120% of limit)
+
+**Status**:
+- `IsActive` (bool, required, default: true) - Whether this threshold rule is active
+- `EffectiveFrom` (DateOnly, nullable) - Effective start date for this threshold
+- `EffectiveTo` (DateOnly, nullable) - Effective end date for this threshold (null = no end)
+- `RegulatoryReference` (string, nullable) - Regulatory reference for this threshold (e.g., Opium Act article)
+
+**Audit**:
+- `CreatedDate` (DateTime, required) - Record creation timestamp
+- `CreatedBy` (string, nullable) - User who created the record
+- `ModifiedDate` (DateTime, nullable) - Last modification timestamp
+- `ModifiedBy` (string, nullable) - User who last modified the record
+
+**Methods**:
+- `IsEffective()` / `IsEffective(DateOnly date)` - Checks if the threshold is currently effective (active and within effective date range)
+- `IsExceeded(decimal value)` - Checks if the given value exceeds the limit
+- `IsWarning(decimal value)` - Checks if the given value triggers a warning (>= warning level but <= limit)
+- `ExceedsMaxOverride(decimal value)` - Checks if the value exceeds the maximum allowed override
+- `GetUsagePercent(decimal value)` - Gets the percentage of the limit that the value represents
+- `AppliesToSubstance(string substanceCode)` - Checks if this threshold applies to the given substance (case-insensitive comparison; null SubstanceCode matches all)
+- `AppliesToCustomerCategory(BusinessCategory category)` - Checks if this threshold applies to the given customer category
+- `AppliesToCustomer(Guid customerId, BusinessCategory category)` - Checks if this threshold applies to the given customer (specific customer match takes priority, then falls back to category match)
 
 **Relationships**:
-- Belongs to one `Customer` via `ComplianceExtensionId` (many-to-one, references `phr_customercomplianceextension`)
-- Belongs to one `ControlledSubstance` (many-to-one)
+- Optionally scoped to one `Customer` via `CustomerId` (many-to-one, nullable)
+- Optionally scoped to one `ControlledSubstance` (many-to-one, via `SubstanceCode`, nullable)
+- Optionally scoped to one `LicenceType` (many-to-one, via `LicenceTypeId`, nullable)
 - Generates many `Alert` (one-to-many)
 
 **Storage**: Dataverse virtual table `phr_threshold`
 
 **Validation Rules**:
-- `ComplianceExtensionId` + `SubstanceId` + `ThresholdType` must be unique
+- `Name` is required
+- `LimitValue` must be specified
+- Scope fields are all optional; a threshold with no scope filters applies globally
+
+---
+
+### 10a. SubstanceReclassification
+
+Records a change in a substance's regulatory classification (e.g., reclassification from List II to List I under the Opium Act, or a change in precursor category). Per FR-066, reclassifications trigger customer impact analysis and flag customers needing re-qualification.
+
+**Attributes**:
+- `ReclassificationId` (Guid, PK) - Unique identifier
+- `SubstanceCode` (string, FK → ControlledSubstance, required) - Which substance was reclassified (business key)
+- `PreviousOpiumActList` (enum: None, ListI, ListII, required) - Previous Opium Act classification
+- `NewOpiumActList` (enum: None, ListI, ListII, required) - New Opium Act classification
+- `PreviousPrecursorCategory` (enum: None, Category1, Category2, Category3, required) - Previous precursor category
+- `NewPrecursorCategory` (enum: None, Category1, Category2, Category3, required) - New precursor category
+- `EffectiveDate` (DateOnly, required) - When reclassification takes effect
+- `RegulatoryReference` (string, required) - Reference to regulatory authority document (e.g., gazette publication number). Required for audit trail per FR-066
+- `RegulatoryAuthority` (string, required) - Name of the regulatory authority that issued the reclassification
+- `Reason` (string, nullable) - Reason or justification for the reclassification
+- `Status` (enum: Pending, Processing, Completed, Cancelled, required, default: Pending) - Status of the reclassification processing
+- `AffectedCustomerCount` (int, required) - Number of customers affected (populated after impact analysis per FR-066)
+- `FlaggedCustomerCount` (int, required) - Number of customers flagged for re-qualification (customers whose existing licences are insufficient)
+- `InitiatedByUserId` (Guid, nullable) - User who initiated the reclassification
+- `CreatedDate` (DateTime, required) - When the reclassification was recorded in the system
+- `ProcessedDate` (DateTime, nullable) - When impact analysis was completed
+- `ModifiedDate` (DateTime, required) - Last modification timestamp
+
+**Navigation Properties**:
+- `Substance` (ControlledSubstance, nullable) - Navigation property to the affected substance
+- `AffectedCustomers` (List\<ReclassificationCustomerImpact\>, nullable) - Navigation property to affected customer records
+
+**Methods**:
+- `Validate()` - Validates required fields (SubstanceCode, RegulatoryReference, RegulatoryAuthority, EffectiveDate) and ensures at least one classification actually changed and new classification is valid (at least one of OpiumActList or PrecursorCategory must be non-None)
+- `IsUpgrade()` - Determines if this reclassification increases regulatory requirements. Opium Act severity: None < ListII < ListI. Precursor severity: None < Category3 < Category2 < Category1. Used to identify customers needing re-qualification per FR-066
+- `IsEffective()` - Determines if this reclassification is currently in effect (EffectiveDate <= today)
+
+**Relationships**:
+- Belongs to one `ControlledSubstance` (many-to-one, via `SubstanceCode`)
+- Has many `ReclassificationCustomerImpact` (one-to-many) - Per-customer impact records
+
+**Storage**: Dataverse virtual table `phr_substancereclassification`
+
+---
+
+### 10b. ReclassificationCustomerImpact
+
+Records the impact of a substance reclassification on a specific customer. Per FR-066, tracks which customers are affected, whether their existing licences are sufficient, and their re-qualification status.
+
+**Attributes**:
+- `ImpactId` (Guid, PK) - Unique identifier
+- `ReclassificationId` (Guid, FK → SubstanceReclassification, required) - Reference to the reclassification event
+- `CustomerId` (Guid, required) - Reference to the affected customer
+- `CustomerName` (string, nullable) - Customer's name (denormalized for reporting)
+- `HasSufficientLicence` (bool, required) - Whether customer's existing licences cover the new classification. False means customer needs re-qualification per FR-066
+- `RequiresReQualification` (bool, required) - Whether customer has been flagged for re-qualification. Set when `HasSufficientLicence` is false
+- `RelevantLicenceIds` (List\<Guid\>, nullable) - IDs of licences that authorize this substance for the customer
+- `LicenceGapSummary` (string, nullable) - Summary of what licences are missing or insufficient
+- `NotificationSent` (bool, required) - Whether customer has been notified of the reclassification
+- `NotificationDate` (DateTime, nullable) - When the customer was notified
+- `ReQualificationDate` (DateTime, nullable) - When re-qualification was completed (licence updated)
+- `CreatedDate` (DateTime, required) - When this impact record was created
+
+**Navigation Properties**:
+- `Reclassification` (SubstanceReclassification, nullable) - Navigation property to the parent reclassification
+
+**Relationships**:
+- Belongs to one `SubstanceReclassification` (many-to-one)
+- References one `Customer` (many-to-one, via `CustomerId`)
+
+**Storage**: Dataverse virtual table `phr_reclassificationcustomerimpact`
 
 ---
 
@@ -793,7 +941,8 @@ Records verification of a partner's GDP status via EudraGMDP or national databas
 ## Entity Storage Summary
 
 ### Dataverse Virtual Tables (Master Data)
-- Licence, LicenceType, ControlledSubstance, LicenceSubstanceMapping
+- Licence, LicenceType, LicenceSubstanceMapping
+- SubstanceComplianceExtension (`phr_substancecomplianceextension`), SubstanceReclassification (`phr_substancereclassification`), ReclassificationCustomerImpact (`phr_reclassificationcustomerimpact`)
 - CustomerComplianceExtension (`phr_customercomplianceextension`), IntegrationSystem, User
 - Threshold
 - LicenceDocument, LicenceVerification, LicenceScopeChange
@@ -806,6 +955,8 @@ Records verification of a partner's GDP status via EudraGMDP or national databas
 - CustomersV3 (OData: `CustomersV3`) - Customer master data, keyed by CustomerAccount + dataAreaId
 - Warehouses (OData: `Warehouses`) - Physical warehouse locations, keyed by WarehouseId + dataAreaId
 - OperationalSitesV2 (OData: `OperationalSitesV2`) - Organizational sites, keyed by SiteId + dataAreaId
+- ReleasedProductsV2 (OData: `ReleasedProductsV2`) - Product master data, keyed by ItemNumber + dataAreaId
+- ProductAttributeValues (OData: `ProductAttributeValues`) - Product attributes including SubstanceCode classification
 
 ### D365 F&O Virtual Data Entities (Transactional Data)
 - Transaction, TransactionLine, TransactionLicenceUsage, TransactionViolation
@@ -814,13 +965,15 @@ Records verification of a partner's GDP status via EudraGMDP or national databas
 ### Composite Domain Models (Multi-Source)
 - Customer = D365FO `CustomersV3` (read-only master data) + Dataverse `phr_customercomplianceextension` (compliance config)
 - GdpSite = D365FO `Warehouses` (read-only) + Dataverse `phr_gdpwarehouseextension` (GDP config)
+- ControlledSubstance = D365FO `ProductAttributeValues` (read-only classification) + Dataverse `phr_substancecomplianceextension` (compliance config)
+- Product = D365FO `ReleasedProductsV2` (read-only product master) + resolved `SubstanceCode` from `ProductAttributeValues`
 
 ---
 
 ## Optimistic Concurrency Control
 
 All entities with mutable state include a `RowVersion` (byte[]) attribute for optimistic locking:
-- Licence, Customer, GdpSite, GdpCredential, Capa, GdpChangeRecord
+- Licence, Customer, ControlledSubstance (compliance extension), GdpSite, GdpCredential, Capa, GdpChangeRecord
 
 When updating these entities, the application MUST:
 1. Include current `RowVersion` in update request
@@ -836,18 +989,22 @@ When updating these entities, the application MUST:
 
 ```text
 D365FO CustomersV3 ----[compliance extensions]---- Dataverse phr_customercomplianceextension = Customer (composite)
-Customer [CustomerAccount+DataAreaId] (1) ----< (M) Licence (via ComplianceExtensionId) ----< (M) LicenceSubstanceMapping >---- (M) ControlledSubstance
+D365FO ProductAttributeValues ----[compliance extensions]---- Dataverse phr_substancecomplianceextension = ControlledSubstance (composite)
+D365FO ReleasedProductsV2 ----[SubstanceCode attribute]---- ControlledSubstance = Product (with resolved substance)
+
+Customer [CustomerAccount+DataAreaId] (1) ----< (M) Licence (via ComplianceExtensionId) ----< (M) LicenceSubstanceMapping >---- (M) ControlledSubstance [SubstanceCode]
    |                                                                                                        |
    | (1:M via CustomerAccount+DataAreaId)                                                                   | (1:M)
    v                                                                                                        v
-Transaction ----< (1:M) TransactionLine ----< (M:1) ControlledSubstance
+Transaction ----< (1:M) TransactionLine [ItemNumber+DataAreaId] ----< (M:1) Product ----< (M:1) ControlledSubstance [SubstanceCode]
    |
    | (1:M)
    v
 TransactionViolation
 
 Customer [ComplianceExtensionId] (1) ----< (M) GdpCredential
-Customer [ComplianceExtensionId] (1) ----< (M) Threshold >---- (M:1) ControlledSubstance
+Customer [CustomerId] (1) ----< (M) Threshold >---- (M:1) ControlledSubstance [SubstanceCode] (all scope FKs nullable)
+ControlledSubstance [SubstanceCode] (1) ----< (M) SubstanceReclassification ----< (1:M) ReclassificationCustomerImpact
 
 D365FO Warehouse ----[GDP extensions]---- Dataverse phr_gdpwarehouseextension = GdpSite (composite)
 GdpSite [WarehouseId+DataAreaId] (1) ----< (M) GdpInspection ----< (1:M) GdpInspectionFinding ----< (1:M) Capa

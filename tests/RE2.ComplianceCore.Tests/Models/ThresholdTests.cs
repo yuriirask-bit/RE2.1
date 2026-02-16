@@ -287,37 +287,37 @@ public class ThresholdTests
     #region AppliesToSubstance Tests
 
     [Fact]
-    public void AppliesToSubstance_ReturnsTrue_WhenNoSubstanceIdSet()
+    public void AppliesToSubstance_ReturnsTrue_WhenNoSubstanceCodeSet()
     {
         // Arrange
         var threshold = CreateThreshold();
-        threshold.SubstanceId = null;
+        threshold.SubstanceCode = null;
 
         // Act & Assert - Applies to all substances
-        threshold.AppliesToSubstance(Guid.NewGuid()).Should().BeTrue();
+        threshold.AppliesToSubstance("Morphine").Should().BeTrue();
     }
 
     [Fact]
-    public void AppliesToSubstance_ReturnsTrue_WhenSubstanceIdMatches()
+    public void AppliesToSubstance_ReturnsTrue_WhenSubstanceCodeMatches()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "Morphine";
         var threshold = CreateThreshold();
-        threshold.SubstanceId = substanceId;
+        threshold.SubstanceCode = substanceCode;
 
         // Act & Assert
-        threshold.AppliesToSubstance(substanceId).Should().BeTrue();
+        threshold.AppliesToSubstance(substanceCode).Should().BeTrue();
     }
 
     [Fact]
-    public void AppliesToSubstance_ReturnsFalse_WhenSubstanceIdDoesNotMatch()
+    public void AppliesToSubstance_ReturnsFalse_WhenSubstanceCodeDoesNotMatch()
     {
         // Arrange
         var threshold = CreateThreshold();
-        threshold.SubstanceId = Guid.NewGuid();
+        threshold.SubstanceCode = "Fentanyl";
 
         // Act & Assert
-        threshold.AppliesToSubstance(Guid.NewGuid()).Should().BeFalse();
+        threshold.AppliesToSubstance("Morphine").Should().BeFalse();
     }
 
     #endregion

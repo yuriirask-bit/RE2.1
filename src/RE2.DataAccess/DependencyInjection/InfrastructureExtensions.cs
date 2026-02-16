@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
 using Polly;
+using RE2.ComplianceCore.Configuration;
 using RE2.ComplianceCore.Interfaces;
 using RE2.ComplianceCore.Services.AlertGeneration;
 using RE2.ComplianceCore.Services.Auditing;
@@ -214,11 +215,12 @@ public static class InfrastructureExtensions
         var thresholdRepo = new InMemoryThresholdRepository();
 
         var gdpSiteRepo = new InMemoryGdpSiteRepository();
+        var productRepo = new InMemoryProductRepository();
 
         // Seed test data if requested
         if (seedData)
         {
-            InMemorySeedData.SeedAll(licenceTypeRepo, substanceRepo, licenceRepo, customerRepo, thresholdRepo, gdpSiteRepo);
+            InMemorySeedData.SeedAll(licenceTypeRepo, substanceRepo, licenceRepo, customerRepo, thresholdRepo, gdpSiteRepo, productRepo);
         }
 
         // Register as singletons
@@ -234,6 +236,9 @@ public static class InfrastructureExtensions
 
         // Register in-memory GDP site repository (T189)
         services.AddSingleton<IGdpSiteRepository>(gdpSiteRepo);
+
+        // Register in-memory product repository for D365 product browsing
+        services.AddSingleton<IProductRepository>(productRepo);
 
         // Register in-memory document storage for local development
         services.AddSingleton<IDocumentStorage, InMemoryDocumentStorage>();
@@ -303,6 +308,10 @@ public static class InfrastructureExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // Bind product attribute configuration
+        services.Configure<ProductAttributeConfiguration>(
+            configuration.GetSection(ProductAttributeConfiguration.SectionName));
+
         var useInMemory = configuration.GetValue<bool>("UseInMemoryRepositories");
 
         if (useInMemory)

@@ -103,30 +103,26 @@
                                 </div>
 
                                 <div class="mb-2">
-                                    <label class="form-label">Substance *</label>
-                                    <select name="Lines[@i].SubstanceId" class="form-select substance-select" required>
-                                        <option value="">-- Select Substance --</option>
-                                        @foreach (var substance in (List<RE2.ComplianceCore.Models.ControlledSubstance>)ViewBag.Substances)
+                                    <label class="form-label">Product *</label>
+                                    <select name="Lines[@i].ItemNumber" class="form-select product-select" required>
+                                        <option value="">-- Select Product --</option>
+                                        @foreach (var product in (List<RE2.ComplianceCore.Models.Product>)ViewBag.Products)
                                         {
-                                            var isSelected = Model.Lines[i].SubstanceId == substance.SubstanceId;
-                                            <option value="@substance.SubstanceId"
-                                                    data-code="@substance.InternalCode"
+                                            var isSelected = Model.Lines[i].ItemNumber == product.ItemNumber;
+                                            <option value="@product.ItemNumber"
+                                                    data-data-area-id="@product.DataAreaId"
                                                     selected="@isSelected">
-                                                @substance.SubstanceName (@substance.InternalCode)
+                                                @product.ProductName (@product.ItemNumber) @(!string.IsNullOrWhiteSpace(product.SubstanceCode) ? $"[{product.SubstanceCode}]" : "")
                                             </option>
                                         }
                                     </select>
-                                    <input type="hidden" name="Lines[@i].SubstanceCode" class="substance-code" value="@Model.Lines[i].SubstanceCode" />
+                                    <input type="hidden" name="Lines[@i].DataAreaId" class="data-area-id" value="@Model.Lines[i].DataAreaId" />
                                 </div>
 
                                 <div class="row">
                                     <div class="col-md-6 mb-2">
                                         <label class="form-label">Quantity (g) *</label>
                                         <input type="number" name="Lines[@i].Quantity" class="form-control" step="0.01" min="0.01" value="@Model.Lines[i].Quantity" required />
-                                    </div>
-                                    <div class="col-md-6 mb-2">
-                                        <label class="form-label">Product Code</label>
-                                        <input type="text" name="Lines[@i].ProductCode" class="form-control" value="@Model.Lines[i].ProductCode" />
                                     </div>
                                 </div>
                                 <input type="hidden" name="Lines[@i].BaseUnitQuantity" class="base-quantity" value="@Model.Lines[i].BaseUnitQuantity" />
@@ -151,12 +147,12 @@
 @section Scripts {
     <script>
         var lineIndex = @Model.Lines.Count;
-        var substances = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(((List<RE2.ComplianceCore.Models.ControlledSubstance>)ViewBag.Substances).Select(s => new { id = s.SubstanceId, name = s.SubstanceName, code = s.InternalCode })));
+        var products = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(((List<RE2.ComplianceCore.Models.Product>)ViewBag.Products).Select(p => new { itemNumber = p.ItemNumber, dataAreaId = p.DataAreaId, name = p.ProductName, substanceCode = p.SubstanceCode })));
 
         function addLine() {
             var container = document.getElementById('linesContainer');
-            var substanceOptions = substances.map(s =>
-                `<option value="${s.id}" data-code="${s.code}">${s.name} (${s.code})</option>`
+            var productOptions = products.map(p =>
+                `<option value="${p.itemNumber}" data-data-area-id="${p.dataAreaId}">${p.name} (${p.itemNumber}) ${p.substanceCode ? '[' + p.substanceCode + ']' : ''}</option>`
             ).join('');
 
             var html = `
@@ -168,21 +164,17 @@
                         </button>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label">Substance *</label>
-                        <select name="Lines[${lineIndex}].SubstanceId" class="form-select substance-select" required>
-                            <option value="">-- Select Substance --</option>
-                            ${substanceOptions}
+                        <label class="form-label">Product *</label>
+                        <select name="Lines[${lineIndex}].ItemNumber" class="form-select product-select" required>
+                            <option value="">-- Select Product --</option>
+                            ${productOptions}
                         </select>
-                        <input type="hidden" name="Lines[${lineIndex}].SubstanceCode" class="substance-code" />
+                        <input type="hidden" name="Lines[${lineIndex}].DataAreaId" class="data-area-id" />
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-2">
                             <label class="form-label">Quantity (g) *</label>
                             <input type="number" name="Lines[${lineIndex}].Quantity" class="form-control" step="0.01" min="0.01" value="100" required />
-                        </div>
-                        <div class="col-md-6 mb-2">
-                            <label class="form-label">Product Code</label>
-                            <input type="text" name="Lines[${lineIndex}].ProductCode" class="form-control" />
                         </div>
                     </div>
                     <input type="hidden" name="Lines[${lineIndex}].BaseUnitQuantity" class="base-quantity" value="100" />
@@ -205,12 +197,12 @@
             });
         }
 
-        // Update substance code when substance is selected
+        // Update data area ID when product is selected
         document.addEventListener('change', function(e) {
-            if (e.target.classList.contains('substance-select')) {
+            if (e.target.classList.contains('product-select')) {
                 var selected = e.target.options[e.target.selectedIndex];
-                var codeInput = e.target.closest('.line-item').querySelector('.substance-code');
-                codeInput.value = selected.dataset.code || '';
+                var dataAreaInput = e.target.closest('.line-item').querySelector('.data-area-id');
+                dataAreaInput.value = selected.dataset.dataAreaId || '';
             }
         });
 

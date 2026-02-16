@@ -16,7 +16,7 @@ public interface ISubstanceReclassificationRepository
     /// <summary>
     /// Gets all reclassifications for a specific substance.
     /// </summary>
-    Task<IEnumerable<SubstanceReclassification>> GetBySubstanceIdAsync(Guid substanceId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<SubstanceReclassification>> GetBySubstanceCodeAsync(string substanceCode, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets all reclassifications with a specific status.
@@ -37,7 +37,7 @@ public interface ISubstanceReclassificationRepository
     /// Gets the most recent reclassification for a substance effective as of a given date.
     /// T080m: Used for historical transaction validation.
     /// </summary>
-    Task<SubstanceReclassification?> GetEffectiveReclassificationAsync(Guid substanceId, DateOnly asOfDate, CancellationToken cancellationToken = default);
+    Task<SubstanceReclassification?> GetEffectiveReclassificationAsync(string substanceCode, DateOnly asOfDate, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates a new reclassification record.

@@ -54,7 +54,7 @@ public interface IThresholdService
     /// <summary>
     /// Gets thresholds for a specific substance.
     /// </summary>
-    Task<IEnumerable<Threshold>> GetBySubstanceIdAsync(Guid substanceId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Threshold>> GetBySubstanceCodeAsync(string substanceCode, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets thresholds for a specific customer category.

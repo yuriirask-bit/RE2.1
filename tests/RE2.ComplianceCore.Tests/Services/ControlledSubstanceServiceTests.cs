@@ -28,84 +28,62 @@ public class ControlledSubstanceServiceTests
             _loggerMock.Object);
     }
 
-    #region GetByIdAsync Tests
+    #region GetBySubstanceCodeAsync Tests
 
     [Fact]
-    public async Task GetByIdAsync_WithExistingSubstance_ReturnsSubstance()
+    public async Task GetBySubstanceCodeAsync_WithExistingSubstance_ReturnsSubstance()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
-        var substance = CreateSubstance(substanceId);
+        var substanceCode = "MOR-001";
+        var substance = CreateSubstance(substanceCode: substanceCode);
 
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
 
         // Act
-        var result = await _service.GetByIdAsync(substanceId);
+        var result = await _service.GetBySubstanceCodeAsync(substanceCode);
 
         // Assert
         result.Should().NotBeNull();
-        result!.SubstanceId.Should().Be(substanceId);
+        result!.SubstanceCode.Should().Be(substanceCode);
     }
 
     [Fact]
-    public async Task GetByIdAsync_WithNonExistentSubstance_ReturnsNull()
+    public async Task GetBySubstanceCodeAsync_WithNonExistentSubstance_ReturnsNull()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "NONEXISTENT";
 
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ControlledSubstance?)null);
 
         // Act
-        var result = await _service.GetByIdAsync(substanceId);
+        var result = await _service.GetBySubstanceCodeAsync(substanceCode);
 
         // Assert
         result.Should().BeNull();
     }
 
-    #endregion
-
-    #region GetByInternalCodeAsync Tests
-
     [Fact]
-    public async Task GetByInternalCodeAsync_WithExistingCode_ReturnsSubstance()
-    {
-        // Arrange
-        var internalCode = "MOR-001";
-        var substance = CreateSubstance(internalCode: internalCode);
-
-        _substanceRepoMock.Setup(r => r.GetByInternalCodeAsync(internalCode, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(substance);
-
-        // Act
-        var result = await _service.GetByInternalCodeAsync(internalCode);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.InternalCode.Should().Be(internalCode);
-    }
-
-    [Fact]
-    public async Task GetByInternalCodeAsync_WithEmptyCode_ReturnsNull()
+    public async Task GetBySubstanceCodeAsync_WithEmptyCode_ReturnsNull()
     {
         // Act
-        var result = await _service.GetByInternalCodeAsync("");
+        var result = await _service.GetBySubstanceCodeAsync("");
 
         // Assert
         result.Should().BeNull();
-        _substanceRepoMock.Verify(r => r.GetByInternalCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _substanceRepoMock.Verify(r => r.GetBySubstanceCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task GetByInternalCodeAsync_WithWhitespaceCode_ReturnsNull()
+    public async Task GetBySubstanceCodeAsync_WithWhitespaceCode_ReturnsNull()
     {
         // Act
-        var result = await _service.GetByInternalCodeAsync("   ");
+        var result = await _service.GetBySubstanceCodeAsync("   ");
 
         // Assert
         result.Should().BeNull();
-        _substanceRepoMock.Verify(r => r.GetByInternalCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _substanceRepoMock.Verify(r => r.GetBySubstanceCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     #endregion
@@ -118,9 +96,9 @@ public class ControlledSubstanceServiceTests
         // Arrange
         var substances = new[]
         {
-            CreateSubstance(opiumActList: SubstanceCategories.OpiumActList.ListI),
-            CreateSubstance(opiumActList: SubstanceCategories.OpiumActList.ListII),
-            CreateSubstance(opiumActList: SubstanceCategories.OpiumActList.ListI)
+            CreateSubstance(substanceCode: "SUB-001", opiumActList: SubstanceCategories.OpiumActList.ListI),
+            CreateSubstance(substanceCode: "SUB-002", opiumActList: SubstanceCategories.OpiumActList.ListII),
+            CreateSubstance(substanceCode: "SUB-003", opiumActList: SubstanceCategories.OpiumActList.ListI)
         };
 
         _substanceRepoMock.Setup(r => r.GetAllActiveAsync(It.IsAny<CancellationToken>()))
@@ -144,9 +122,9 @@ public class ControlledSubstanceServiceTests
         // Arrange
         var substances = new[]
         {
-            CreateSubstance(precursorCategory: SubstanceCategories.PrecursorCategory.Category1),
-            CreateSubstance(precursorCategory: SubstanceCategories.PrecursorCategory.Category2),
-            CreateSubstance(precursorCategory: SubstanceCategories.PrecursorCategory.None)
+            CreateSubstance(substanceCode: "SUB-001", precursorCategory: SubstanceCategories.PrecursorCategory.Category1),
+            CreateSubstance(substanceCode: "SUB-002", precursorCategory: SubstanceCategories.PrecursorCategory.Category2),
+            CreateSubstance(substanceCode: "SUB-003", precursorCategory: SubstanceCategories.PrecursorCategory.None)
         };
 
         _substanceRepoMock.Setup(r => r.GetAllActiveAsync(It.IsAny<CancellationToken>()))
@@ -170,9 +148,9 @@ public class ControlledSubstanceServiceTests
         // Arrange
         var substances = new[]
         {
-            CreateSubstance(substanceName: "Morphine"),
-            CreateSubstance(substanceName: "Codeine"),
-            CreateSubstance(substanceName: "Morphine Sulfate")
+            CreateSubstance(substanceCode: "MOR-001", substanceName: "Morphine"),
+            CreateSubstance(substanceCode: "COD-001", substanceName: "Codeine"),
+            CreateSubstance(substanceCode: "MOR-002", substanceName: "Morphine Sulfate")
         };
 
         _substanceRepoMock.Setup(r => r.GetAllActiveAsync(It.IsAny<CancellationToken>()))
@@ -192,9 +170,9 @@ public class ControlledSubstanceServiceTests
         // Arrange
         var substances = new[]
         {
-            CreateSubstance(internalCode: "MOR-001"),
-            CreateSubstance(internalCode: "COD-001"),
-            CreateSubstance(internalCode: "MOR-002")
+            CreateSubstance(substanceCode: "MOR-001"),
+            CreateSubstance(substanceCode: "COD-001"),
+            CreateSubstance(substanceCode: "MOR-002")
         };
 
         _substanceRepoMock.Setup(r => r.GetAllActiveAsync(It.IsAny<CancellationToken>()))
@@ -205,7 +183,7 @@ public class ControlledSubstanceServiceTests
 
         // Assert
         result.Should().HaveCount(2);
-        result.Should().OnlyContain(s => s.InternalCode.ToLowerInvariant().Contains("mor"));
+        result.Should().OnlyContain(s => s.SubstanceCode.ToLowerInvariant().Contains("mor"));
     }
 
     [Fact]
@@ -214,9 +192,9 @@ public class ControlledSubstanceServiceTests
         // Arrange
         var substances = new[]
         {
-            CreateSubstance(),
-            CreateSubstance(),
-            CreateSubstance()
+            CreateSubstance(substanceCode: "SUB-001"),
+            CreateSubstance(substanceCode: "SUB-002"),
+            CreateSubstance(substanceCode: "SUB-003")
         };
 
         _substanceRepoMock.Setup(r => r.GetAllActiveAsync(It.IsAny<CancellationToken>()))
@@ -231,213 +209,124 @@ public class ControlledSubstanceServiceTests
 
     #endregion
 
-    #region CreateAsync Tests
+    #region ConfigureComplianceAsync Tests
 
     [Fact]
-    public async Task CreateAsync_WithValidSubstance_ReturnsId()
+    public async Task ConfigureComplianceAsync_WithValidSubstance_ReturnsSuccess()
     {
         // Arrange
         var substance = CreateSubstance();
-        var expectedId = Guid.NewGuid();
 
-        _substanceRepoMock.Setup(r => r.GetByInternalCodeAsync(substance.InternalCode, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substance.SubstanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ControlledSubstance?)null);
-        _substanceRepoMock.Setup(r => r.CreateAsync(It.IsAny<ControlledSubstance>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expectedId);
 
         // Act
-        var (id, result) = await _service.CreateAsync(substance);
+        var result = await _service.ConfigureComplianceAsync(substance);
 
         // Assert
         result.IsValid.Should().BeTrue();
-        id.Should().Be(expectedId);
-        _substanceRepoMock.Verify(r => r.CreateAsync(It.IsAny<ControlledSubstance>(), It.IsAny<CancellationToken>()), Times.Once);
+        _substanceRepoMock.Verify(r => r.SaveComplianceExtensionAsync(It.IsAny<ControlledSubstance>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task CreateAsync_WithDuplicateInternalCode_ReturnsValidationError()
+    public async Task ConfigureComplianceAsync_WithDuplicateSubstanceCode_ReturnsValidationError()
     {
         // Arrange
-        var substance = CreateSubstance(internalCode: "EXISTING-001");
-        var existingSubstance = CreateSubstance(internalCode: "EXISTING-001");
+        var substance = CreateSubstance(substanceCode: "EXISTING-001");
+        var existingSubstance = CreateSubstance(substanceCode: "EXISTING-001");
+        existingSubstance.ComplianceExtensionId = Guid.NewGuid(); // mark as already configured
 
-        _substanceRepoMock.Setup(r => r.GetByInternalCodeAsync(substance.InternalCode, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substance.SubstanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingSubstance);
 
         // Act
-        var (id, result) = await _service.CreateAsync(substance);
+        var result = await _service.ConfigureComplianceAsync(substance);
 
         // Assert
         result.IsValid.Should().BeFalse();
-        id.Should().BeNull();
         result.Violations.Should().Contain(v => v.Message.Contains("already exists"));
     }
 
     [Fact]
-    public async Task CreateAsync_WithNoClassification_ReturnsValidationError()
+    public async Task ConfigureComplianceAsync_WithNoClassification_ReturnsValidationError()
     {
         // Arrange
         var substance = new ControlledSubstance
         {
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "TEST-001",
             SubstanceName = "Test Substance",
-            InternalCode = "TEST-001",
             OpiumActList = SubstanceCategories.OpiumActList.None,
             PrecursorCategory = SubstanceCategories.PrecursorCategory.None,
             IsActive = true
         };
 
         // Act
-        var (id, result) = await _service.CreateAsync(substance);
+        var result = await _service.ConfigureComplianceAsync(substance);
 
         // Assert
         result.IsValid.Should().BeFalse();
-        id.Should().BeNull();
         result.Violations.Should().Contain(v => v.Message.Contains("OpiumActList") || v.Message.Contains("PrecursorCategory"));
     }
 
     [Fact]
-    public async Task CreateAsync_WithEmptyName_ReturnsValidationError()
+    public async Task ConfigureComplianceAsync_WithEmptyName_ReturnsValidationError()
     {
         // Arrange
         var substance = new ControlledSubstance
         {
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "TEST-001",
             SubstanceName = "",
-            InternalCode = "TEST-001",
             OpiumActList = SubstanceCategories.OpiumActList.ListI,
             IsActive = true
         };
 
         // Act
-        var (id, result) = await _service.CreateAsync(substance);
+        var result = await _service.ConfigureComplianceAsync(substance);
 
         // Assert
         result.IsValid.Should().BeFalse();
-        id.Should().BeNull();
         result.Violations.Should().Contain(v => v.Message.Contains("name", StringComparison.OrdinalIgnoreCase));
     }
 
     #endregion
 
-    #region UpdateAsync Tests
+    #region UpdateComplianceAsync Tests
 
     [Fact]
-    public async Task UpdateAsync_WithExistingSubstance_Succeeds()
+    public async Task UpdateComplianceAsync_WithExistingSubstance_Succeeds()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
-        var existingSubstance = CreateSubstance(substanceId);
-        var updatedSubstance = CreateSubstance(substanceId, substanceName: "Updated Name");
+        var substanceCode = "TEST-001";
+        var existingSubstance = CreateSubstance(substanceCode: substanceCode);
+        var updatedSubstance = CreateSubstance(substanceCode: substanceCode, substanceName: "Updated Name");
 
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingSubstance);
 
         // Act
-        var result = await _service.UpdateAsync(updatedSubstance);
+        var result = await _service.UpdateComplianceAsync(updatedSubstance);
 
         // Assert
         result.IsValid.Should().BeTrue();
-        _substanceRepoMock.Verify(r => r.UpdateAsync(It.IsAny<ControlledSubstance>(), It.IsAny<CancellationToken>()), Times.Once);
+        _substanceRepoMock.Verify(r => r.UpdateComplianceExtensionAsync(It.IsAny<ControlledSubstance>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task UpdateAsync_WithNonExistentSubstance_ReturnsNotFoundError()
+    public async Task UpdateComplianceAsync_WithNonExistentSubstance_ReturnsNotFoundError()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
-        var substance = CreateSubstance(substanceId);
+        var substanceCode = "NONEXISTENT";
+        var substance = CreateSubstance(substanceCode: substanceCode);
 
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ControlledSubstance?)null);
 
         // Act
-        var result = await _service.UpdateAsync(substance);
+        var result = await _service.UpdateComplianceAsync(substance);
 
         // Assert
         result.IsValid.Should().BeFalse();
         result.Violations.Should().Contain(v => v.ErrorCode == ErrorCodes.SUBSTANCE_NOT_FOUND);
-    }
-
-    [Fact]
-    public async Task UpdateAsync_WithDuplicateInternalCode_ReturnsValidationError()
-    {
-        // Arrange
-        var substanceId = Guid.NewGuid();
-        var existingSubstance = CreateSubstance(substanceId, internalCode: "OLD-001");
-        var updatedSubstance = CreateSubstance(substanceId, internalCode: "EXISTING-002");
-        var duplicateSubstance = CreateSubstance(internalCode: "EXISTING-002");
-
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingSubstance);
-        _substanceRepoMock.Setup(r => r.GetByInternalCodeAsync("EXISTING-002", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(duplicateSubstance);
-
-        // Act
-        var result = await _service.UpdateAsync(updatedSubstance);
-
-        // Assert
-        result.IsValid.Should().BeFalse();
-        result.Violations.Should().Contain(v => v.Message.Contains("already exists"));
-    }
-
-    [Fact]
-    public async Task UpdateAsync_WithSameInternalCode_Succeeds()
-    {
-        // Arrange
-        var substanceId = Guid.NewGuid();
-        var existingSubstance = CreateSubstance(substanceId, internalCode: "SAME-001");
-        var updatedSubstance = CreateSubstance(substanceId, internalCode: "SAME-001", substanceName: "Updated Name");
-
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingSubstance);
-
-        // Act
-        var result = await _service.UpdateAsync(updatedSubstance);
-
-        // Assert
-        result.IsValid.Should().BeTrue();
-        _substanceRepoMock.Verify(r => r.GetByInternalCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    #endregion
-
-    #region DeleteAsync Tests
-
-    [Fact]
-    public async Task DeleteAsync_WithExistingSubstance_Succeeds()
-    {
-        // Arrange
-        var substanceId = Guid.NewGuid();
-        var substance = CreateSubstance(substanceId);
-
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(substance);
-
-        // Act
-        var result = await _service.DeleteAsync(substanceId);
-
-        // Assert
-        result.IsValid.Should().BeTrue();
-        _substanceRepoMock.Verify(r => r.DeleteAsync(substanceId, It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task DeleteAsync_WithNonExistentSubstance_ReturnsNotFoundError()
-    {
-        // Arrange
-        var substanceId = Guid.NewGuid();
-
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ControlledSubstance?)null);
-
-        // Act
-        var result = await _service.DeleteAsync(substanceId);
-
-        // Assert
-        result.IsValid.Should().BeFalse();
-        result.Violations.Should().Contain(v => v.ErrorCode == ErrorCodes.SUBSTANCE_NOT_FOUND);
-        _substanceRepoMock.Verify(r => r.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     #endregion
@@ -448,19 +337,19 @@ public class ControlledSubstanceServiceTests
     public async Task DeactivateAsync_WithActiveSubstance_Succeeds()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
-        var substance = CreateSubstance(substanceId);
+        var substanceCode = "TEST-001";
+        var substance = CreateSubstance(substanceCode: substanceCode);
         substance.IsActive = true;
 
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
 
         // Act
-        var result = await _service.DeactivateAsync(substanceId);
+        var result = await _service.DeactivateAsync(substanceCode);
 
         // Assert
         result.IsValid.Should().BeTrue();
-        _substanceRepoMock.Verify(r => r.UpdateAsync(
+        _substanceRepoMock.Verify(r => r.UpdateComplianceExtensionAsync(
             It.Is<ControlledSubstance>(s => !s.IsActive),
             It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -469,15 +358,15 @@ public class ControlledSubstanceServiceTests
     public async Task DeactivateAsync_WithInactiveSubstance_ReturnsValidationError()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
-        var substance = CreateSubstance(substanceId);
+        var substanceCode = "TEST-001";
+        var substance = CreateSubstance(substanceCode: substanceCode);
         substance.IsActive = false;
 
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
 
         // Act
-        var result = await _service.DeactivateAsync(substanceId);
+        var result = await _service.DeactivateAsync(substanceCode);
 
         // Assert
         result.IsValid.Should().BeFalse();
@@ -488,13 +377,13 @@ public class ControlledSubstanceServiceTests
     public async Task DeactivateAsync_WithNonExistentSubstance_ReturnsNotFoundError()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "NONEXISTENT";
 
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ControlledSubstance?)null);
 
         // Act
-        var result = await _service.DeactivateAsync(substanceId);
+        var result = await _service.DeactivateAsync(substanceCode);
 
         // Assert
         result.IsValid.Should().BeFalse();
@@ -509,19 +398,19 @@ public class ControlledSubstanceServiceTests
     public async Task ReactivateAsync_WithInactiveSubstance_Succeeds()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
-        var substance = CreateSubstance(substanceId);
+        var substanceCode = "TEST-001";
+        var substance = CreateSubstance(substanceCode: substanceCode);
         substance.IsActive = false;
 
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
 
         // Act
-        var result = await _service.ReactivateAsync(substanceId);
+        var result = await _service.ReactivateAsync(substanceCode);
 
         // Assert
         result.IsValid.Should().BeTrue();
-        _substanceRepoMock.Verify(r => r.UpdateAsync(
+        _substanceRepoMock.Verify(r => r.UpdateComplianceExtensionAsync(
             It.Is<ControlledSubstance>(s => s.IsActive),
             It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -530,15 +419,15 @@ public class ControlledSubstanceServiceTests
     public async Task ReactivateAsync_WithActiveSubstance_ReturnsValidationError()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
-        var substance = CreateSubstance(substanceId);
+        var substanceCode = "TEST-001";
+        var substance = CreateSubstance(substanceCode: substanceCode);
         substance.IsActive = true;
 
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(substance);
 
         // Act
-        var result = await _service.ReactivateAsync(substanceId);
+        var result = await _service.ReactivateAsync(substanceCode);
 
         // Assert
         result.IsValid.Should().BeFalse();
@@ -549,13 +438,13 @@ public class ControlledSubstanceServiceTests
     public async Task ReactivateAsync_WithNonExistentSubstance_ReturnsNotFoundError()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "NONEXISTENT";
 
-        _substanceRepoMock.Setup(r => r.GetByIdAsync(substanceId, It.IsAny<CancellationToken>()))
+        _substanceRepoMock.Setup(r => r.GetBySubstanceCodeAsync(substanceCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ControlledSubstance?)null);
 
         // Act
-        var result = await _service.ReactivateAsync(substanceId);
+        var result = await _service.ReactivateAsync(substanceCode);
 
         // Assert
         result.IsValid.Should().BeFalse();
@@ -580,14 +469,13 @@ public class ControlledSubstanceServiceTests
     }
 
     [Fact]
-    public async Task ValidateSubstanceAsync_WithEmptyInternalCode_ReturnsValidationError()
+    public async Task ValidateSubstanceAsync_WithEmptySubstanceCode_ReturnsValidationError()
     {
         // Arrange
         var substance = new ControlledSubstance
         {
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "",
             SubstanceName = "Test Substance",
-            InternalCode = "",
             OpiumActList = SubstanceCategories.OpiumActList.ListI,
             IsActive = true
         };
@@ -604,18 +492,18 @@ public class ControlledSubstanceServiceTests
 
     #region Helper Methods
 
+    private static int _substanceCounter;
+
     private static ControlledSubstance CreateSubstance(
-        Guid? substanceId = null,
+        string? substanceCode = null,
         string substanceName = "Test Substance",
-        string internalCode = "TEST-001",
         SubstanceCategories.OpiumActList opiumActList = SubstanceCategories.OpiumActList.ListII,
         SubstanceCategories.PrecursorCategory precursorCategory = SubstanceCategories.PrecursorCategory.None)
     {
         return new ControlledSubstance
         {
-            SubstanceId = substanceId ?? Guid.NewGuid(),
+            SubstanceCode = substanceCode ?? $"TEST-{Interlocked.Increment(ref _substanceCounter):D3}",
             SubstanceName = substanceName,
-            InternalCode = internalCode,
             OpiumActList = opiumActList,
             PrecursorCategory = precursorCategory,
             IsActive = true,

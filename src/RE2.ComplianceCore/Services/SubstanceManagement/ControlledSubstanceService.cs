@@ -8,6 +8,7 @@ namespace RE2.ComplianceCore.Services.SubstanceManagement;
 /// <summary>
 /// Service for managing the controlled substance master list.
 /// T073b: Implements business logic for FR-003 (substance master list management).
+/// Refactored: ControlledSubstance is now a composite model keyed by SubstanceCode (string).
 /// </summary>
 public class ControlledSubstanceService : IControlledSubstanceService
 {
@@ -23,18 +24,12 @@ public class ControlledSubstanceService : IControlledSubstanceService
     }
 
     /// <inheritdoc />
-    public async Task<ControlledSubstance?> GetByIdAsync(Guid substanceId, CancellationToken cancellationToken = default)
+    public async Task<ControlledSubstance?> GetBySubstanceCodeAsync(string substanceCode, CancellationToken cancellationToken = default)
     {
-        return await _substanceRepository.GetByIdAsync(substanceId, cancellationToken);
-    }
-
-    /// <inheritdoc />
-    public async Task<ControlledSubstance?> GetByInternalCodeAsync(string internalCode, CancellationToken cancellationToken = default)
-    {
-        if (string.IsNullOrWhiteSpace(internalCode))
+        if (string.IsNullOrWhiteSpace(substanceCode))
             return null;
 
-        return await _substanceRepository.GetByInternalCodeAsync(internalCode, cancellationToken);
+        return await _substanceRepository.GetBySubstanceCodeAsync(substanceCode, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -80,11 +75,11 @@ public class ControlledSubstanceService : IControlledSubstanceService
 
         return allSubstances.Where(s =>
             s.SubstanceName.ToLowerInvariant().Contains(lowerSearchTerm) ||
-            s.InternalCode.ToLowerInvariant().Contains(lowerSearchTerm));
+            s.SubstanceCode.ToLowerInvariant().Contains(lowerSearchTerm));
     }
 
     /// <inheritdoc />
-    public async Task<(Guid? Id, ValidationResult Result)> CreateAsync(
+    public async Task<ValidationResult> ConfigureComplianceAsync(
         ControlledSubstance substance,
         CancellationToken cancellationToken = default)
     {
@@ -92,47 +87,46 @@ public class ControlledSubstanceService : IControlledSubstanceService
         var validationResult = await ValidateSubstanceAsync(substance, cancellationToken);
         if (!validationResult.IsValid)
         {
-            _logger.LogWarning("Substance validation failed for {InternalCode}: {Errors}",
-                substance.InternalCode,
+            _logger.LogWarning("Substance validation failed for {SubstanceCode}: {Errors}",
+                substance.SubstanceCode,
                 string.Join("; ", validationResult.Violations.Select(v => v.Message)));
-            return (null, validationResult);
+            return validationResult;
         }
 
-        // Check for duplicate internal code
-        var existing = await _substanceRepository.GetByInternalCodeAsync(substance.InternalCode, cancellationToken);
-        if (existing != null)
+        // Check if compliance extension already exists
+        var existing = await _substanceRepository.GetBySubstanceCodeAsync(substance.SubstanceCode, cancellationToken);
+        if (existing != null && existing.IsComplianceConfigured)
         {
-            var error = ValidationResult.Failure(new List<ValidationViolation>
+            return ValidationResult.Failure(new List<ValidationViolation>
             {
                 new()
                 {
                     ErrorCode = ErrorCodes.VALIDATION_ERROR,
-                    Message = $"A substance with internal code '{substance.InternalCode}' already exists"
+                    Message = $"A compliance extension for substance '{substance.SubstanceCode}' already exists"
                 }
             });
-            return (null, error);
         }
 
         // Set timestamps
         substance.CreatedDate = DateTime.UtcNow;
         substance.ModifiedDate = DateTime.UtcNow;
 
-        // Create the substance
-        var id = await _substanceRepository.CreateAsync(substance, cancellationToken);
+        // Save the compliance extension
+        await _substanceRepository.SaveComplianceExtensionAsync(substance, cancellationToken);
 
-        _logger.LogInformation("Created controlled substance {Name} ({InternalCode}) with ID {Id}",
-            substance.SubstanceName, substance.InternalCode, id);
+        _logger.LogInformation("Configured compliance for substance {Name} ({SubstanceCode})",
+            substance.SubstanceName, substance.SubstanceCode);
 
-        return (id, ValidationResult.Success());
+        return ValidationResult.Success();
     }
 
     /// <inheritdoc />
-    public async Task<ValidationResult> UpdateAsync(
+    public async Task<ValidationResult> UpdateComplianceAsync(
         ControlledSubstance substance,
         CancellationToken cancellationToken = default)
     {
         // Check substance exists
-        var existing = await _substanceRepository.GetByIdAsync(substance.SubstanceId, cancellationToken);
+        var existing = await _substanceRepository.GetBySubstanceCodeAsync(substance.SubstanceCode, cancellationToken);
         if (existing == null)
         {
             return ValidationResult.Failure(new List<ValidationViolation>
@@ -140,7 +134,7 @@ public class ControlledSubstanceService : IControlledSubstanceService
                 new()
                 {
                     ErrorCode = ErrorCodes.SUBSTANCE_NOT_FOUND,
-                    Message = $"Substance with ID '{substance.SubstanceId}' not found"
+                    Message = $"Substance with code '{substance.SubstanceCode}' not found"
                 }
             });
         }
@@ -152,59 +146,13 @@ public class ControlledSubstanceService : IControlledSubstanceService
             return validationResult;
         }
 
-        // Check for duplicate internal code (if changed)
-        if (existing.InternalCode != substance.InternalCode)
-        {
-            var duplicate = await _substanceRepository.GetByInternalCodeAsync(substance.InternalCode, cancellationToken);
-            if (duplicate != null)
-            {
-                return ValidationResult.Failure(new List<ValidationViolation>
-                {
-                    new()
-                    {
-                        ErrorCode = ErrorCodes.VALIDATION_ERROR,
-                        Message = $"A substance with internal code '{substance.InternalCode}' already exists"
-                    }
-                });
-            }
-        }
-
         // Update timestamp
         substance.ModifiedDate = DateTime.UtcNow;
 
-        await _substanceRepository.UpdateAsync(substance, cancellationToken);
+        await _substanceRepository.UpdateComplianceExtensionAsync(substance, cancellationToken);
 
-        _logger.LogInformation("Updated controlled substance {Id} ({InternalCode})",
-            substance.SubstanceId, substance.InternalCode);
-
-        return ValidationResult.Success();
-    }
-
-    /// <inheritdoc />
-    public async Task<ValidationResult> DeleteAsync(
-        Guid substanceId,
-        CancellationToken cancellationToken = default)
-    {
-        var existing = await _substanceRepository.GetByIdAsync(substanceId, cancellationToken);
-        if (existing == null)
-        {
-            return ValidationResult.Failure(new List<ValidationViolation>
-            {
-                new()
-                {
-                    ErrorCode = ErrorCodes.SUBSTANCE_NOT_FOUND,
-                    Message = $"Substance with ID '{substanceId}' not found"
-                }
-            });
-        }
-
-        // TODO: Check if substance is in use by any licence mappings before allowing deletion
-        // For now, allow deletion (in production, consider soft-delete via DeactivateAsync)
-
-        await _substanceRepository.DeleteAsync(substanceId, cancellationToken);
-
-        _logger.LogInformation("Deleted controlled substance {Id} ({InternalCode})",
-            substanceId, existing.InternalCode);
+        _logger.LogInformation("Updated compliance for substance {SubstanceCode} ({SubstanceName})",
+            substance.SubstanceCode, substance.SubstanceName);
 
         return ValidationResult.Success();
     }
@@ -225,10 +173,10 @@ public class ControlledSubstanceService : IControlledSubstanceService
 
     /// <inheritdoc />
     public async Task<ValidationResult> DeactivateAsync(
-        Guid substanceId,
+        string substanceCode,
         CancellationToken cancellationToken = default)
     {
-        var substance = await _substanceRepository.GetByIdAsync(substanceId, cancellationToken);
+        var substance = await _substanceRepository.GetBySubstanceCodeAsync(substanceCode, cancellationToken);
         if (substance == null)
         {
             return ValidationResult.Failure(new List<ValidationViolation>
@@ -236,7 +184,7 @@ public class ControlledSubstanceService : IControlledSubstanceService
                 new()
                 {
                     ErrorCode = ErrorCodes.SUBSTANCE_NOT_FOUND,
-                    Message = $"Substance with ID '{substanceId}' not found"
+                    Message = $"Substance with code '{substanceCode}' not found"
                 }
             });
         }
@@ -256,20 +204,20 @@ public class ControlledSubstanceService : IControlledSubstanceService
         substance.IsActive = false;
         substance.ModifiedDate = DateTime.UtcNow;
 
-        await _substanceRepository.UpdateAsync(substance, cancellationToken);
+        await _substanceRepository.UpdateComplianceExtensionAsync(substance, cancellationToken);
 
-        _logger.LogInformation("Deactivated controlled substance {Id} ({InternalCode})",
-            substanceId, substance.InternalCode);
+        _logger.LogInformation("Deactivated controlled substance {SubstanceCode} ({SubstanceName})",
+            substanceCode, substance.SubstanceName);
 
         return ValidationResult.Success();
     }
 
     /// <inheritdoc />
     public async Task<ValidationResult> ReactivateAsync(
-        Guid substanceId,
+        string substanceCode,
         CancellationToken cancellationToken = default)
     {
-        var substance = await _substanceRepository.GetByIdAsync(substanceId, cancellationToken);
+        var substance = await _substanceRepository.GetBySubstanceCodeAsync(substanceCode, cancellationToken);
         if (substance == null)
         {
             return ValidationResult.Failure(new List<ValidationViolation>
@@ -277,7 +225,7 @@ public class ControlledSubstanceService : IControlledSubstanceService
                 new()
                 {
                     ErrorCode = ErrorCodes.SUBSTANCE_NOT_FOUND,
-                    Message = $"Substance with ID '{substanceId}' not found"
+                    Message = $"Substance with code '{substanceCode}' not found"
                 }
             });
         }
@@ -297,10 +245,10 @@ public class ControlledSubstanceService : IControlledSubstanceService
         substance.IsActive = true;
         substance.ModifiedDate = DateTime.UtcNow;
 
-        await _substanceRepository.UpdateAsync(substance, cancellationToken);
+        await _substanceRepository.UpdateComplianceExtensionAsync(substance, cancellationToken);
 
-        _logger.LogInformation("Reactivated controlled substance {Id} ({InternalCode})",
-            substanceId, substance.InternalCode);
+        _logger.LogInformation("Reactivated controlled substance {SubstanceCode} ({SubstanceName})",
+            substanceCode, substance.SubstanceName);
 
         return ValidationResult.Success();
     }

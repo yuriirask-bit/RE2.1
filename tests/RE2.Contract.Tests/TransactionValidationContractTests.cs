@@ -52,7 +52,8 @@ public class TransactionValidationContractTests
         var properties = dtoType.GetProperties();
 
         // Assert - required fields per transaction-validation-api.yaml
-        properties.Should().Contain(p => p.Name == "SubstanceId");
+        properties.Should().Contain(p => p.Name == "ItemNumber");
+        properties.Should().Contain(p => p.Name == "DataAreaId");
         properties.Should().Contain(p => p.Name == "Quantity");
     }
 
@@ -73,7 +74,6 @@ public class TransactionValidationContractTests
     public void ToDomainModel_ShouldMapAllRequiredFields()
     {
         // Arrange
-        var substanceId = Guid.NewGuid();
         var transactionDate = DateTime.UtcNow;
 
         var request = new TransactionValidationRequestDto
@@ -89,7 +89,8 @@ public class TransactionValidationContractTests
             {
                 new()
                 {
-                    SubstanceId = substanceId,
+                    ItemNumber = "PROD-MOR-001",
+                    DataAreaId = "nlpd",
                     SubstanceCode = "MOR-001",
                     Quantity = 100,
                     UnitOfMeasure = "ampules",
@@ -111,7 +112,7 @@ public class TransactionValidationContractTests
         domain.TransactionDate.Should().Be(transactionDate);
         domain.OriginCountry.Should().Be("NL");
         domain.Lines.Should().HaveCount(1);
-        domain.Lines[0].SubstanceId.Should().Be(substanceId);
+        domain.Lines[0].ItemNumber.Should().Be("PROD-MOR-001");
         domain.Lines[0].Quantity.Should().Be(100);
     }
 
@@ -131,7 +132,7 @@ public class TransactionValidationContractTests
             TransactionType = typeString,
             Lines = new List<TransactionLineDto>
             {
-                new() { SubstanceId = Guid.NewGuid(), Quantity = 10 }
+                new() { ItemNumber = "PROD-001", DataAreaId = "nlpd", Quantity = 10 }
             }
         };
 
@@ -157,7 +158,7 @@ public class TransactionValidationContractTests
             Direction = directionString,
             Lines = new List<TransactionLineDto>
             {
-                new() { SubstanceId = Guid.NewGuid(), Quantity = 10 }
+                new() { ItemNumber = "PROD-001", DataAreaId = "nlpd", Quantity = 10 }
             }
         };
 
@@ -179,8 +180,8 @@ public class TransactionValidationContractTests
             CustomerDataAreaId = "nlpd",
             Lines = new List<TransactionLineDto>
             {
-                new() { SubstanceId = Guid.NewGuid(), Quantity = 100, BaseUnitQuantity = 1000 },
-                new() { SubstanceId = Guid.NewGuid(), Quantity = 50, BaseUnitQuantity = 500 }
+                new() { ItemNumber = "PROD-001", DataAreaId = "nlpd", Quantity = 100, BaseUnitQuantity = 1000 },
+                new() { ItemNumber = "PROD-002", DataAreaId = "nlpd", Quantity = 50, BaseUnitQuantity = 500 }
             }
         };
 
@@ -355,6 +356,7 @@ public class TransactionValidationContractTests
                     LicenceNumber = "OA-2024-789456",
                     LicenceTypeName = "Opium Act Exemption",
                     CoveredLineNumbers = new List<int> { 1, 2 },
+                    CoveredSubstanceCodes = new List<string> { "Morphine" },
                     CoveredQuantity = 100,
                     CoveredQuantityUnit = "g"
                 }
@@ -418,7 +420,7 @@ public class TransactionValidationContractTests
             DestinationCountry = "DE",
             Lines = new List<TransactionLineDto>
             {
-                new() { SubstanceId = Guid.NewGuid(), Quantity = 500 }
+                new() { ItemNumber = "PROD-EXPORT-001", DataAreaId = "nlpd", Quantity = 500 }
             }
         };
 
@@ -446,7 +448,7 @@ public class TransactionValidationContractTests
             DestinationCountry = null,
             Lines = new List<TransactionLineDto>
             {
-                new() { SubstanceId = Guid.NewGuid(), Quantity = 100 }
+                new() { ItemNumber = "PROD-DOM-001", DataAreaId = "nlpd", Quantity = 100 }
             }
         };
 
@@ -518,7 +520,8 @@ public class TransactionValidationContractTests
             {
                 new()
                 {
-                    SubstanceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                    ItemNumber = "PROD-MOR-10MG",
+                    DataAreaId = "nlpd",
                     SubstanceCode = "MOR-10MG-AMP",
                     Quantity = 100,
                     UnitOfMeasure = "ampules"

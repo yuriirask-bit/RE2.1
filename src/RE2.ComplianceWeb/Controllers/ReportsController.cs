@@ -83,7 +83,7 @@ public class ReportsController : Controller
             {
                 FromDate = model.FromDate,
                 ToDate = model.ToDate,
-                SubstanceId = model.SubstanceId,
+                SubstanceCode = model.SubstanceCode,
                 CustomerAccount = model.CustomerAccount,
                 CustomerDataAreaId = model.CustomerDataAreaId,
                 CountryCode = model.CountryCode,
@@ -315,7 +315,7 @@ public class TransactionAuditReportViewModel
 {
     public DateTime FromDate { get; set; }
     public DateTime ToDate { get; set; }
-    public Guid? SubstanceId { get; set; }
+    public string? SubstanceCode { get; set; }
     public string? CustomerAccount { get; set; }
     public string? CustomerDataAreaId { get; set; }
     public string? CountryCode { get; set; }

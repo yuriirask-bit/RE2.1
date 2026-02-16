@@ -106,7 +106,7 @@ src/
 │   │   ├── CustomersController.cs                # FR-060 (GET /api/v1/customers/{customerAccount}/compliance-status)
 │   │   ├── LicencesController.cs                # CRUD for licence management
 │   │   ├── GdpSitesController.cs                # GDP site management
-│   │   └── ComplianceOverrideController.cs      # FR-019a override approvals
+│   │   └── TransactionsController.cs             # FR-019a override approvals (approve/reject endpoints)
 │   ├── Middleware/
 │   │   ├── ErrorHandlingMiddleware.cs
 │   │   └── RequestLoggingMiddleware.cs
@@ -137,6 +137,10 @@ src/
 │   ├── host.json
 │   ├── local.settings.json
 │   └── RE2.ComplianceFunctions.csproj
+│
+├── RE2.ComplianceCli/                     # CLI wrapper for core operations (Constitution Principle IV mitigation)
+│   ├── Program.cs                         # CLI entry point: stdin/stdout JSON protocol
+│   └── RE2.ComplianceCli.csproj
 │
 └── RE2.Shared/                            # Shared utilities and constants
     ├── Constants/
@@ -227,7 +231,7 @@ Review of constitution principles after completing Phase 1 design artifacts:
 
 ### Design Artifacts Quality Assessment
 
-**✓ data-model.md**: 23 entities defined with source systems, attributes, relationships, and business rules. Correctly models stateless architecture (no local persistence for business data). Optimistic concurrency (Version fields) addresses FR-027a. Clear distinction between domain models (ComplianceCore) and DTOs (DataAccess).
+**✓ data-model.md**: 32 entities defined with source systems, attributes, relationships, and business rules (sections 1-30 plus 3a and 10a). Correctly models stateless architecture (no local persistence for business data). Optimistic concurrency (Version fields) addresses FR-027a. Clear distinction between domain models (ComplianceCore) and DTOs (DataAccess).
 
 **✓ contracts/transaction-validation-api.yaml**: OpenAPI 3.0.3 contract defines POST /transactions/validate endpoint with detailed request/response schemas, error codes, and examples. Covers FR-018 through FR-024. Performance targets specified (3-second response time).
 

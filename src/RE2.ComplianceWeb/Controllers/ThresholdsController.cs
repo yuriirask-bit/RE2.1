@@ -255,7 +255,7 @@ public class ThresholdsController : Controller
 
         ViewBag.Substances = substances.Select(s => new SelectListItem
         {
-            Value = s.SubstanceId.ToString(),
+            Value = s.SubstanceCode,
             Text = $"{s.SubstanceName} ({s.InternalCode})"
         }).ToList();
 
@@ -295,7 +295,7 @@ public class ThresholdCreateViewModel
     public ThresholdPeriod Period { get; set; }
 
     // Scope
-    public Guid? SubstanceId { get; set; }
+    public string? SubstanceCode { get; set; }
     public Guid? LicenceTypeId { get; set; }
     public BusinessCategory? CustomerCategory { get; set; }
     public string? OpiumActList { get; set; }
@@ -324,7 +324,7 @@ public class ThresholdCreateViewModel
             Description = Description,
             ThresholdType = ThresholdType,
             Period = Period,
-            SubstanceId = SubstanceId,
+            SubstanceCode = SubstanceCode,
             LicenceTypeId = LicenceTypeId,
             CustomerCategory = CustomerCategory,
             OpiumActList = OpiumActList,
@@ -354,7 +354,7 @@ public class ThresholdEditViewModel
     public ThresholdPeriod Period { get; set; }
 
     // Scope
-    public Guid? SubstanceId { get; set; }
+    public string? SubstanceCode { get; set; }
     public Guid? LicenceTypeId { get; set; }
     public BusinessCategory? CustomerCategory { get; set; }
     public string? OpiumActList { get; set; }
@@ -387,7 +387,7 @@ public class ThresholdEditViewModel
             Description = threshold.Description,
             ThresholdType = threshold.ThresholdType,
             Period = threshold.Period,
-            SubstanceId = threshold.SubstanceId,
+            SubstanceCode = threshold.SubstanceCode,
             LicenceTypeId = threshold.LicenceTypeId,
             CustomerCategory = threshold.CustomerCategory,
             OpiumActList = threshold.OpiumActList,
@@ -414,7 +414,7 @@ public class ThresholdEditViewModel
             Description = Description,
             ThresholdType = ThresholdType,
             Period = Period,
-            SubstanceId = SubstanceId,
+            SubstanceCode = SubstanceCode,
             LicenceTypeId = LicenceTypeId,
             CustomerCategory = CustomerCategory,
             OpiumActList = OpiumActList,

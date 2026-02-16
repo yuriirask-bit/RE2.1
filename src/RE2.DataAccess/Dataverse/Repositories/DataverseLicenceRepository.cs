@@ -162,7 +162,7 @@ public class DataverseLicenceRepository : ILicenceRepository
         _logger.LogInformation("Deleted licence {Id}", licenceId);
     }
 
-    public async Task<IEnumerable<Licence>> GetBySubstanceIdAsync(Guid substanceId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Licence>> GetBySubstanceCodeAsync(string substanceCode, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -189,9 +189,9 @@ public class DataverseLicenceRepository : ILicenceRepository
                 JoinOperator.Inner);
 
             linkEntity.LinkCriteria.AddCondition(
-                "phr_substanceid",
+                "phr_substancecode",
                 ConditionOperator.Equal,
-                substanceId);
+                substanceCode);
 
             query.LinkEntities.Add(linkEntity);
 
@@ -200,7 +200,7 @@ public class DataverseLicenceRepository : ILicenceRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving licences for substance {SubstanceId}", substanceId);
+            _logger.LogError(ex, "Error retrieving licences for substance {SubstanceCode}", substanceCode);
             return Enumerable.Empty<Licence>();
         }
     }

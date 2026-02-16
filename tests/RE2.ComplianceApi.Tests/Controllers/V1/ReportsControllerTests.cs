@@ -116,12 +116,12 @@ public class ReportsControllerTests
     }
 
     [Fact]
-    public async Task GetTransactionAuditReport_FiltersBySubstance_WhenSubstanceIdProvided()
+    public async Task GetTransactionAuditReport_FiltersBySubstance_WhenSubstanceCodeProvided()
     {
         // Arrange
         var fromDate = DateTime.UtcNow.AddDays(-30);
         var toDate = DateTime.UtcNow;
-        var substanceId = Guid.NewGuid();
+        var substanceCode = "Morphine";
 
         var report = new TransactionAuditReport
         {
@@ -130,23 +130,23 @@ public class ReportsControllerTests
             ToDate = toDate,
             Transactions = new List<TransactionAuditReportItem>(),
             TotalCount = 0,
-            FilteredBySubstance = substanceId
+            FilteredBySubstanceCode = substanceCode
         };
 
         _mockReportingService
             .Setup(s => s.GenerateTransactionAuditReportAsync(
-                It.Is<TransactionAuditReportCriteria>(c => c.SubstanceId == substanceId),
+                It.Is<TransactionAuditReportCriteria>(c => c.SubstanceCode == substanceCode),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(report);
 
         // Act
         var result = await _controller.GetTransactionAuditReport(
-            fromDate, toDate, substanceId: substanceId);
+            fromDate, toDate, substanceCode: substanceCode);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
         var response = okResult.Value.Should().BeOfType<TransactionAuditReportDto>().Subject;
-        response.FilteredBySubstance.Should().Be(substanceId);
+        response.FilteredBySubstanceCode.Should().Be(substanceCode);
     }
 
     [Fact]
@@ -286,7 +286,7 @@ public class ReportsControllerTests
         {
             FromDate = DateTime.UtcNow.AddDays(-30),
             ToDate = DateTime.UtcNow,
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Morphine",
             IncludeLicenceDetails = true
         };
 
@@ -297,7 +297,7 @@ public class ReportsControllerTests
             ToDate = request.ToDate,
             Transactions = new List<TransactionAuditReportItem>(),
             TotalCount = 0,
-            FilteredBySubstance = request.SubstanceId
+            FilteredBySubstanceCode = request.SubstanceCode
         };
 
         _mockReportingService
@@ -312,7 +312,7 @@ public class ReportsControllerTests
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
         var response = okResult.Value.Should().BeOfType<TransactionAuditReportDto>().Subject;
-        response.FilteredBySubstance.Should().Be(request.SubstanceId);
+        response.FilteredBySubstanceCode.Should().Be(request.SubstanceCode);
     }
 
     #endregion

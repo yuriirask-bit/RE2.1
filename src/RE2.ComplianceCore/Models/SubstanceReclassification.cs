@@ -16,10 +16,10 @@ public class SubstanceReclassification
     public Guid ReclassificationId { get; set; }
 
     /// <summary>
-    /// Reference to the substance being reclassified.
+    /// Reference to the substance being reclassified (business key).
     /// Required.
     /// </summary>
-    public Guid SubstanceId { get; set; }
+    public string SubstanceCode { get; set; } = string.Empty;
 
     /// <summary>
     /// Previous Opium Act classification before reclassification.
@@ -117,12 +117,12 @@ public class SubstanceReclassification
     {
         var violations = new List<ValidationViolation>();
 
-        if (SubstanceId == Guid.Empty)
+        if (string.IsNullOrWhiteSpace(SubstanceCode))
         {
             violations.Add(new ValidationViolation
             {
                 ErrorCode = ErrorCodes.VALIDATION_ERROR,
-                Message = "SubstanceId is required"
+                Message = "SubstanceCode is required"
             });
         }
 

@@ -16,7 +16,7 @@ public interface ISubstanceReclassificationService
     /// <summary>
     /// Gets all reclassifications for a substance.
     /// </summary>
-    Task<IEnumerable<SubstanceReclassification>> GetBySubstanceIdAsync(Guid substanceId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<SubstanceReclassification>> GetBySubstanceCodeAsync(string substanceCode, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets all pending reclassifications that need processing.
@@ -71,7 +71,7 @@ public interface ISubstanceReclassificationService
     /// Per FR-066 (T080m): Historical transactions remain valid under classification at time of transaction.
     /// </summary>
     Task<SubstanceClassification> GetEffectiveClassificationAsync(
-        Guid substanceId,
+        string substanceCode,
         DateOnly asOfDate,
         CancellationToken cancellationToken = default);
 
@@ -120,7 +120,7 @@ public class ReclassificationImpactAnalysis
 /// </summary>
 public class SubstanceClassification
 {
-    public Guid SubstanceId { get; set; }
+    public string SubstanceCode { get; set; } = string.Empty;
     public DateOnly AsOfDate { get; set; }
     public Shared.Constants.SubstanceCategories.OpiumActList OpiumActList { get; set; }
     public Shared.Constants.SubstanceCategories.PrecursorCategory PrecursorCategory { get; set; }

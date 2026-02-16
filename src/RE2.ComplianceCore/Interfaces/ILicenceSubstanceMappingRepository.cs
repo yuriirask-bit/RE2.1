@@ -21,7 +21,7 @@ public interface ILicenceSubstanceMappingRepository
     /// <summary>
     /// Gets all mappings for a specific substance.
     /// </summary>
-    Task<IEnumerable<LicenceSubstanceMapping>> GetBySubstanceIdAsync(Guid substanceId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<LicenceSubstanceMapping>> GetBySubstanceCodeAsync(string substanceCode, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets active mappings for a licence (not expired).
@@ -34,7 +34,7 @@ public interface ILicenceSubstanceMappingRepository
     /// </summary>
     Task<LicenceSubstanceMapping?> GetByLicenceSubstanceEffectiveDateAsync(
         Guid licenceId,
-        Guid substanceId,
+        string substanceCode,
         DateOnly effectiveDate,
         CancellationToken cancellationToken = default);
 

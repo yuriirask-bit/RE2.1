@@ -22,7 +22,7 @@ public class DataverseLicenceSubstanceMappingContractTests
         // Assert - all properties should follow phr_ prefix convention for Dataverse
         properties.Should().Contain(p => p.Name == "phr_licencesubstancemappingid");
         properties.Should().Contain(p => p.Name == "phr_licenceid");
-        properties.Should().Contain(p => p.Name == "phr_substanceid");
+        properties.Should().Contain(p => p.Name == "phr_substancecode");
         properties.Should().Contain(p => p.Name == "phr_maxquantitypertransaction");
         properties.Should().Contain(p => p.Name == "phr_maxquantityperperiod");
         properties.Should().Contain(p => p.Name == "phr_periodtype");
@@ -44,14 +44,14 @@ public class DataverseLicenceSubstanceMappingContractTests
     }
 
     [Fact]
-    public void LicenceSubstanceMappingDto_ForeignKeys_ShouldBeGuids()
+    public void LicenceSubstanceMappingDto_ForeignKeys_ShouldHaveCorrectTypes()
     {
         // Arrange
         var dtoType = typeof(LicenceSubstanceMappingDto);
 
         // Assert
         dtoType.GetProperty("phr_licenceid")!.PropertyType.Should().Be(typeof(Guid));
-        dtoType.GetProperty("phr_substanceid")!.PropertyType.Should().Be(typeof(Guid));
+        dtoType.GetProperty("phr_substancecode")!.PropertyType.Should().Be(typeof(string));
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public class DataverseLicenceSubstanceMappingContractTests
         {
             phr_licencesubstancemappingid = Guid.NewGuid(),
             phr_licenceid = Guid.NewGuid(),
-            phr_substanceid = Guid.NewGuid(),
+            phr_substancecode = "Morphine",
             phr_maxquantitypertransaction = 500.50m,
             phr_maxquantityperperiod = 10000.00m,
             phr_periodtype = "Monthly",
@@ -103,7 +103,7 @@ public class DataverseLicenceSubstanceMappingContractTests
         // Assert
         domainModel.MappingId.Should().Be(dto.phr_licencesubstancemappingid);
         domainModel.LicenceId.Should().Be(dto.phr_licenceid);
-        domainModel.SubstanceId.Should().Be(dto.phr_substanceid);
+        domainModel.SubstanceCode.Should().Be(dto.phr_substancecode);
         domainModel.MaxQuantityPerTransaction.Should().Be(dto.phr_maxquantitypertransaction);
         domainModel.MaxQuantityPerPeriod.Should().Be(dto.phr_maxquantityperperiod);
         domainModel.PeriodType.Should().Be(dto.phr_periodtype);
@@ -120,7 +120,7 @@ public class DataverseLicenceSubstanceMappingContractTests
         {
             phr_licencesubstancemappingid = Guid.NewGuid(),
             phr_licenceid = Guid.NewGuid(),
-            phr_substanceid = Guid.NewGuid(),
+            phr_substancecode = "Fentanyl",
             phr_maxquantitypertransaction = null,
             phr_maxquantityperperiod = null,
             phr_periodtype = null,
@@ -148,7 +148,7 @@ public class DataverseLicenceSubstanceMappingContractTests
         {
             phr_licencesubstancemappingid = Guid.NewGuid(),
             phr_licenceid = Guid.NewGuid(),
-            phr_substanceid = Guid.NewGuid(),
+            phr_substancecode = "Codeine",
             phr_effectivedate = new DateTime(2024, 3, 15, 10, 30, 0), // Time component should be ignored
             phr_expirydate = new DateTime(2025, 6, 30, 23, 59, 59)    // Time component should be ignored
         };
@@ -172,7 +172,7 @@ public class DataverseLicenceSubstanceMappingContractTests
         {
             phr_licencesubstancemappingid = Guid.NewGuid(),
             phr_licenceid = Guid.NewGuid(),
-            phr_substanceid = Guid.NewGuid(),
+            phr_substancecode = "Ephedrine",
             phr_effectivedate = DateTime.Today,
             phr_periodtype = periodType
         };
@@ -196,7 +196,7 @@ public class DataverseLicenceSubstanceMappingContractTests
         {
             MappingId = Guid.NewGuid(),
             LicenceId = Guid.NewGuid(),
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Morphine",
             MaxQuantityPerTransaction = 250.75m,
             MaxQuantityPerPeriod = 5000.00m,
             PeriodType = "Quarterly",
@@ -211,7 +211,7 @@ public class DataverseLicenceSubstanceMappingContractTests
         // Assert
         dto.phr_licencesubstancemappingid.Should().Be(domainModel.MappingId);
         dto.phr_licenceid.Should().Be(domainModel.LicenceId);
-        dto.phr_substanceid.Should().Be(domainModel.SubstanceId);
+        dto.phr_substancecode.Should().Be(domainModel.SubstanceCode);
         dto.phr_maxquantitypertransaction.Should().Be(domainModel.MaxQuantityPerTransaction);
         dto.phr_maxquantityperperiod.Should().Be(domainModel.MaxQuantityPerPeriod);
         dto.phr_periodtype.Should().Be(domainModel.PeriodType);
@@ -228,7 +228,7 @@ public class DataverseLicenceSubstanceMappingContractTests
         {
             MappingId = Guid.NewGuid(),
             LicenceId = Guid.NewGuid(),
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Fentanyl",
             MaxQuantityPerTransaction = null,
             MaxQuantityPerPeriod = null,
             PeriodType = null,
@@ -256,7 +256,7 @@ public class DataverseLicenceSubstanceMappingContractTests
         {
             MappingId = Guid.NewGuid(),
             LicenceId = Guid.NewGuid(),
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Codeine",
             EffectiveDate = new DateOnly(2024, 7, 15),
             ExpiryDate = new DateOnly(2025, 12, 31)
         };
@@ -281,7 +281,7 @@ public class DataverseLicenceSubstanceMappingContractTests
         {
             MappingId = Guid.NewGuid(),
             LicenceId = Guid.NewGuid(),
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Morphine",
             MaxQuantityPerTransaction = 100.00m,
             MaxQuantityPerPeriod = 1000.00m,
             PeriodType = "Monthly",
@@ -297,7 +297,7 @@ public class DataverseLicenceSubstanceMappingContractTests
         // Assert
         roundTripped.MappingId.Should().Be(original.MappingId);
         roundTripped.LicenceId.Should().Be(original.LicenceId);
-        roundTripped.SubstanceId.Should().Be(original.SubstanceId);
+        roundTripped.SubstanceCode.Should().Be(original.SubstanceCode);
         roundTripped.MaxQuantityPerTransaction.Should().Be(original.MaxQuantityPerTransaction);
         roundTripped.MaxQuantityPerPeriod.Should().Be(original.MaxQuantityPerPeriod);
         roundTripped.PeriodType.Should().Be(original.PeriodType);
@@ -314,7 +314,7 @@ public class DataverseLicenceSubstanceMappingContractTests
         {
             phr_licencesubstancemappingid = Guid.NewGuid(),
             phr_licenceid = Guid.NewGuid(),
-            phr_substanceid = Guid.NewGuid(),
+            phr_substancecode = "Ephedrine",
             phr_maxquantitypertransaction = 200.50m,
             phr_maxquantityperperiod = 2500.00m,
             phr_periodtype = "Annual",
@@ -330,7 +330,7 @@ public class DataverseLicenceSubstanceMappingContractTests
         // Assert
         roundTripped.phr_licencesubstancemappingid.Should().Be(original.phr_licencesubstancemappingid);
         roundTripped.phr_licenceid.Should().Be(original.phr_licenceid);
-        roundTripped.phr_substanceid.Should().Be(original.phr_substanceid);
+        roundTripped.phr_substancecode.Should().Be(original.phr_substancecode);
         roundTripped.phr_maxquantitypertransaction.Should().Be(original.phr_maxquantitypertransaction);
         roundTripped.phr_maxquantityperperiod.Should().Be(original.phr_maxquantityperperiod);
         roundTripped.phr_periodtype.Should().Be(original.phr_periodtype);
@@ -348,7 +348,7 @@ public class DataverseLicenceSubstanceMappingContractTests
         {
             MappingId = Guid.NewGuid(),
             LicenceId = Guid.NewGuid(),
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "AceticAnhydride",
             MaxQuantityPerTransaction = null,
             MaxQuantityPerPeriod = null,
             PeriodType = null,
@@ -377,14 +377,14 @@ public class DataverseLicenceSubstanceMappingContractTests
     public void LicenceSubstanceMapping_ShouldHaveCompositeKeyFields()
     {
         // This test verifies the composite key structure per data-model.md:
-        // LicenceId + SubstanceId + EffectiveDate must be unique
+        // LicenceId + SubstanceCode + EffectiveDate must be unique
 
         // Arrange
         var domainType = typeof(LicenceSubstanceMapping);
 
         // Assert - all composite key fields exist
         domainType.GetProperty("LicenceId").Should().NotBeNull();
-        domainType.GetProperty("SubstanceId").Should().NotBeNull();
+        domainType.GetProperty("SubstanceCode").Should().NotBeNull();
         domainType.GetProperty("EffectiveDate").Should().NotBeNull();
     }
 

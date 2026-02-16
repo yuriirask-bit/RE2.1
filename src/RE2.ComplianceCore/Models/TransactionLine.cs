@@ -2,7 +2,7 @@ namespace RE2.ComplianceCore.Models;
 
 /// <summary>
 /// Transaction line item representing a controlled substance in a transaction.
-/// T124: TransactionLine domain model for substance-level validation.
+/// External systems send ItemNumber + DataAreaId; the system resolves SubstanceCode via product attributes.
 /// </summary>
 public class TransactionLine
 {
@@ -21,36 +21,40 @@ public class TransactionLine
     /// </summary>
     public int LineNumber { get; set; }
 
-    #region Substance Details
+    #region Product Identity (what external systems send)
 
     /// <summary>
-    /// Controlled substance ID.
+    /// D365 product item number.
     /// </summary>
-    public Guid SubstanceId { get; set; }
+    public string ItemNumber { get; set; } = string.Empty;
 
     /// <summary>
-    /// Substance internal code (denormalized).
+    /// D365 legal entity.
     /// </summary>
-    public string SubstanceCode { get; set; } = string.Empty;
+    public string DataAreaId { get; set; } = string.Empty;
+
+    #endregion
+
+    #region Resolved Substance Info (populated during validation)
+
+    /// <summary>
+    /// Substance code resolved from product attributes. Null if product is not controlled.
+    /// </summary>
+    public string? SubstanceCode { get; set; }
 
     /// <summary>
     /// Substance name (denormalized).
     /// </summary>
-    public string SubstanceName { get; set; } = string.Empty;
+    public string? SubstanceName { get; set; }
+
+    /// <summary>
+    /// Product description from D365.
+    /// </summary>
+    public string? ProductDescription { get; set; }
 
     #endregion
 
     #region Product Details
-
-    /// <summary>
-    /// Product/item number from ERP.
-    /// </summary>
-    public string? ProductCode { get; set; }
-
-    /// <summary>
-    /// Product description from ERP.
-    /// </summary>
-    public string? ProductDescription { get; set; }
 
     /// <summary>
     /// Batch/lot number (for traceability).

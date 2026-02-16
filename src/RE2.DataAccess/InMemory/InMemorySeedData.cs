@@ -27,18 +27,33 @@ public static class InMemorySeedData
     public static readonly Guid PharmacyLicenceTypeId = WellKnownIds.PharmacyLicenceTypeId;
     public static readonly Guid PrecursorRegistrationTypeId = WellKnownIds.PrecursorRegistrationTypeId;
 
-    // Substance IDs for testing
-    public static readonly Guid MorphineId = WellKnownIds.MorphineId;
-    public static readonly Guid FentanylId = WellKnownIds.FentanylId;
-    public static readonly Guid OxycodoneId = WellKnownIds.OxycodoneId;
-    public static readonly Guid CodeineId = WellKnownIds.CodeineId;
-    public static readonly Guid DiazepamId = WellKnownIds.DiazepamId;
-    public static readonly Guid EphedrineId = WellKnownIds.EphedrineId;
-
     // Threshold IDs for testing
     public static readonly Guid MorphineQuantityThresholdId = Guid.Parse("40000000-0000-0000-0000-000000000001");
     public static readonly Guid FentanylQuantityThresholdId = Guid.Parse("40000000-0000-0000-0000-000000000002");
     public static readonly Guid GlobalFrequencyThresholdId = Guid.Parse("40000000-0000-0000-0000-000000000003");
+
+    /// <summary>
+    /// Seeds all repositories with test data.
+    /// Extended overload for User Story 7 including GDP site data and product data.
+    /// </summary>
+    public static void SeedAll(
+        InMemoryLicenceTypeRepository licenceTypeRepo,
+        InMemoryControlledSubstanceRepository substanceRepo,
+        InMemoryLicenceRepository licenceRepo,
+        InMemoryCustomerRepository customerRepo,
+        InMemoryThresholdRepository thresholdRepo,
+        InMemoryGdpSiteRepository gdpSiteRepo,
+        InMemoryProductRepository productRepo)
+    {
+        licenceTypeRepo.Seed(GetLicenceTypes());
+        substanceRepo.Seed(GetControlledSubstances());
+        licenceRepo.Seed(GetLicences());
+        customerRepo.SeedD365Customers(GetD365Customers());
+        customerRepo.SeedComplianceExtensions(GetCustomerComplianceExtensions());
+        thresholdRepo.Seed(GetThresholds());
+        productRepo.Seed(GetProducts());
+        SeedGdpData(gdpSiteRepo);
+    }
 
     /// <summary>
     /// Seeds all repositories with test data.
@@ -168,6 +183,7 @@ public static class InMemorySeedData
 
     /// <summary>
     /// Gets sample controlled substances per Dutch Opium Act.
+    /// Keyed by SubstanceCode (string business key). No SubstanceId (Guid).
     /// </summary>
     public static IEnumerable<ControlledSubstance> GetControlledSubstances()
     {
@@ -176,68 +192,188 @@ public static class InMemorySeedData
             // Opium Act List I (high-risk narcotics)
             new()
             {
-                SubstanceId = Guid.Parse("20000000-0000-0000-0000-000000000001"),
+                SubstanceCode = "Morphine",
                 SubstanceName = "Morphine",
-                InternalCode = "MORPH-001",
                 OpiumActList = SubstanceCategories.OpiumActList.ListI,
                 PrecursorCategory = SubstanceCategories.PrecursorCategory.None,
-                IsActive = true
+                ComplianceExtensionId = Guid.Parse("20000000-0000-0000-0000-000000000001"),
+                IsActive = true,
+                ClassificationEffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-5)),
+                CreatedDate = DateTime.UtcNow.AddYears(-5),
+                ModifiedDate = DateTime.UtcNow
             },
             new()
             {
-                SubstanceId = Guid.Parse("20000000-0000-0000-0000-000000000002"),
+                SubstanceCode = "Fentanyl",
                 SubstanceName = "Fentanyl",
-                InternalCode = "FENT-001",
                 OpiumActList = SubstanceCategories.OpiumActList.ListI,
                 PrecursorCategory = SubstanceCategories.PrecursorCategory.None,
-                IsActive = true
+                ComplianceExtensionId = Guid.Parse("20000000-0000-0000-0000-000000000002"),
+                IsActive = true,
+                ClassificationEffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-5)),
+                CreatedDate = DateTime.UtcNow.AddYears(-5),
+                ModifiedDate = DateTime.UtcNow
             },
             new()
             {
-                SubstanceId = Guid.Parse("20000000-0000-0000-0000-000000000003"),
+                SubstanceCode = "Oxycodone",
                 SubstanceName = "Oxycodone",
-                InternalCode = "OXY-001",
                 OpiumActList = SubstanceCategories.OpiumActList.ListI,
                 PrecursorCategory = SubstanceCategories.PrecursorCategory.None,
-                IsActive = true
+                ComplianceExtensionId = Guid.Parse("20000000-0000-0000-0000-000000000003"),
+                IsActive = true,
+                ClassificationEffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-5)),
+                CreatedDate = DateTime.UtcNow.AddYears(-5),
+                ModifiedDate = DateTime.UtcNow
             },
             // Opium Act List II (moderate-risk narcotics)
             new()
             {
-                SubstanceId = Guid.Parse("20000000-0000-0000-0000-000000000010"),
+                SubstanceCode = "Codeine",
                 SubstanceName = "Codeine",
-                InternalCode = "COD-001",
                 OpiumActList = SubstanceCategories.OpiumActList.ListII,
                 PrecursorCategory = SubstanceCategories.PrecursorCategory.None,
-                IsActive = true
+                ComplianceExtensionId = Guid.Parse("20000000-0000-0000-0000-000000000010"),
+                IsActive = true,
+                ClassificationEffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-5)),
+                CreatedDate = DateTime.UtcNow.AddYears(-5),
+                ModifiedDate = DateTime.UtcNow
             },
             new()
             {
-                SubstanceId = Guid.Parse("20000000-0000-0000-0000-000000000011"),
+                SubstanceCode = "Diazepam",
                 SubstanceName = "Diazepam",
-                InternalCode = "DIAZ-001",
                 OpiumActList = SubstanceCategories.OpiumActList.ListII,
                 PrecursorCategory = SubstanceCategories.PrecursorCategory.None,
-                IsActive = true
+                ComplianceExtensionId = Guid.Parse("20000000-0000-0000-0000-000000000011"),
+                IsActive = true,
+                ClassificationEffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-5)),
+                CreatedDate = DateTime.UtcNow.AddYears(-5),
+                ModifiedDate = DateTime.UtcNow
             },
             // Precursors
             new()
             {
-                SubstanceId = Guid.Parse("20000000-0000-0000-0000-000000000020"),
+                SubstanceCode = "Ephedrine",
                 SubstanceName = "Ephedrine",
-                InternalCode = "EPH-001",
                 OpiumActList = SubstanceCategories.OpiumActList.None,
                 PrecursorCategory = SubstanceCategories.PrecursorCategory.Category1,
-                IsActive = true
+                ComplianceExtensionId = Guid.Parse("20000000-0000-0000-0000-000000000020"),
+                IsActive = true,
+                ClassificationEffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-3)),
+                CreatedDate = DateTime.UtcNow.AddYears(-3),
+                ModifiedDate = DateTime.UtcNow
             },
             new()
             {
-                SubstanceId = Guid.Parse("20000000-0000-0000-0000-000000000021"),
+                SubstanceCode = "Pseudoephedrine",
                 SubstanceName = "Pseudoephedrine",
-                InternalCode = "PSE-001",
                 OpiumActList = SubstanceCategories.OpiumActList.None,
                 PrecursorCategory = SubstanceCategories.PrecursorCategory.Category1,
-                IsActive = true
+                ComplianceExtensionId = Guid.Parse("20000000-0000-0000-0000-000000000021"),
+                IsActive = true,
+                ClassificationEffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-3)),
+                CreatedDate = DateTime.UtcNow.AddYears(-3),
+                ModifiedDate = DateTime.UtcNow
+            }
+        };
+    }
+
+    /// <summary>
+    /// Gets sample products from D365 F&O with resolved substance attributes.
+    /// </summary>
+    public static IEnumerable<Product> GetProducts()
+    {
+        return new List<Product>
+        {
+            new()
+            {
+                ItemNumber = "ITEM-MORPH-10MG",
+                DataAreaId = "nlpd",
+                ProductNumber = "PROD-MORPH-10MG",
+                ProductName = "Morphine Sulfate 10mg/ml",
+                ProductDescription = "Morphine Sulfate solution for injection, 10mg/ml",
+                SubstanceCode = "Morphine",
+                OpiumActListValue = "ListI",
+                PrecursorCategoryValue = null
+            },
+            new()
+            {
+                ItemNumber = "ITEM-FENT-50MCG",
+                DataAreaId = "nlpd",
+                ProductNumber = "PROD-FENT-50MCG",
+                ProductName = "Fentanyl Citrate 50mcg/ml",
+                ProductDescription = "Fentanyl Citrate solution for injection, 50mcg/ml",
+                SubstanceCode = "Fentanyl",
+                OpiumActListValue = "ListI",
+                PrecursorCategoryValue = null
+            },
+            new()
+            {
+                ItemNumber = "ITEM-OXY-20MG",
+                DataAreaId = "nlpd",
+                ProductNumber = "PROD-OXY-20MG",
+                ProductName = "Oxycodone HCl 20mg",
+                ProductDescription = "Oxycodone Hydrochloride tablets, 20mg",
+                SubstanceCode = "Oxycodone",
+                OpiumActListValue = "ListI",
+                PrecursorCategoryValue = null
+            },
+            new()
+            {
+                ItemNumber = "ITEM-COD-30MG",
+                DataAreaId = "nlpd",
+                ProductNumber = "PROD-COD-30MG",
+                ProductName = "Codeine Phosphate 30mg",
+                ProductDescription = "Codeine Phosphate tablets, 30mg",
+                SubstanceCode = "Codeine",
+                OpiumActListValue = "ListII",
+                PrecursorCategoryValue = null
+            },
+            new()
+            {
+                ItemNumber = "ITEM-DIAZ-5MG",
+                DataAreaId = "nlpd",
+                ProductNumber = "PROD-DIAZ-5MG",
+                ProductName = "Diazepam 5mg",
+                ProductDescription = "Diazepam tablets, 5mg",
+                SubstanceCode = "Diazepam",
+                OpiumActListValue = "ListII",
+                PrecursorCategoryValue = null
+            },
+            new()
+            {
+                ItemNumber = "ITEM-EPH-25MG",
+                DataAreaId = "nlpd",
+                ProductNumber = "PROD-EPH-25MG",
+                ProductName = "Ephedrine HCl 25mg",
+                ProductDescription = "Ephedrine Hydrochloride tablets, 25mg",
+                SubstanceCode = "Ephedrine",
+                OpiumActListValue = null,
+                PrecursorCategoryValue = "Category1"
+            },
+            new()
+            {
+                ItemNumber = "ITEM-PSE-60MG",
+                DataAreaId = "nlpd",
+                ProductNumber = "PROD-PSE-60MG",
+                ProductName = "Pseudoephedrine 60mg",
+                ProductDescription = "Pseudoephedrine tablets, 60mg",
+                SubstanceCode = "Pseudoephedrine",
+                OpiumActListValue = null,
+                PrecursorCategoryValue = "Category1"
+            },
+            // Non-controlled product
+            new()
+            {
+                ItemNumber = "ITEM-PARA-500MG",
+                DataAreaId = "nlpd",
+                ProductNumber = "PROD-PARA-500MG",
+                ProductName = "Paracetamol 500mg",
+                ProductDescription = "Paracetamol tablets, 500mg",
+                SubstanceCode = null,
+                OpiumActListValue = null,
+                PrecursorCategoryValue = null
             }
         };
     }
@@ -505,6 +641,7 @@ public static class InMemorySeedData
     /// <summary>
     /// Gets sample thresholds for User Story 4 transaction validation testing.
     /// Per FR-020/FR-022: Quantity and frequency threshold configuration.
+    /// Uses SubstanceCode (string) instead of SubstanceId (Guid).
     /// </summary>
     public static IEnumerable<Threshold> GetThresholds()
     {
@@ -518,8 +655,7 @@ public static class InMemorySeedData
                 Description = "Maximum monthly morphine quantity per customer (hospitals exempt)",
                 ThresholdType = ThresholdType.Quantity,
                 Period = ThresholdPeriod.Monthly,
-                SubstanceId = MorphineId,
-                SubstanceCode = "MORPH-001",
+                SubstanceCode = "Morphine",
                 SubstanceName = "Morphine",
                 LimitValue = 1000m,
                 LimitUnit = "g",
@@ -538,8 +674,7 @@ public static class InMemorySeedData
                 Description = "Maximum monthly fentanyl quantity per customer - strict limit for List I high-potency",
                 ThresholdType = ThresholdType.Quantity,
                 Period = ThresholdPeriod.Monthly,
-                SubstanceId = FentanylId,
-                SubstanceCode = "FENT-001",
+                SubstanceCode = "Fentanyl",
                 SubstanceName = "Fentanyl",
                 LimitValue = 100m,
                 LimitUnit = "g",
@@ -558,7 +693,7 @@ public static class InMemorySeedData
                 Description = "Maximum daily transactions per customer for all controlled substances",
                 ThresholdType = ThresholdType.Frequency,
                 Period = ThresholdPeriod.Daily,
-                SubstanceId = null, // Applies to all substances
+                SubstanceCode = null, // Applies to all substances
                 LimitValue = 10m,
                 LimitUnit = "count",
                 WarningThresholdPercent = 80m,
@@ -576,8 +711,7 @@ public static class InMemorySeedData
                 Description = "Maximum oxycodone per transaction for community pharmacies",
                 ThresholdType = ThresholdType.Quantity,
                 Period = ThresholdPeriod.PerTransaction,
-                SubstanceId = OxycodoneId,
-                SubstanceCode = "OXY-001",
+                SubstanceCode = "Oxycodone",
                 SubstanceName = "Oxycodone",
                 CustomerCategory = BusinessCategory.CommunityPharmacy,
                 LimitValue = 500m,
@@ -596,8 +730,7 @@ public static class InMemorySeedData
                 Description = "Annual ephedrine quantity limit per EU precursor regulations",
                 ThresholdType = ThresholdType.CumulativeQuantity,
                 Period = ThresholdPeriod.Yearly,
-                SubstanceId = EphedrineId,
-                SubstanceCode = "EPH-001",
+                SubstanceCode = "Ephedrine",
                 SubstanceName = "Ephedrine",
                 OpiumActList = "Precursor Cat 1",
                 LimitValue = 5000m,

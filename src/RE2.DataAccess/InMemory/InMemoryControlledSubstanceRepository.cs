@@ -6,21 +6,16 @@ namespace RE2.DataAccess.InMemory;
 
 /// <summary>
 /// In-memory implementation of IControlledSubstanceRepository for local development and testing.
+/// Keyed by SubstanceCode (case-insensitive string).
 /// </summary>
 public class InMemoryControlledSubstanceRepository : IControlledSubstanceRepository
 {
-    private readonly ConcurrentDictionary<Guid, ControlledSubstance> _substances = new();
+    private readonly ConcurrentDictionary<string, ControlledSubstance> _substances =
+        new(StringComparer.OrdinalIgnoreCase);
 
-    public Task<ControlledSubstance?> GetByIdAsync(Guid substanceId, CancellationToken cancellationToken = default)
+    public Task<ControlledSubstance?> GetBySubstanceCodeAsync(string substanceCode, CancellationToken cancellationToken = default)
     {
-        _substances.TryGetValue(substanceId, out var substance);
-        return Task.FromResult(substance);
-    }
-
-    public Task<ControlledSubstance?> GetByInternalCodeAsync(string internalCode, CancellationToken cancellationToken = default)
-    {
-        var substance = _substances.Values.FirstOrDefault(s =>
-            s.InternalCode.Equals(internalCode, StringComparison.OrdinalIgnoreCase));
+        _substances.TryGetValue(substanceCode, out var substance);
         return Task.FromResult(substance);
     }
 
@@ -37,26 +32,51 @@ public class InMemoryControlledSubstanceRepository : IControlledSubstanceReposit
         return Task.FromResult<IEnumerable<ControlledSubstance>>(_substances.Values.ToList());
     }
 
-    public Task<Guid> CreateAsync(ControlledSubstance substance, CancellationToken cancellationToken = default)
+    public Task<IEnumerable<ControlledSubstance>> GetAllD365SubstancesAsync(CancellationToken cancellationToken = default)
     {
-        if (substance.SubstanceId == Guid.Empty)
+        // In the in-memory implementation, all substances are treated as D365-discovered.
+        return Task.FromResult<IEnumerable<ControlledSubstance>>(_substances.Values.ToList());
+    }
+
+    public Task SaveComplianceExtensionAsync(ControlledSubstance substance, CancellationToken cancellationToken = default)
+    {
+        if (substance.ComplianceExtensionId == Guid.Empty)
         {
-            substance.SubstanceId = Guid.NewGuid();
+            substance.ComplianceExtensionId = Guid.NewGuid();
         }
 
-        _substances.TryAdd(substance.SubstanceId, substance);
-        return Task.FromResult(substance.SubstanceId);
+        substance.CreatedDate = DateTime.UtcNow;
+        substance.ModifiedDate = DateTime.UtcNow;
+        _substances[substance.SubstanceCode] = substance;
+        return Task.CompletedTask;
+    }
+
+    public Task UpdateComplianceExtensionAsync(ControlledSubstance substance, CancellationToken cancellationToken = default)
+    {
+        substance.ModifiedDate = DateTime.UtcNow;
+        _substances[substance.SubstanceCode] = substance;
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteComplianceExtensionAsync(string substanceCode, CancellationToken cancellationToken = default)
+    {
+        if (_substances.TryGetValue(substanceCode, out var substance))
+        {
+            // Clear compliance extension fields but keep the D365-sourced data
+            substance.ComplianceExtensionId = Guid.Empty;
+            substance.RegulatoryRestrictions = null;
+            substance.ClassificationEffectiveDate = null;
+            substance.ModifiedDate = DateTime.UtcNow;
+            _substances[substanceCode] = substance;
+        }
+
+        return Task.CompletedTask;
     }
 
     public Task UpdateAsync(ControlledSubstance substance, CancellationToken cancellationToken = default)
     {
-        _substances[substance.SubstanceId] = substance;
-        return Task.CompletedTask;
-    }
-
-    public Task DeleteAsync(Guid substanceId, CancellationToken cancellationToken = default)
-    {
-        _substances.TryRemove(substanceId, out _);
+        substance.ModifiedDate = DateTime.UtcNow;
+        _substances[substance.SubstanceCode] = substance;
         return Task.CompletedTask;
     }
 
@@ -67,7 +87,7 @@ public class InMemoryControlledSubstanceRepository : IControlledSubstanceReposit
     {
         foreach (var substance in substances)
         {
-            _substances.TryAdd(substance.SubstanceId, substance);
+            _substances.TryAdd(substance.SubstanceCode, substance);
         }
     }
 }

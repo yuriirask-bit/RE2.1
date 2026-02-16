@@ -8,7 +8,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1>@Model.SubstanceName</h1>
-            <p class="text-muted mb-0">Internal Code: <code>@Model.InternalCode</code></p>
+            <p class="text-muted mb-0">Substance Code: <code>@Model.SubstanceCode</code></p>
         </div>
         <div>
             @if (Model.IsActive)
@@ -19,6 +19,14 @@
             {
                 <span class="badge bg-secondary fs-6">Inactive</span>
             }
+            @if (Model.IsComplianceConfigured)
+            {
+                <span class="badge bg-primary fs-6 ms-1">Compliance Configured</span>
+            }
+            else
+            {
+                <span class="badge bg-outline-secondary border fs-6 ms-1">Compliance Not Configured</span>
+            }
         </div>
     </div>
 
@@ -26,7 +34,7 @@
         <div class="col-md-8">
             <div class="card mb-4">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-shield-check"></i> Classification</h5>
+                    <h5 class="mb-0"><i class="bi bi-shield-check"></i> D365 Classification (Read-Only)</h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -75,28 +83,35 @@
                             }
                         </div>
                     </div>
-
-                    @if (Model.ClassificationEffectiveDate.HasValue)
-                    {
-                        <hr />
-                        <div class="row">
-                            <div class="col">
-                                <h6 class="text-muted">Classification Effective Date</h6>
-                                <p>@Model.ClassificationEffectiveDate.Value.ToString("yyyy-MM-dd")</p>
-                            </div>
-                        </div>
-                    }
                 </div>
             </div>
 
-            @if (!string.IsNullOrWhiteSpace(Model.RegulatoryRestrictions))
+            @if (Model.IsComplianceConfigured)
             {
                 <div class="card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Regulatory Restrictions</h5>
+                        <h5 class="mb-0"><i class="bi bi-gear"></i> Compliance Extension</h5>
                     </div>
                     <div class="card-body">
-                        <p class="mb-0">@Model.RegulatoryRestrictions</p>
+                        @if (Model.ClassificationEffectiveDate.HasValue)
+                        {
+                            <div class="row mb-3">
+                                <div class="col">
+                                    <h6 class="text-muted">Classification Effective Date</h6>
+                                    <p>@Model.ClassificationEffectiveDate.Value.ToString("yyyy-MM-dd")</p>
+                                </div>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(Model.RegulatoryRestrictions))
+                        {
+                            <div class="row mb-3">
+                                <div class="col">
+                                    <h6 class="text-muted">Regulatory Restrictions</h6>
+                                    <p class="mb-0">@Model.RegulatoryRestrictions</p>
+                                </div>
+                            </div>
+                        }
                     </div>
                 </div>
             }
@@ -146,6 +161,36 @@
                     }
                 </div>
             </div>
+
+            @if (ViewBag.AssociatedProducts != null && ((IEnumerable<RE2.ComplianceCore.Models.Product>)ViewBag.AssociatedProducts).Any())
+            {
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-box-seam"></i> Associated Products</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Item Number</th>
+                                    <th>Data Area</th>
+                                    <th>Product Name</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var product in (IEnumerable<RE2.ComplianceCore.Models.Product>)ViewBag.AssociatedProducts)
+                                {
+                                    <tr>
+                                        <td><code>@product.ItemNumber</code></td>
+                                        <td>@product.DataAreaId</td>
+                                        <td>@product.ProductName</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
         </div>
 
         <div class="col-md-4">
@@ -154,8 +199,13 @@
                     <h6 class="mb-0">Audit Information</h6>
                 </div>
                 <div class="card-body">
-                    <p class="small mb-1"><strong>Substance ID:</strong></p>
-                    <p class="small"><code>@Model.SubstanceId</code></p>
+                    <p class="small mb-1"><strong>Substance Code:</strong></p>
+                    <p class="small"><code>@Model.SubstanceCode</code></p>
+                    @if (Model.IsComplianceConfigured)
+                    {
+                        <p class="small mb-1"><strong>Compliance Extension ID:</strong></p>
+                        <p class="small"><code>@Model.ComplianceExtensionId</code></p>
+                    }
                     <p class="small mb-1"><strong>Created:</strong></p>
                     <p class="small">@Model.CreatedDate.ToString("yyyy-MM-dd HH:mm")</p>
                     <p class="small mb-1"><strong>Last Modified:</strong></p>
@@ -169,15 +219,15 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        <a asp-action="Edit" asp-route-id="@Model.SubstanceId" class="btn btn-outline-primary">
-                            <i class="bi bi-pencil"></i> Edit Substance
+                        <a asp-action="Configure" asp-route-substanceCode="@Model.SubstanceCode" class="btn btn-outline-primary">
+                            <i class="bi bi-gear"></i> Configure Compliance
                         </a>
 
                         @if (Model.IsActive)
                         {
                             <form asp-action="Deactivate" method="post">
                                 @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@Model.SubstanceId" />
+                                <input type="hidden" name="substanceCode" value="@Model.SubstanceCode" />
                                 <button type="submit" class="btn btn-outline-warning w-100"
                                         onclick="return confirm('Are you sure you want to deactivate this substance? It will no longer be available for new licence mappings.');">
                                     <i class="bi bi-pause-circle"></i> Deactivate
@@ -188,7 +238,7 @@
                         {
                             <form asp-action="Reactivate" method="post">
                                 @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@Model.SubstanceId" />
+                                <input type="hidden" name="substanceCode" value="@Model.SubstanceCode" />
                                 <button type="submit" class="btn btn-outline-success w-100">
                                     <i class="bi bi-play-circle"></i> Reactivate
                                 </button>
@@ -197,7 +247,7 @@
 
                         <hr />
 
-                        <a asp-controller="Reclassifications" asp-action="Create" asp-route-substanceId="@Model.SubstanceId"
+                        <a asp-controller="Reclassifications" asp-action="Create" asp-route-substanceCode="@Model.SubstanceCode"
                            class="btn btn-outline-info">
                             <i class="bi bi-arrow-repeat"></i> Initiate Reclassification
                         </a>
@@ -215,6 +265,12 @@
                         For significant classification changes (e.g., List II to List I),
                         use the Reclassification workflow to properly track affected customers
                         and ensure compliance with FR-066.
+                    </p>
+                    <p class="small mb-2"><strong>Data Source:</strong></p>
+                    <p class="small text-muted mb-0">
+                        Substance classification (Opium Act, Precursor Category) is sourced from
+                        D365 F&O product attributes and cannot be edited here.
+                        Only compliance extension fields can be configured.
                     </p>
                 </div>
             </div>

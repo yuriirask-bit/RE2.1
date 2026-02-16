@@ -19,6 +19,7 @@ public class TransactionComplianceService : ITransactionComplianceService
     private readonly ILicenceRepository _licenceRepository;
     private readonly ICustomerRepository _customerRepository;
     private readonly IControlledSubstanceRepository _substanceRepository;
+    private readonly IProductRepository _productRepository;
     private readonly IWebhookDispatchService? _webhookDispatchService;
     private readonly ILogger<TransactionComplianceService> _logger;
 
@@ -28,6 +29,7 @@ public class TransactionComplianceService : ITransactionComplianceService
         ILicenceRepository licenceRepository,
         ICustomerRepository customerRepository,
         IControlledSubstanceRepository substanceRepository,
+        IProductRepository productRepository,
         ILogger<TransactionComplianceService> logger,
         IWebhookDispatchService? webhookDispatchService = null)
     {
@@ -36,6 +38,7 @@ public class TransactionComplianceService : ITransactionComplianceService
         _licenceRepository = licenceRepository;
         _customerRepository = customerRepository;
         _substanceRepository = substanceRepository;
+        _productRepository = productRepository;
         _webhookDispatchService = webhookDispatchService;
         _logger = logger;
     }
@@ -294,21 +297,33 @@ public class TransactionComplianceService : ITransactionComplianceService
 
         foreach (var line in transaction.Lines)
         {
+            // Resolve SubstanceCode from product master via ItemNumber + DataAreaId
+            var resolvedSubstanceCode = line.SubstanceCode
+                ?? await _productRepository.ResolveSubstanceCodeAsync(line.ItemNumber, line.DataAreaId);
+
+            if (string.IsNullOrEmpty(resolvedSubstanceCode))
+            {
+                // Not a controlled product - skip line
+                continue;
+            }
+
+            // Set resolved substance code on line
+            line.SubstanceCode = resolvedSubstanceCode;
+
             // Lookup substance to get full details
-            var substance = await _substanceRepository.GetByIdAsync(line.SubstanceId, cancellationToken);
+            var substance = await _substanceRepository.GetBySubstanceCodeAsync(resolvedSubstanceCode, cancellationToken);
             if (substance == null)
             {
                 line.SetValidationError(
                     ErrorCodes.SUBSTANCE_NOT_FOUND,
-                    $"Substance with ID {line.SubstanceId} not found");
+                    $"Substance with code '{resolvedSubstanceCode}' not found");
 
                 violations.Add(TransactionViolation.LicenceViolation(
                     transaction.Id,
                     ViolationType.SubstanceNotFound,
                     ErrorCodes.SUBSTANCE_NOT_FOUND,
-                    $"Substance '{line.SubstanceCode}' not found in system",
+                    $"Substance '{resolvedSubstanceCode}' not found in system",
                     lineNumber: line.LineNumber,
-                    substanceId: line.SubstanceId,
                     substanceCode: line.SubstanceCode,
                     canOverride: false));
                 continue;
@@ -334,7 +349,6 @@ public class TransactionComplianceService : ITransactionComplianceService
                     ErrorCodes.LICENCE_MISSING,
                     $"No valid licence found for substance '{substance.SubstanceName}' (Line {line.LineNumber})",
                     lineNumber: line.LineNumber,
-                    substanceId: substance.SubstanceId,
                     substanceCode: line.SubstanceCode,
                     canOverride: true)); // Can override if licence pending
             }
@@ -356,7 +370,6 @@ public class TransactionComplianceService : ITransactionComplianceService
                         licenceNumber: coveringLicence.LicenceNumber,
                         expiryDate: coveringLicence.ExpiryDate,
                         lineNumber: line.LineNumber,
-                        substanceId: substance.SubstanceId,
                         substanceCode: line.SubstanceCode,
                         canOverride: true)); // Can override for renewal in progress
                 }
@@ -374,7 +387,6 @@ public class TransactionComplianceService : ITransactionComplianceService
                         licenceId: coveringLicence.LicenceId,
                         licenceNumber: coveringLicence.LicenceNumber,
                         lineNumber: line.LineNumber,
-                        substanceId: substance.SubstanceId,
                         substanceCode: line.SubstanceCode,
                         canOverride: false)); // Cannot override suspended
                 }
@@ -491,11 +503,15 @@ public class TransactionComplianceService : ITransactionComplianceService
         }
 
         // Get all substances in the transaction
-        var substanceIds = transaction.Lines.Select(l => l.SubstanceId).Distinct().ToList();
+        var substanceCodes = transaction.Lines
+            .Where(l => !string.IsNullOrEmpty(l.SubstanceCode))
+            .Select(l => l.SubstanceCode!)
+            .Distinct()
+            .ToList();
 
         // Get applicable thresholds
         var thresholds = await _thresholdRepository.GetApplicableThresholdsAsync(
-            substanceIds,
+            substanceCodes,
             customer.ComplianceExtensionId,
             customer.BusinessCategory,
             cancellationToken);
@@ -505,11 +521,11 @@ public class TransactionComplianceService : ITransactionComplianceService
         {
             // Calculate quantity for this threshold
             decimal transactionQuantity;
-            if (threshold.SubstanceId.HasValue)
+            if (!string.IsNullOrEmpty(threshold.SubstanceCode))
             {
                 // Substance-specific threshold
                 transactionQuantity = transaction.Lines
-                    .Where(l => l.SubstanceId == threshold.SubstanceId.Value)
+                    .Where(l => l.SubstanceCode == threshold.SubstanceCode)
                     .Sum(l => l.BaseUnitQuantity);
             }
             else
@@ -524,12 +540,12 @@ public class TransactionComplianceService : ITransactionComplianceService
                 var (fromDate, toDate) = GetPeriodDates(threshold.Period, transaction.TransactionDate);
 
                 decimal historicalUsage;
-                if (threshold.SubstanceId.HasValue)
+                if (!string.IsNullOrEmpty(threshold.SubstanceCode))
                 {
                     historicalUsage = await GetCumulativeUsageAsync(
                         customer.CustomerAccount,
                         customer.DataAreaId,
-                        threshold.SubstanceId.Value,
+                        threshold.SubstanceCode,
                         fromDate,
                         toDate,
                         cancellationToken);
@@ -538,12 +554,12 @@ public class TransactionComplianceService : ITransactionComplianceService
                 {
                     // Sum all substances
                     historicalUsage = 0;
-                    foreach (var substanceId in substanceIds)
+                    foreach (var substanceCode in substanceCodes)
                     {
                         historicalUsage += await GetCumulativeUsageAsync(
                             customer.CustomerAccount,
                             customer.DataAreaId,
-                            substanceId,
+                            substanceCode,
                             fromDate,
                             toDate,
                             cancellationToken);
@@ -566,7 +582,6 @@ public class TransactionComplianceService : ITransactionComplianceService
                     transactionQuantity,
                     threshold.Period,
                     threshold.Id,
-                    substanceId: threshold.SubstanceId,
                     substanceCode: threshold.SubstanceCode,
                     canOverride: threshold.AllowOverride && !threshold.ExceedsMaxOverride(transactionQuantity)));
             }
@@ -582,7 +597,6 @@ public class TransactionComplianceService : ITransactionComplianceService
                     transactionQuantity,
                     threshold.Period,
                     threshold.Id,
-                    substanceId: threshold.SubstanceId,
                     substanceCode: threshold.SubstanceCode,
                     canOverride: true);
                 warningViolation.Severity = ViolationSeverity.Warning;
@@ -819,7 +833,7 @@ public class TransactionComplianceService : ITransactionComplianceService
     public async Task<decimal> GetCumulativeUsageAsync(
         string customerAccount,
         string customerDataAreaId,
-        Guid substanceId,
+        string substanceCode,
         DateTime fromDate,
         DateTime toDate,
         CancellationToken cancellationToken = default)
@@ -827,7 +841,7 @@ public class TransactionComplianceService : ITransactionComplianceService
         var lines = await _transactionRepository.GetCustomerSubstanceLinesInPeriodAsync(
             customerAccount,
             customerDataAreaId,
-            substanceId,
+            substanceCode,
             fromDate,
             toDate,
             cancellationToken);

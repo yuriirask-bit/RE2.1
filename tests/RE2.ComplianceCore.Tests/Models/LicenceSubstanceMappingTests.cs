@@ -19,7 +19,7 @@ public class LicenceSubstanceMappingTests
         {
             MappingId = Guid.NewGuid(),
             LicenceId = Guid.NewGuid(),
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Morphine",
             MaxQuantityPerTransaction = 1000.0m,
             MaxQuantityPerPeriod = 5000.0m,
             PeriodType = "Monthly",
@@ -31,7 +31,7 @@ public class LicenceSubstanceMappingTests
         // Assert
         Assert.NotEqual(Guid.Empty, mapping.MappingId);
         Assert.NotEqual(Guid.Empty, mapping.LicenceId);
-        Assert.NotEqual(Guid.Empty, mapping.SubstanceId);
+        Assert.False(string.IsNullOrWhiteSpace(mapping.SubstanceCode));
         Assert.Equal(1000.0m, mapping.MaxQuantityPerTransaction);
         Assert.Equal(5000.0m, mapping.MaxQuantityPerPeriod);
         Assert.Equal("Monthly", mapping.PeriodType);
@@ -45,7 +45,7 @@ public class LicenceSubstanceMappingTests
         {
             MappingId = Guid.NewGuid(),
             LicenceId = Guid.Empty,
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Fentanyl",
             EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow)
         };
 
@@ -65,7 +65,7 @@ public class LicenceSubstanceMappingTests
         {
             MappingId = Guid.NewGuid(),
             LicenceId = Guid.NewGuid(),
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Morphine",
             MaxQuantityPerTransaction = 500.0m,
             EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow)
         };
@@ -85,7 +85,7 @@ public class LicenceSubstanceMappingTests
         {
             MappingId = Guid.NewGuid(),
             LicenceId = Guid.NewGuid(),
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "SUB-001",
             EffectiveDate = default // Not set
         };
 
@@ -105,7 +105,7 @@ public class LicenceSubstanceMappingTests
         {
             MappingId = Guid.NewGuid(),
             LicenceId = Guid.NewGuid(),
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Morphine",
             EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow),
             ExpiryDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1))
         };
@@ -131,7 +131,7 @@ public class LicenceSubstanceMappingTests
         {
             MappingId = Guid.NewGuid(),
             LicenceId = licence.LicenceId,
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Morphine",
             EffectiveDate = licence.IssueDate.AddDays(1),
             ExpiryDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)) // Within licence expiry
         };
@@ -153,7 +153,7 @@ public class LicenceSubstanceMappingTests
         {
             MappingId = Guid.NewGuid(),
             LicenceId = licence.LicenceId,
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Fentanyl",
             EffectiveDate = licence.IssueDate.AddDays(1),
             ExpiryDate = null // No separate expiry
         };
@@ -176,7 +176,7 @@ public class LicenceSubstanceMappingTests
         {
             MappingId = Guid.NewGuid(),
             LicenceId = licence.LicenceId,
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Morphine",
             EffectiveDate = licence.IssueDate.AddDays(1),
             ExpiryDate = licenceExpiry.AddDays(30) // Exceeds licence expiry
         };
@@ -199,7 +199,7 @@ public class LicenceSubstanceMappingTests
         {
             MappingId = Guid.NewGuid(),
             LicenceId = licence.LicenceId,
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "SUB-001",
             EffectiveDate = licence.IssueDate.AddDays(-10), // Before licence was issued
             ExpiryDate = null
         };
@@ -222,7 +222,7 @@ public class LicenceSubstanceMappingTests
         {
             MappingId = Guid.NewGuid(),
             LicenceId = licence.LicenceId,
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Morphine",
             EffectiveDate = licence.IssueDate.AddDays(1),
             ExpiryDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(10)) // Any expiry is fine
         };
@@ -244,7 +244,7 @@ public class LicenceSubstanceMappingTests
         {
             MappingId = Guid.NewGuid(),
             LicenceId = licence.LicenceId,
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "Fentanyl",
             EffectiveDate = licence.IssueDate, // Same as issue date (allowed)
             ExpiryDate = null
         };

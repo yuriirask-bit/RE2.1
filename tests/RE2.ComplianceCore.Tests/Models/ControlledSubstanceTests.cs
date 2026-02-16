@@ -16,9 +16,8 @@ public class ControlledSubstanceTests
         // Arrange & Act
         var substance = new ControlledSubstance
         {
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "MOR-10MG-AMP",
             SubstanceName = "Morphine Sulfate 10mg",
-            InternalCode = "MOR-10MG-AMP",
             OpiumActList = SubstanceCategories.OpiumActList.ListII,
             PrecursorCategory = SubstanceCategories.PrecursorCategory.None,
             RegulatoryRestrictions = "Prescription required",
@@ -26,7 +25,7 @@ public class ControlledSubstanceTests
         };
 
         // Assert
-        Assert.NotEqual(Guid.Empty, substance.SubstanceId);
+        Assert.Equal("MOR-10MG-AMP", substance.SubstanceCode);
         Assert.Equal("Morphine Sulfate 10mg", substance.SubstanceName);
         Assert.Equal("MOR-10MG-AMP", substance.InternalCode);
         Assert.Equal(SubstanceCategories.OpiumActList.ListII, substance.OpiumActList);
@@ -40,9 +39,8 @@ public class ControlledSubstanceTests
         // Arrange & Act
         var substance = new ControlledSubstance
         {
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "EPHED-RAW",
             SubstanceName = "Ephedrine",
-            InternalCode = "EPHED-RAW",
             OpiumActList = SubstanceCategories.OpiumActList.None,
             PrecursorCategory = SubstanceCategories.PrecursorCategory.Category1,
             RegulatoryRestrictions = "EU Regulation 273/2004 - Pre-export notification required",
@@ -61,9 +59,8 @@ public class ControlledSubstanceTests
         // Arrange & Act
         var substance = new ControlledSubstance
         {
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "FENT-100MCG",
             SubstanceName = "Fentanyl",
-            InternalCode = "FENT-100MCG",
             OpiumActList = SubstanceCategories.OpiumActList.ListI
         };
 
@@ -77,9 +74,8 @@ public class ControlledSubstanceTests
         // Arrange
         var substance = new ControlledSubstance
         {
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "INVALID",
             SubstanceName = "Invalid Substance",
-            InternalCode = "INVALID",
             OpiumActList = SubstanceCategories.OpiumActList.None,
             PrecursorCategory = SubstanceCategories.PrecursorCategory.None
         };
@@ -104,9 +100,8 @@ public class ControlledSubstanceTests
         // Arrange
         var substance = new ControlledSubstance
         {
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "MOR-10MG",
             SubstanceName = invalidName!,
-            InternalCode = "MOR-10MG",
             OpiumActList = SubstanceCategories.OpiumActList.ListII
         };
 
@@ -122,14 +117,13 @@ public class ControlledSubstanceTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(null)]
-    public void ControlledSubstance_Validate_FailsWithInvalidInternalCode(string invalidCode)
+    public void ControlledSubstance_Validate_FailsWithInvalidSubstanceCode(string invalidCode)
     {
         // Arrange
         var substance = new ControlledSubstance
         {
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = invalidCode!,
             SubstanceName = "Morphine",
-            InternalCode = invalidCode!,
             OpiumActList = SubstanceCategories.OpiumActList.ListII
         };
 
@@ -138,7 +132,7 @@ public class ControlledSubstanceTests
 
         // Assert
         Assert.False(result.IsValid);
-        Assert.Contains(result.Violations, v => v.ErrorCode == "VALIDATION_ERROR" && v.Message.Contains("InternalCode"));
+        Assert.Contains(result.Violations, v => v.ErrorCode == "VALIDATION_ERROR" && v.Message.Contains("SubstanceCode"));
     }
 
     [Fact]
@@ -147,9 +141,8 @@ public class ControlledSubstanceTests
         // Arrange
         var substance = new ControlledSubstance
         {
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "COC-POWDER",
             SubstanceName = "Cocaine",
-            InternalCode = "COC-POWDER",
             OpiumActList = SubstanceCategories.OpiumActList.ListI,
             PrecursorCategory = SubstanceCategories.PrecursorCategory.None
         };
@@ -168,9 +161,8 @@ public class ControlledSubstanceTests
         // Arrange
         var substance = new ControlledSubstance
         {
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "ACET-SOLV",
             SubstanceName = "Acetone",
-            InternalCode = "ACET-SOLV",
             OpiumActList = SubstanceCategories.OpiumActList.None,
             PrecursorCategory = SubstanceCategories.PrecursorCategory.Category2
         };
@@ -189,9 +181,8 @@ public class ControlledSubstanceTests
         // Arrange (some substances can be both Opium Act and Precursor)
         var substance = new ControlledSubstance
         {
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "SPEC-001",
             SubstanceName = "Special Controlled Substance",
-            InternalCode = "SPEC-001",
             OpiumActList = SubstanceCategories.OpiumActList.ListII,
             PrecursorCategory = SubstanceCategories.PrecursorCategory.Category3
         };
@@ -210,17 +201,15 @@ public class ControlledSubstanceTests
         // Arrange
         var substanceListI = new ControlledSubstance
         {
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "HER-001",
             SubstanceName = "Heroin",
-            InternalCode = "HER-001",
             OpiumActList = SubstanceCategories.OpiumActList.ListI
         };
 
         var substanceListII = new ControlledSubstance
         {
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "CANN-001",
             SubstanceName = "Cannabis",
-            InternalCode = "CANN-001",
             OpiumActList = SubstanceCategories.OpiumActList.ListII
         };
 
@@ -235,9 +224,8 @@ public class ControlledSubstanceTests
         // Arrange
         var substance = new ControlledSubstance
         {
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "ACET-001",
             SubstanceName = "Acetone",
-            InternalCode = "ACET-001",
             OpiumActList = SubstanceCategories.OpiumActList.None,
             PrecursorCategory = SubstanceCategories.PrecursorCategory.Category2
         };
@@ -252,9 +240,8 @@ public class ControlledSubstanceTests
         // Arrange
         var substanceCat1 = new ControlledSubstance
         {
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "EPHED-001",
             SubstanceName = "Ephedrine",
-            InternalCode = "EPHED-001",
             PrecursorCategory = SubstanceCategories.PrecursorCategory.Category1
         };
 
@@ -268,9 +255,8 @@ public class ControlledSubstanceTests
         // Arrange
         var substance = new ControlledSubstance
         {
-            SubstanceId = Guid.NewGuid(),
+            SubstanceCode = "MOR-001",
             SubstanceName = "Morphine",
-            InternalCode = "MOR-001",
             OpiumActList = SubstanceCategories.OpiumActList.ListII,
             PrecursorCategory = SubstanceCategories.PrecursorCategory.None
         };

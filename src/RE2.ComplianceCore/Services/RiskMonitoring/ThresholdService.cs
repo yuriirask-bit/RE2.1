@@ -161,9 +161,9 @@ public class ThresholdService : IThresholdService
         return thresholds;
     }
 
-    public async Task<IEnumerable<Threshold>> GetBySubstanceIdAsync(Guid substanceId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Threshold>> GetBySubstanceCodeAsync(string substanceCode, CancellationToken cancellationToken = default)
     {
-        var thresholds = (await _thresholdRepository.GetBySubstanceIdAsync(substanceId, cancellationToken)).ToList();
+        var thresholds = (await _thresholdRepository.GetBySubstanceCodeAsync(substanceCode, cancellationToken)).ToList();
         await PopulateNavigationPropertiesAsync(thresholds, cancellationToken);
         return thresholds;
     }
@@ -278,12 +278,11 @@ public class ThresholdService : IThresholdService
     private async Task PopulateDenormalizedFieldsAsync(Threshold threshold, CancellationToken cancellationToken)
     {
         // Populate substance info if set
-        if (threshold.SubstanceId.HasValue)
+        if (!string.IsNullOrEmpty(threshold.SubstanceCode))
         {
-            var substance = await _substanceRepository.GetByIdAsync(threshold.SubstanceId.Value, cancellationToken);
+            var substance = await _substanceRepository.GetBySubstanceCodeAsync(threshold.SubstanceCode, cancellationToken);
             if (substance != null)
             {
-                threshold.SubstanceCode = substance.InternalCode;
                 threshold.SubstanceName = substance.SubstanceName;
             }
         }
@@ -292,12 +291,11 @@ public class ThresholdService : IThresholdService
     private async Task PopulateNavigationPropertiesAsync(Threshold threshold, CancellationToken cancellationToken)
     {
         // Populate substance info if needed
-        if (threshold.SubstanceId.HasValue && string.IsNullOrEmpty(threshold.SubstanceName))
+        if (!string.IsNullOrEmpty(threshold.SubstanceCode) && string.IsNullOrEmpty(threshold.SubstanceName))
         {
-            var substance = await _substanceRepository.GetByIdAsync(threshold.SubstanceId.Value, cancellationToken);
+            var substance = await _substanceRepository.GetBySubstanceCodeAsync(threshold.SubstanceCode, cancellationToken);
             if (substance != null)
             {
-                threshold.SubstanceCode = substance.InternalCode;
                 threshold.SubstanceName = substance.SubstanceName;
             }
         }
@@ -305,31 +303,31 @@ public class ThresholdService : IThresholdService
 
     private async Task PopulateNavigationPropertiesAsync(IEnumerable<Threshold> thresholds, CancellationToken cancellationToken)
     {
-        var substanceIds = thresholds
-            .Where(t => t.SubstanceId.HasValue && string.IsNullOrEmpty(t.SubstanceName))
-            .Select(t => t.SubstanceId!.Value)
+        var substanceCodes = thresholds
+            .Where(t => !string.IsNullOrEmpty(t.SubstanceCode) && string.IsNullOrEmpty(t.SubstanceName))
+            .Select(t => t.SubstanceCode!)
             .Distinct()
             .ToList();
 
-        if (!substanceIds.Any()) return;
+        if (!substanceCodes.Any()) return;
 
         // Batch load substances
-        var substanceLookup = new Dictionary<Guid, ControlledSubstance>();
-        foreach (var id in substanceIds)
+        var substanceLookup = new Dictionary<string, ControlledSubstance>();
+        foreach (var code in substanceCodes)
         {
-            var substance = await _substanceRepository.GetByIdAsync(id, cancellationToken);
+            var substance = await _substanceRepository.GetBySubstanceCodeAsync(code, cancellationToken);
             if (substance != null)
             {
-                substanceLookup[id] = substance;
+                substanceLookup[code] = substance;
             }
         }
 
         // Populate thresholds
         foreach (var threshold in thresholds)
         {
-            if (threshold.SubstanceId.HasValue && substanceLookup.TryGetValue(threshold.SubstanceId.Value, out var substance))
+            if (!string.IsNullOrEmpty(threshold.SubstanceCode) &&
+                substanceLookup.TryGetValue(threshold.SubstanceCode, out var substance))
             {
-                threshold.SubstanceCode = substance.InternalCode;
                 threshold.SubstanceName = substance.SubstanceName;
             }
         }

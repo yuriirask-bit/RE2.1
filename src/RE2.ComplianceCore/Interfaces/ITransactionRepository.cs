@@ -87,7 +87,7 @@ public interface ITransactionRepository
     /// T161: Used for transaction audit reports by substance per FR-026.
     /// </summary>
     Task<IEnumerable<Transaction>> GetBySubstanceAsync(
-        Guid substanceId,
+        string substanceCode,
         DateTime fromDate,
         DateTime toDate,
         CancellationToken cancellationToken = default);
@@ -106,7 +106,7 @@ public interface ITransactionRepository
     /// Used for threshold calculation.
     /// </summary>
     Task<IEnumerable<TransactionLine>> GetLinesBySubstanceInPeriodAsync(
-        Guid substanceId,
+        string substanceCode,
         DateTime fromDate,
         DateTime toDate,
         CancellationToken cancellationToken = default);
@@ -118,7 +118,7 @@ public interface ITransactionRepository
     Task<IEnumerable<TransactionLine>> GetCustomerSubstanceLinesInPeriodAsync(
         string customerAccount,
         string customerDataAreaId,
-        Guid substanceId,
+        string substanceCode,
         DateTime fromDate,
         DateTime toDate,
         CancellationToken cancellationToken = default);
