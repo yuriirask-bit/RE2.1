@@ -223,7 +223,9 @@ public class AuditLoggingService : IAuditLoggingService
         try
         {
             if (auditEvent.EventId == Guid.Empty)
+            {
                 auditEvent.EventId = Guid.NewGuid();
+            }
 
             EnrichEvent(auditEvent);
 
@@ -249,7 +251,9 @@ public class AuditLoggingService : IAuditLoggingService
             foreach (var auditEvent in events)
             {
                 if (auditEvent.EventId == Guid.Empty)
+                {
                     auditEvent.EventId = Guid.NewGuid();
+                }
 
                 EnrichEvent(auditEvent);
             }

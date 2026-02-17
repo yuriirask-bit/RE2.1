@@ -69,7 +69,9 @@ public class DataverseGdpCredentialRepository : IGdpCredentialRepository
         try
         {
             if (provider.ProviderId == Guid.Empty)
+            {
                 provider.ProviderId = Guid.NewGuid();
+            }
 
             provider.CreatedDate = DateTime.UtcNow;
             provider.ModifiedDate = DateTime.UtcNow;
@@ -194,7 +196,9 @@ public class DataverseGdpCredentialRepository : IGdpCredentialRepository
         try
         {
             if (credential.CredentialId == Guid.Empty)
+            {
                 credential.CredentialId = Guid.NewGuid();
+            }
 
             credential.CreatedDate = DateTime.UtcNow;
             credential.ModifiedDate = DateTime.UtcNow;
@@ -305,7 +309,9 @@ public class DataverseGdpCredentialRepository : IGdpCredentialRepository
         try
         {
             if (review.ReviewId == Guid.Empty)
+            {
                 review.ReviewId = Guid.NewGuid();
+            }
 
             var entity = MapReviewToEntity(review);
             await _dataverseClient.CreateAsync(entity, cancellationToken);
@@ -355,7 +361,9 @@ public class DataverseGdpCredentialRepository : IGdpCredentialRepository
         try
         {
             if (verification.VerificationId == Guid.Empty)
+            {
                 verification.VerificationId = Guid.NewGuid();
+            }
 
             var entity = MapVerificationToEntity(verification);
             await _dataverseClient.CreateAsync(entity, cancellationToken);
@@ -403,9 +411,15 @@ public class DataverseGdpCredentialRepository : IGdpCredentialRepository
         entity["phr_qualificationstatus"] = (int)provider.QualificationStatus;
         entity["phr_reviewfrequencymonths"] = provider.ReviewFrequencyMonths;
         if (provider.LastReviewDate.HasValue)
+        {
             entity["phr_lastreviewdate"] = provider.LastReviewDate.Value.ToDateTime(TimeOnly.MinValue);
+        }
+
         if (provider.NextReviewDate.HasValue)
+        {
             entity["phr_nextreviewdate"] = provider.NextReviewDate.Value.ToDateTime(TimeOnly.MinValue);
+        }
+
         entity["phr_isactive"] = provider.IsActive;
         return entity;
     }
@@ -440,14 +454,26 @@ public class DataverseGdpCredentialRepository : IGdpCredentialRepository
         entity["phr_gdpcertificatenumber"] = credential.GdpCertificateNumber;
         entity["phr_eudragmdpentryurl"] = credential.EudraGmdpEntryUrl;
         if (credential.ValidityStartDate.HasValue)
+        {
             entity["phr_validitystartdate"] = credential.ValidityStartDate.Value.ToDateTime(TimeOnly.MinValue);
+        }
+
         if (credential.ValidityEndDate.HasValue)
+        {
             entity["phr_validityenddate"] = credential.ValidityEndDate.Value.ToDateTime(TimeOnly.MinValue);
+        }
+
         entity["phr_qualificationstatus"] = (int)credential.QualificationStatus;
         if (credential.LastVerificationDate.HasValue)
+        {
             entity["phr_lastverificationdate"] = credential.LastVerificationDate.Value.ToDateTime(TimeOnly.MinValue);
+        }
+
         if (credential.NextReviewDate.HasValue)
+        {
             entity["phr_nextreviewdate"] = credential.NextReviewDate.Value.ToDateTime(TimeOnly.MinValue);
+        }
+
         return entity;
     }
 
@@ -478,7 +504,10 @@ public class DataverseGdpCredentialRepository : IGdpCredentialRepository
         entity["phr_reviewername"] = review.ReviewerName;
         entity["phr_notes"] = review.Notes;
         if (review.NextReviewDate.HasValue)
+        {
             entity["phr_nextreviewdate"] = review.NextReviewDate.Value.ToDateTime(TimeOnly.MinValue);
+        }
+
         return entity;
     }
 

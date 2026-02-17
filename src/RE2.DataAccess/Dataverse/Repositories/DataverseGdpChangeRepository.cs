@@ -82,7 +82,9 @@ public class DataverseGdpChangeRepository : IGdpChangeRepository
         try
         {
             if (record.ChangeRecordId == Guid.Empty)
+            {
                 record.ChangeRecordId = Guid.NewGuid();
+            }
 
             record.CreatedDate = DateTime.UtcNow;
             record.ModifiedDate = DateTime.UtcNow;
@@ -185,11 +187,20 @@ public class DataverseGdpChangeRepository : IGdpChangeRepository
         entity["phr_riskassessment"] = record.RiskAssessment;
         entity["phr_approvalstatus"] = (int)record.ApprovalStatus;
         if (record.ApprovedBy.HasValue)
+        {
             entity["phr_approvedby"] = record.ApprovedBy.Value;
+        }
+
         if (record.ApprovalDate.HasValue)
+        {
             entity["phr_approvaldate"] = record.ApprovalDate.Value.ToDateTime(TimeOnly.MinValue);
+        }
+
         if (record.ImplementationDate.HasValue)
+        {
             entity["phr_implementationdate"] = record.ImplementationDate.Value.ToDateTime(TimeOnly.MinValue);
+        }
+
         entity["phr_updateddocumentationrefs"] = record.UpdatedDocumentationRefs;
         return entity;
     }

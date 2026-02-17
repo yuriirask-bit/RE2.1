@@ -30,7 +30,9 @@ public class InMemoryGdpDocumentRepository : IGdpDocumentRepository
     public Task<Guid> CreateDocumentAsync(GdpDocument document, CancellationToken cancellationToken = default)
     {
         if (document.DocumentId == Guid.Empty)
+        {
             document.DocumentId = Guid.NewGuid();
+        }
 
         _documents[document.DocumentId] = CloneDocument(document);
         return Task.FromResult(document.DocumentId);

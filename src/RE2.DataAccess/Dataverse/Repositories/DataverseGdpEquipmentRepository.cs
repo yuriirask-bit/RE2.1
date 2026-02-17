@@ -131,7 +131,9 @@ public class DataverseGdpEquipmentRepository : IGdpEquipmentRepository
         try
         {
             if (equipment.EquipmentQualificationId == Guid.Empty)
+            {
                 equipment.EquipmentQualificationId = Guid.NewGuid();
+            }
 
             equipment.CreatedDate = DateTime.UtcNow;
             equipment.ModifiedDate = DateTime.UtcNow;
@@ -207,12 +209,21 @@ public class DataverseGdpEquipmentRepository : IGdpEquipmentRepository
         entity["phr_equipmentname"] = equipment.EquipmentName;
         entity["phr_equipmenttype"] = (int)equipment.EquipmentType;
         if (equipment.ProviderId.HasValue)
+        {
             entity["phr_providerid"] = equipment.ProviderId.Value;
+        }
+
         if (equipment.SiteId.HasValue)
+        {
             entity["phr_siteid"] = equipment.SiteId.Value;
+        }
+
         entity["phr_qualificationdate"] = equipment.QualificationDate.ToDateTime(TimeOnly.MinValue);
         if (equipment.RequalificationDueDate.HasValue)
+        {
             entity["phr_requalificationduedate"] = equipment.RequalificationDueDate.Value.ToDateTime(TimeOnly.MinValue);
+        }
+
         entity["phr_qualificationstatus"] = (int)equipment.QualificationStatus;
         entity["phr_qualifiedby"] = equipment.QualifiedBy;
         entity["phr_notes"] = equipment.Notes;

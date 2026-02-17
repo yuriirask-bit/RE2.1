@@ -31,7 +31,9 @@ public class GdpSopsController : Controller
     {
         var sops = (await _sopRepository.GetAllAsync()).ToList();
         if (activeOnly == true)
+        {
             sops = sops.Where(s => s.IsActive).ToList();
+        }
 
         var model = new SopIndexViewModel
         {
@@ -46,7 +48,10 @@ public class GdpSopsController : Controller
     public async Task<IActionResult> Details(Guid id)
     {
         var sop = await _sopRepository.GetByIdAsync(id);
-        if (sop == null) return NotFound();
+        if (sop == null)
+        {
+            return NotFound();
+        }
 
         var linkedSops = (await _sopRepository.GetSiteSopsAsync(id)).ToList();
         var sites = (await _gdpService.GetAllGdpSitesAsync()).ToList();
@@ -104,7 +109,10 @@ public class GdpSopsController : Controller
     public async Task<IActionResult> Edit(Guid id)
     {
         var sop = await _sopRepository.GetByIdAsync(id);
-        if (sop == null) return NotFound();
+        if (sop == null)
+        {
+            return NotFound();
+        }
 
         PopulateDropdowns();
         var model = new SopEditViewModel

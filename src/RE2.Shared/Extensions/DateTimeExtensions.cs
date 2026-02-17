@@ -52,7 +52,9 @@ public static class DateTimeExtensions
     public static bool IsValidOrNoExpiry(this DateOnly? expiryDate, DateOnly? asOfDate = null)
     {
         if (!expiryDate.HasValue)
+        {
             return true; // No expiry date means never expires
+        }
 
         return expiryDate.Value.IsValid(asOfDate);
     }
@@ -98,13 +100,24 @@ public static class DateTimeExtensions
         var daysUntil = expiryDate.DaysUntilExpiry(asOfDate);
 
         if (daysUntil < 0)
+        {
             return "Expired";
+        }
+
         if (daysUntil <= 30)
+        {
             return "Critical";
+        }
+
         if (daysUntil <= 60)
+        {
             return "Warning";
+        }
+
         if (daysUntil <= 90)
+        {
             return "Info";
+        }
 
         return null; // No warning needed
     }

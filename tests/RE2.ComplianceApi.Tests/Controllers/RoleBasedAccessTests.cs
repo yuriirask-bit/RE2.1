@@ -1,8 +1,8 @@
+using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using RE2.ComplianceApi.Controllers.V1;
-using System.Security.Claims;
 
 namespace RE2.ComplianceApi.Tests.Controllers;
 

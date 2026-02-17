@@ -44,7 +44,11 @@ public class GdpEquipmentController : Controller
     public async Task<IActionResult> Details(Guid id)
     {
         var equipment = await _operationalService.GetEquipmentAsync(id);
-        if (equipment == null) return NotFound();
+        if (equipment == null)
+        {
+            return NotFound();
+        }
+
         return View(equipment);
     }
 
@@ -95,7 +99,10 @@ public class GdpEquipmentController : Controller
     public async Task<IActionResult> Edit(Guid id)
     {
         var equipment = await _operationalService.GetEquipmentAsync(id);
-        if (equipment == null) return NotFound();
+        if (equipment == null)
+        {
+            return NotFound();
+        }
 
         await PopulateDropdowns();
         var model = new GdpEquipmentEditViewModel

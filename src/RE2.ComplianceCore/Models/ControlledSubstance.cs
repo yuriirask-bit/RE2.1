@@ -193,7 +193,9 @@ public class ControlledSubstance
     public bool HasBeenReclassifiedSince(DateOnly sinceDate)
     {
         if (ReclassificationHistory == null)
+        {
             return false;
+        }
 
         return ReclassificationHistory.Any(r =>
             r.EffectiveDate > sinceDate &&

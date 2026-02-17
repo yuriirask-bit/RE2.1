@@ -210,15 +210,29 @@ public class WebhookSubscription
         var types = new List<WebhookEventType>();
 
         if (EventTypes.HasFlag(WebhookEventType.ComplianceStatusChanged))
+        {
             types.Add(WebhookEventType.ComplianceStatusChanged);
+        }
+
         if (EventTypes.HasFlag(WebhookEventType.OrderApproved))
+        {
             types.Add(WebhookEventType.OrderApproved);
+        }
+
         if (EventTypes.HasFlag(WebhookEventType.OrderRejected))
+        {
             types.Add(WebhookEventType.OrderRejected);
+        }
+
         if (EventTypes.HasFlag(WebhookEventType.LicenceExpiring))
+        {
             types.Add(WebhookEventType.LicenceExpiring);
+        }
+
         if (EventTypes.HasFlag(WebhookEventType.OverrideApproved))
+        {
             types.Add(WebhookEventType.OverrideApproved);
+        }
 
         return types.ToArray();
     }

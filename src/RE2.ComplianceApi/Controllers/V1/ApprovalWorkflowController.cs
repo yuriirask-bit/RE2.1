@@ -1,11 +1,11 @@
+using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RE2.ComplianceCore.Interfaces;
 using RE2.ComplianceCore.Models;
 using RE2.Shared.Constants;
 using RE2.Shared.Models;
-using System.Security.Claims;
-using System.Text.Json;
 
 namespace RE2.ComplianceApi.Controllers.V1;
 

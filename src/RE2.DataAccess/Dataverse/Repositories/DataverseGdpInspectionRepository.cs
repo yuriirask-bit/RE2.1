@@ -146,7 +146,9 @@ public class DataverseGdpInspectionRepository : IGdpInspectionRepository
         try
         {
             if (inspection.InspectionId == Guid.Empty)
+            {
                 inspection.InspectionId = Guid.NewGuid();
+            }
 
             inspection.CreatedDate = DateTime.UtcNow;
             inspection.ModifiedDate = DateTime.UtcNow;
@@ -230,7 +232,9 @@ public class DataverseGdpInspectionRepository : IGdpInspectionRepository
         try
         {
             if (finding.FindingId == Guid.Empty)
+            {
                 finding.FindingId = Guid.NewGuid();
+            }
 
             var entity = MapFindingToEntity(finding);
             await _dataverseClient.CreateAsync(entity, cancellationToken);
@@ -304,7 +308,10 @@ public class DataverseGdpInspectionRepository : IGdpInspectionRepository
         entity["phr_inspectiontype"] = (int)inspection.InspectionType;
         entity["phr_siteid"] = inspection.SiteId;
         if (inspection.WdaLicenceId.HasValue)
+        {
             entity["phr_wdalicenceid"] = inspection.WdaLicenceId.Value;
+        }
+
         entity["phr_findingssummary"] = inspection.FindingsSummary;
         entity["phr_reportreferenceurl"] = inspection.ReportReferenceUrl;
         return entity;

@@ -142,7 +142,9 @@ public class GracefulDegradationMiddleware
         foreach (var segment in CriticalApiSegments)
         {
             if (path.Contains(segment, StringComparison.OrdinalIgnoreCase))
+            {
                 return true;
+            }
         }
 
         // If it's an API path but doesn't match non-critical segments,
@@ -152,7 +154,9 @@ public class GracefulDegradationMiddleware
             foreach (var segment in NonCriticalApiSegments)
             {
                 if (path.Contains(segment, StringComparison.OrdinalIgnoreCase))
+                {
                     return false;
+                }
             }
 
             // Unknown API path → treat as critical (safe default)

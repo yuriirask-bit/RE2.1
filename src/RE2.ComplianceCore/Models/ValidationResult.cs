@@ -100,10 +100,12 @@ public sealed class ValidationResult
     /// <returns>Combined validation result.</returns>
     public ValidationResult Combine(ValidationResult other)
     {
-        if (this.IsValid && other.IsValid)
+        if (IsValid && other.IsValid)
+        {
             return Success();
+        }
 
-        var allViolations = this.Violations.Concat(other.Violations);
+        var allViolations = Violations.Concat(other.Violations);
         return Failure(allViolations);
     }
 
@@ -129,7 +131,9 @@ public sealed class ValidationResult
         var resultList = results.ToList();
 
         if (resultList.All(r => r.IsValid))
+        {
             return Success();
+        }
 
         var allViolations = resultList.SelectMany(r => r.Violations);
         return Failure(allViolations);

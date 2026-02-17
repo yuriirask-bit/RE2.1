@@ -130,7 +130,9 @@ public class GdpEquipmentQualification
     public bool IsExpired()
     {
         if (!RequalificationDueDate.HasValue)
+        {
             return false;
+        }
 
         return RequalificationDueDate.Value < DateOnly.FromDateTime(DateTime.UtcNow);
     }
@@ -141,7 +143,9 @@ public class GdpEquipmentQualification
     public bool IsDueForRequalification(int daysAhead = 30)
     {
         if (!RequalificationDueDate.HasValue)
+        {
             return false;
+        }
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         return RequalificationDueDate.Value >= today &&

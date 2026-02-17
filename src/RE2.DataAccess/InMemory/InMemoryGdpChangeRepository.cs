@@ -36,7 +36,9 @@ public class InMemoryGdpChangeRepository : IGdpChangeRepository
     public Task<Guid> CreateAsync(GdpChangeRecord record, CancellationToken cancellationToken = default)
     {
         if (record.ChangeRecordId == Guid.Empty)
+        {
             record.ChangeRecordId = Guid.NewGuid();
+        }
 
         record.CreatedDate = DateTime.UtcNow;
         record.ModifiedDate = DateTime.UtcNow;

@@ -85,10 +85,25 @@ public class GdpSitesController : Controller
         }
 
         var activities = GdpSiteActivity.None;
-        if (model.StorageOver72h) activities |= GdpSiteActivity.StorageOver72h;
-        if (model.TemperatureControlled) activities |= GdpSiteActivity.TemperatureControlled;
-        if (model.Outsourced) activities |= GdpSiteActivity.Outsourced;
-        if (model.TransportOnly) activities |= GdpSiteActivity.TransportOnly;
+        if (model.StorageOver72h)
+        {
+            activities |= GdpSiteActivity.StorageOver72h;
+        }
+
+        if (model.TemperatureControlled)
+        {
+            activities |= GdpSiteActivity.TemperatureControlled;
+        }
+
+        if (model.Outsourced)
+        {
+            activities |= GdpSiteActivity.Outsourced;
+        }
+
+        if (model.TransportOnly)
+        {
+            activities |= GdpSiteActivity.TransportOnly;
+        }
 
         var site = new GdpSite
         {
@@ -186,10 +201,25 @@ public class GdpSitesController : Controller
         }
 
         var activities = GdpSiteActivity.None;
-        if (model.StorageOver72h) activities |= GdpSiteActivity.StorageOver72h;
-        if (model.TemperatureControlled) activities |= GdpSiteActivity.TemperatureControlled;
-        if (model.Outsourced) activities |= GdpSiteActivity.Outsourced;
-        if (model.TransportOnly) activities |= GdpSiteActivity.TransportOnly;
+        if (model.StorageOver72h)
+        {
+            activities |= GdpSiteActivity.StorageOver72h;
+        }
+
+        if (model.TemperatureControlled)
+        {
+            activities |= GdpSiteActivity.TemperatureControlled;
+        }
+
+        if (model.Outsourced)
+        {
+            activities |= GdpSiteActivity.Outsourced;
+        }
+
+        if (model.TransportOnly)
+        {
+            activities |= GdpSiteActivity.TransportOnly;
+        }
 
         var site = new GdpSite
         {

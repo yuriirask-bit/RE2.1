@@ -135,10 +135,14 @@ public class RegulatoryInspection
     public bool AreCorrectiveActionsOverdue()
     {
         if (!CorrectiveActionsDueDate.HasValue)
+        {
             return false;
+        }
 
         if (CorrectiveActionsCompletedDate.HasValue)
+        {
             return false;
+        }
 
         return CorrectiveActionsDueDate.Value < DateOnly.FromDateTime(DateTime.UtcNow);
     }

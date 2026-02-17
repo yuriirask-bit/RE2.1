@@ -148,7 +148,9 @@ public class DataverseTrainingRepository : ITrainingRepository
         try
         {
             if (record.TrainingRecordId == Guid.Empty)
+            {
                 record.TrainingRecordId = Guid.NewGuid();
+            }
 
             var entity = MapToEntity(record);
             await _dataverseClient.CreateAsync(entity, cancellationToken);
@@ -219,12 +221,21 @@ public class DataverseTrainingRepository : ITrainingRepository
         entity["phr_staffmembername"] = record.StaffMemberName;
         entity["phr_trainingcurriculum"] = record.TrainingCurriculum;
         if (record.SopId.HasValue)
+        {
             entity["phr_sopid"] = record.SopId.Value;
+        }
+
         if (record.SiteId.HasValue)
+        {
             entity["phr_siteid"] = record.SiteId.Value;
+        }
+
         entity["phr_completiondate"] = record.CompletionDate.ToDateTime(TimeOnly.MinValue);
         if (record.ExpiryDate.HasValue)
+        {
             entity["phr_expirydate"] = record.ExpiryDate.Value.ToDateTime(TimeOnly.MinValue);
+        }
+
         entity["phr_trainername"] = record.TrainerName;
         entity["phr_assessmentresult"] = (int)record.AssessmentResult;
         return entity;

@@ -232,7 +232,9 @@ public class Transaction
     public bool IsCrossBorder()
     {
         if (string.IsNullOrEmpty(DestinationCountry))
+        {
             return false;
+        }
 
         return !OriginCountry.Equals(DestinationCountry, StringComparison.OrdinalIgnoreCase);
     }
@@ -318,7 +320,9 @@ public class Transaction
     public void ApproveOverride(string approverUserId, string justification, DateTime approvalTime)
     {
         if (!RequiresOverride)
+        {
             throw new InvalidOperationException("Transaction does not require override");
+        }
 
         OverrideStatus = OverrideStatus.Approved;
         OverrideDecisionDate = approvalTime;
@@ -335,7 +339,9 @@ public class Transaction
     public void RejectOverride(string rejecterUserId, string reason, DateTime rejectionTime)
     {
         if (!RequiresOverride)
+        {
             throw new InvalidOperationException("Transaction does not require override");
+        }
 
         OverrideStatus = OverrideStatus.Rejected;
         OverrideDecisionDate = rejectionTime;

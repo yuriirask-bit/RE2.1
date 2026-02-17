@@ -120,22 +120,37 @@ public class D365FoAlertRepository : IAlertRepository
             var filters = new List<string>();
 
             if (type.HasValue)
+            {
                 filters.Add($"AlertType eq {(int)type.Value}");
+            }
+
             if (severity.HasValue)
+            {
                 filters.Add($"Severity eq {(int)severity.Value}");
+            }
+
             if (entityType.HasValue)
+            {
                 filters.Add($"TargetEntityType eq {(int)entityType.Value}");
+            }
+
             if (isAcknowledged.HasValue)
+            {
                 filters.Add(isAcknowledged.Value ? "AcknowledgedDate ne null" : "AcknowledgedDate eq null");
+            }
 
             var queryParts = new List<string>();
             if (filters.Any())
+            {
                 queryParts.Add($"$filter={string.Join(" and ", filters)}");
+            }
 
             queryParts.Add("$orderby=Severity desc,GeneratedDate desc");
 
             if (maxResults.HasValue)
+            {
                 queryParts.Add($"$top={maxResults.Value}");
+            }
 
             var query = string.Join("&", queryParts);
             var response = await _client.GetAsync<AlertODataResponse>(EntitySetName, query, cancellationToken);
@@ -171,7 +186,9 @@ public class D365FoAlertRepository : IAlertRepository
         try
         {
             if (alert.AlertId == Guid.Empty)
+            {
                 alert.AlertId = Guid.NewGuid();
+            }
 
             var dto = AlertDto.FromDomainModel(alert);
             await _client.CreateAsync(EntitySetName, dto, cancellationToken);

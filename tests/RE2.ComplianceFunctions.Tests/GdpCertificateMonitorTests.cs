@@ -4,8 +4,8 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using RE2.ComplianceCore.Interfaces;
 using RE2.ComplianceCore.Services.AlertGeneration;
-using RE2.DataAccess.InMemory;
 using RE2.ComplianceFunctions;
+using RE2.DataAccess.InMemory;
 using Xunit;
 
 namespace RE2.ComplianceFunctions.Tests;

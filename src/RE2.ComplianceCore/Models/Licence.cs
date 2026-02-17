@@ -174,14 +174,20 @@ public class Licence
     public bool IsExpired()
     {
         if (!ExpiryDate.HasValue)
+        {
             return false;
+        }
 
         if (!ExpiryDate.Value.IsExpired())
+        {
             return false;
+        }
 
         // Check if grace period extends validity (per Assumption 16)
         if (GracePeriodEndDate.HasValue && !GracePeriodEndDate.Value.IsExpired())
+        {
             return false;
+        }
 
         return true;
     }
@@ -247,17 +253,46 @@ public class Licence
     private static string GetActivityNames(LicenceTypes.PermittedActivity activities)
     {
         if (activities == LicenceTypes.PermittedActivity.None)
+        {
             return "None";
+        }
 
         var names = new List<string>();
 
-        if (activities.HasFlag(LicenceTypes.PermittedActivity.Possess)) names.Add("Possess");
-        if (activities.HasFlag(LicenceTypes.PermittedActivity.Store)) names.Add("Store");
-        if (activities.HasFlag(LicenceTypes.PermittedActivity.Distribute)) names.Add("Distribute");
-        if (activities.HasFlag(LicenceTypes.PermittedActivity.Import)) names.Add("Import");
-        if (activities.HasFlag(LicenceTypes.PermittedActivity.Export)) names.Add("Export");
-        if (activities.HasFlag(LicenceTypes.PermittedActivity.Manufacture)) names.Add("Manufacture");
-        if (activities.HasFlag(LicenceTypes.PermittedActivity.HandlePrecursors)) names.Add("HandlePrecursors");
+        if (activities.HasFlag(LicenceTypes.PermittedActivity.Possess))
+        {
+            names.Add("Possess");
+        }
+
+        if (activities.HasFlag(LicenceTypes.PermittedActivity.Store))
+        {
+            names.Add("Store");
+        }
+
+        if (activities.HasFlag(LicenceTypes.PermittedActivity.Distribute))
+        {
+            names.Add("Distribute");
+        }
+
+        if (activities.HasFlag(LicenceTypes.PermittedActivity.Import))
+        {
+            names.Add("Import");
+        }
+
+        if (activities.HasFlag(LicenceTypes.PermittedActivity.Export))
+        {
+            names.Add("Export");
+        }
+
+        if (activities.HasFlag(LicenceTypes.PermittedActivity.Manufacture))
+        {
+            names.Add("Manufacture");
+        }
+
+        if (activities.HasFlag(LicenceTypes.PermittedActivity.HandlePrecursors))
+        {
+            names.Add("HandlePrecursors");
+        }
 
         return string.Join(", ", names);
     }

@@ -505,7 +505,10 @@ public class DataverseLicenceRepository : ILicenceRepository
         entity["phr_recordername"] = dto.phr_recordername;
         entity["phr_recordeddate"] = dto.phr_recordeddate;
         if (dto.phr_supportingdocumentid.HasValue)
+        {
             entity["phr_supportingdocumentid"] = dto.phr_supportingdocumentid.Value;
+        }
+
         entity["phr_substancesadded"] = dto.phr_substancesadded;
         entity["phr_substancesremoved"] = dto.phr_substancesremoved;
         entity["phr_activitiesadded"] = dto.phr_activitiesadded;

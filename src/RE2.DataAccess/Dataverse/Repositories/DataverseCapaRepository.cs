@@ -170,7 +170,9 @@ public class DataverseCapaRepository : ICapaRepository
         try
         {
             if (capa.CapaId == Guid.Empty)
+            {
                 capa.CapaId = Guid.NewGuid();
+            }
 
             capa.CreatedDate = DateTime.UtcNow;
             capa.ModifiedDate = DateTime.UtcNow;
@@ -235,7 +237,10 @@ public class DataverseCapaRepository : ICapaRepository
         entity["phr_ownername"] = capa.OwnerName;
         entity["phr_duedate"] = capa.DueDate.ToDateTime(TimeOnly.MinValue);
         if (capa.CompletionDate.HasValue)
+        {
             entity["phr_completiondate"] = capa.CompletionDate.Value.ToDateTime(TimeOnly.MinValue);
+        }
+
         entity["phr_status"] = (int)capa.Status;
         entity["phr_verificationnotes"] = capa.VerificationNotes;
         return entity;

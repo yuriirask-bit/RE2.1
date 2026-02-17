@@ -32,7 +32,9 @@ public class InMemoryGdpCredentialRepository : IGdpCredentialRepository
     public Task<Guid> CreateProviderAsync(GdpServiceProvider provider, CancellationToken cancellationToken = default)
     {
         if (provider.ProviderId == Guid.Empty)
+        {
             provider.ProviderId = Guid.NewGuid();
+        }
 
         provider.CreatedDate = DateTime.UtcNow;
         provider.ModifiedDate = DateTime.UtcNow;
@@ -87,7 +89,9 @@ public class InMemoryGdpCredentialRepository : IGdpCredentialRepository
     public Task<Guid> CreateCredentialAsync(GdpCredential credential, CancellationToken cancellationToken = default)
     {
         if (credential.CredentialId == Guid.Empty)
+        {
             credential.CredentialId = Guid.NewGuid();
+        }
 
         credential.CreatedDate = DateTime.UtcNow;
         credential.ModifiedDate = DateTime.UtcNow;
@@ -136,7 +140,9 @@ public class InMemoryGdpCredentialRepository : IGdpCredentialRepository
     public Task<Guid> CreateReviewAsync(QualificationReview review, CancellationToken cancellationToken = default)
     {
         if (review.ReviewId == Guid.Empty)
+        {
             review.ReviewId = Guid.NewGuid();
+        }
 
         _reviews[review.ReviewId] = CloneReview(review);
         return Task.FromResult(review.ReviewId);
@@ -159,7 +165,9 @@ public class InMemoryGdpCredentialRepository : IGdpCredentialRepository
     public Task<Guid> CreateVerificationAsync(GdpCredentialVerification verification, CancellationToken cancellationToken = default)
     {
         if (verification.VerificationId == Guid.Empty)
+        {
             verification.VerificationId = Guid.NewGuid();
+        }
 
         _verifications[verification.VerificationId] = CloneVerification(verification);
         return Task.FromResult(verification.VerificationId);

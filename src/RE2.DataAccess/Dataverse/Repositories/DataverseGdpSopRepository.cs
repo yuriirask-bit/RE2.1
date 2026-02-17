@@ -85,7 +85,9 @@ public class DataverseGdpSopRepository : IGdpSopRepository
         try
         {
             if (sop.SopId == Guid.Empty)
+            {
                 sop.SopId = Guid.NewGuid();
+            }
 
             var entity = MapSopToEntity(sop);
             await _dataverseClient.CreateAsync(entity, cancellationToken);
@@ -151,7 +153,9 @@ public class DataverseGdpSopRepository : IGdpSopRepository
             var sopIds = linkResult.Entities.Select(e => e.GetAttributeValue<Guid>("phr_sopid")).ToList();
 
             if (!sopIds.Any())
+            {
                 return Enumerable.Empty<GdpSop>();
+            }
 
             // Then get the SOPs
             var sops = new List<GdpSop>();
@@ -159,7 +163,9 @@ public class DataverseGdpSopRepository : IGdpSopRepository
             {
                 var sop = await GetByIdAsync(sopId, cancellationToken);
                 if (sop != null)
+                {
                     sops.Add(sop);
+                }
             }
             return sops;
         }

@@ -313,13 +313,17 @@ public class CliIntegrationTests
         process.OutputDataReceived += (_, e) =>
         {
             if (e.Data != null)
+            {
                 stdoutBuilder.AppendLine(e.Data);
+            }
         };
 
         process.ErrorDataReceived += (_, e) =>
         {
             if (e.Data != null)
+            {
                 stderrBuilder.AppendLine(e.Data);
+            }
         };
 
         process.Start();

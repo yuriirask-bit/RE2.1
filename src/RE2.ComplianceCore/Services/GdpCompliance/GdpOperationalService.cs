@@ -85,10 +85,14 @@ public class GdpOperationalService : IGdpOperationalService
                 GdpCredentialEntityType.ServiceProvider, provider.ProviderId, cancellationToken);
 
             if (!isQualified)
+            {
                 continue;
+            }
 
             if (requireTempControl == true && !provider.TemperatureControlledCapability)
+            {
                 continue;
+            }
 
             approvedProviders.Add(provider);
         }
@@ -117,7 +121,9 @@ public class GdpOperationalService : IGdpOperationalService
     {
         var validationResult = equipment.Validate();
         if (!validationResult.IsValid)
+        {
             return (null, validationResult);
+        }
 
         try
         {
@@ -145,7 +151,9 @@ public class GdpOperationalService : IGdpOperationalService
     {
         var validationResult = equipment.Validate();
         if (!validationResult.IsValid)
+        {
             return validationResult;
+        }
 
         var existing = await _equipmentRepository.GetByIdAsync(equipment.EquipmentQualificationId, cancellationToken);
         if (existing == null)

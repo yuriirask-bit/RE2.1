@@ -63,7 +63,9 @@ public class InMemoryTrainingRepository : ITrainingRepository
     public Task<Guid> CreateAsync(TrainingRecord record, CancellationToken cancellationToken = default)
     {
         if (record.TrainingRecordId == Guid.Empty)
+        {
             record.TrainingRecordId = Guid.NewGuid();
+        }
 
         _records[record.TrainingRecordId] = Clone(record);
         return Task.FromResult(record.TrainingRecordId);

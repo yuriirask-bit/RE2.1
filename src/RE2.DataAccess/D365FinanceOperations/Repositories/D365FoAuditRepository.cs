@@ -29,7 +29,9 @@ public class D365FoAuditRepository : IAuditRepository
         try
         {
             if (auditEvent.EventId == Guid.Empty)
+            {
                 auditEvent.EventId = Guid.NewGuid();
+            }
 
             var dto = AuditEventDto.FromDomainModel(auditEvent);
             await _client.CreateAsync(EntitySetName, dto, cancellationToken);
@@ -318,9 +320,14 @@ public class D365FoAuditRepository : IAuditRepository
             };
 
             if (fromDate.HasValue)
+            {
                 filters.Add($"EventDate ge {fromDate.Value:yyyy-MM-ddTHH:mm:ssZ}");
+            }
+
             if (toDate.HasValue)
+            {
                 filters.Add($"EventDate le {toDate.Value:yyyy-MM-ddTHH:mm:ssZ}");
+            }
 
             var query = $"$filter={string.Join(" and ", filters)}&$orderby=EventDate desc";
             var response = await _client.GetAsync<AuditEventODataResponse>(EntitySetName, query, cancellationToken);
@@ -371,26 +378,51 @@ public class D365FoAuditRepository : IAuditRepository
             var filters = new List<string>();
 
             if (criteria.EntityType.HasValue)
+            {
                 filters.Add($"EntityType eq {(int)criteria.EntityType.Value}");
+            }
+
             if (criteria.EntityId.HasValue)
+            {
                 filters.Add($"EntityId eq {criteria.EntityId.Value}");
+            }
+
             if (criteria.EventType.HasValue)
+            {
                 filters.Add($"EventType eq {(int)criteria.EventType.Value}");
+            }
+
             if (criteria.PerformedBy.HasValue)
+            {
                 filters.Add($"PerformedBy eq {criteria.PerformedBy.Value}");
+            }
+
             if (criteria.FromDate.HasValue)
+            {
                 filters.Add($"EventDate ge {criteria.FromDate.Value:yyyy-MM-ddTHH:mm:ssZ}");
+            }
+
             if (criteria.ToDate.HasValue)
+            {
                 filters.Add($"EventDate le {criteria.ToDate.Value:yyyy-MM-ddTHH:mm:ssZ}");
+            }
+
             if (!string.IsNullOrEmpty(criteria.DetailsContains))
+            {
                 filters.Add($"contains(Details,'{criteria.DetailsContains}')");
+            }
+
             if (!string.IsNullOrEmpty(criteria.CorrelationId))
+            {
                 filters.Add($"CorrelationId eq '{criteria.CorrelationId}'");
+            }
 
             var queryParts = new List<string>();
 
             if (filters.Any())
+            {
                 queryParts.Add($"$filter={string.Join(" and ", filters)}");
+            }
 
             queryParts.Add("$orderby=EventDate desc");
             queryParts.Add($"$skip={criteria.Skip}");

@@ -1,13 +1,15 @@
 using System.Threading.RateLimiting;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Identity.Web;
 using Microsoft.OpenApi.Models;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using RE2.ComplianceApi.Authentication;
 using RE2.ComplianceApi.Authorization;
 using RE2.ComplianceApi.HealthChecks;
@@ -149,6 +151,30 @@ else
     });
 }
 
+// T280: Configure distributed caching (Redis for production, in-memory for development)
+var cachingConfig = builder.Configuration.GetSection("Caching");
+if (cachingConfig.GetValue<bool>("UseInMemory"))
+{
+    builder.Services.AddDistributedMemoryCache();
+}
+else
+{
+    var redisConnection = cachingConfig["RedisConnectionString"];
+    if (!string.IsNullOrEmpty(redisConnection))
+    {
+        builder.Services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = redisConnection;
+            options.InstanceName = cachingConfig["KeyPrefix"] ?? "re2:";
+        });
+    }
+    else
+    {
+        // Fallback to in-memory if no Redis connection configured
+        builder.Services.AddDistributedMemoryCache();
+    }
+}
+
 // T038: Register data services (uses in-memory for local dev, Dataverse for production)
 // Set "UseInMemoryRepositories": true in appsettings.Development.json to test locally
 builder.Services.AddComplianceDataServices(builder.Configuration);
@@ -250,6 +276,10 @@ builder.Services.AddRateLimiter(options =>
         }, cancellationToken);
     };
 });
+
+// T289: Register FluentValidation validators for all request DTOs
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+builder.Services.AddFluentValidationAutoValidation();
 
 // Add controllers
 builder.Services.AddControllers();

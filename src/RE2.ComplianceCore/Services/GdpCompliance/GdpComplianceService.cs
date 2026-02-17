@@ -192,7 +192,9 @@ public class GdpComplianceService : IGdpComplianceService
     {
         var validationResult = provider.Validate();
         if (!validationResult.IsValid)
+        {
             return (null, validationResult);
+        }
 
         var id = await _gdpCredentialRepository.CreateProviderAsync(provider, cancellationToken);
         _logger.LogInformation("Created GDP service provider {ProviderId} ({Name})", id, provider.ProviderName);
@@ -203,7 +205,9 @@ public class GdpComplianceService : IGdpComplianceService
     {
         var validationResult = provider.Validate();
         if (!validationResult.IsValid)
+        {
             return validationResult;
+        }
 
         var existing = await _gdpCredentialRepository.GetProviderAsync(provider.ProviderId, cancellationToken);
         if (existing == null)
@@ -261,7 +265,9 @@ public class GdpComplianceService : IGdpComplianceService
     {
         var validationResult = credential.Validate();
         if (!validationResult.IsValid)
+        {
             return (null, validationResult);
+        }
 
         var id = await _gdpCredentialRepository.CreateCredentialAsync(credential, cancellationToken);
         _logger.LogInformation("Created GDP credential {CredentialId} for {EntityType} {EntityId}", id, credential.EntityType, credential.EntityId);
@@ -272,7 +278,9 @@ public class GdpComplianceService : IGdpComplianceService
     {
         var validationResult = credential.Validate();
         if (!validationResult.IsValid)
+        {
             return validationResult;
+        }
 
         var existing = await _gdpCredentialRepository.GetCredentialAsync(credential.CredentialId, cancellationToken);
         if (existing == null)
@@ -325,7 +333,9 @@ public class GdpComplianceService : IGdpComplianceService
     {
         var validationResult = review.Validate();
         if (!validationResult.IsValid)
+        {
             return (null, validationResult);
+        }
 
         // Update the reviewed entity's qualification status based on outcome
         if (review.EntityType == ReviewEntityType.ServiceProvider)
@@ -353,7 +363,9 @@ public class GdpComplianceService : IGdpComplianceService
             };
             provider.LastReviewDate = review.ReviewDate;
             if (review.NextReviewDate.HasValue)
+            {
                 provider.NextReviewDate = review.NextReviewDate;
+            }
 
             await _gdpCredentialRepository.UpdateProviderAsync(provider, cancellationToken);
         }
@@ -377,7 +389,9 @@ public class GdpComplianceService : IGdpComplianceService
     {
         var validationResult = verification.Validate();
         if (!validationResult.IsValid)
+        {
             return (null, validationResult);
+        }
 
         // Verify the credential exists
         var credential = await _gdpCredentialRepository.GetCredentialAsync(verification.CredentialId, cancellationToken);
@@ -448,7 +462,9 @@ public class GdpComplianceService : IGdpComplianceService
     {
         var validationResult = inspection.Validate();
         if (!validationResult.IsValid)
+        {
             return (null, validationResult);
+        }
 
         var id = await _gdpInspectionRepository.CreateAsync(inspection, cancellationToken);
         _logger.LogInformation("Created GDP inspection {InspectionId} for site {SiteId}", id, inspection.SiteId);
@@ -459,7 +475,9 @@ public class GdpComplianceService : IGdpComplianceService
     {
         var validationResult = inspection.Validate();
         if (!validationResult.IsValid)
+        {
             return validationResult;
+        }
 
         var existing = await _gdpInspectionRepository.GetByIdAsync(inspection.InspectionId, cancellationToken);
         if (existing == null)
@@ -493,7 +511,9 @@ public class GdpComplianceService : IGdpComplianceService
     {
         var validationResult = finding.Validate();
         if (!validationResult.IsValid)
+        {
             return (null, validationResult);
+        }
 
         // Verify the parent inspection exists
         var inspection = await _gdpInspectionRepository.GetByIdAsync(finding.InspectionId, cancellationToken);
@@ -518,7 +538,9 @@ public class GdpComplianceService : IGdpComplianceService
     {
         var validationResult = finding.Validate();
         if (!validationResult.IsValid)
+        {
             return validationResult;
+        }
 
         var existing = await _gdpInspectionRepository.GetFindingByIdAsync(finding.FindingId, cancellationToken);
         if (existing == null)
@@ -586,7 +608,9 @@ public class GdpComplianceService : IGdpComplianceService
     {
         var validationResult = capa.Validate();
         if (!validationResult.IsValid)
+        {
             return (null, validationResult);
+        }
 
         // Verify the linked finding exists
         var finding = await _gdpInspectionRepository.GetFindingByIdAsync(capa.FindingId, cancellationToken);
@@ -611,7 +635,9 @@ public class GdpComplianceService : IGdpComplianceService
     {
         var validationResult = capa.Validate();
         if (!validationResult.IsValid)
+        {
             return validationResult;
+        }
 
         var existing = await _capaRepository.GetByIdAsync(capa.CapaId, cancellationToken);
         if (existing == null)
@@ -671,11 +697,15 @@ public class GdpComplianceService : IGdpComplianceService
         // Validate document
         var validationResult = document.Validate();
         if (!validationResult.IsValid)
+        {
             return (null, validationResult);
+        }
 
         // Generate blob name: {entityType}/{entityId}/{documentId}/{filename}
         if (document.DocumentId == Guid.Empty)
+        {
             document.DocumentId = Guid.NewGuid();
+        }
 
         var entityTypeName = document.OwnerEntityType.ToString().ToLowerInvariant();
         var blobName = $"{entityTypeName}/{document.OwnerEntityId}/{document.DocumentId}/{document.FileName}";

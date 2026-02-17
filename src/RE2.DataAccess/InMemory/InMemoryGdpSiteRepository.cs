@@ -62,7 +62,9 @@ public class InMemoryGdpSiteRepository : IGdpSiteRepository
     {
         var key = GetKey(warehouseId, dataAreaId);
         if (!_gdpExtensions.TryGetValue(key, out var extension))
+        {
             return Task.FromResult<GdpSite?>(null);
+        }
 
         // Merge with warehouse data
         var result = CloneGdpExtension(extension);
@@ -93,7 +95,9 @@ public class InMemoryGdpSiteRepository : IGdpSiteRepository
     public Task<Guid> SaveGdpExtensionAsync(GdpSite site, CancellationToken cancellationToken = default)
     {
         if (site.GdpExtensionId == Guid.Empty)
+        {
             site.GdpExtensionId = Guid.NewGuid();
+        }
 
         site.CreatedDate = DateTime.UtcNow;
         site.ModifiedDate = DateTime.UtcNow;
@@ -148,7 +152,9 @@ public class InMemoryGdpSiteRepository : IGdpSiteRepository
     public Task<Guid> AddWdaCoverageAsync(GdpSiteWdaCoverage coverage, CancellationToken cancellationToken = default)
     {
         if (coverage.CoverageId == Guid.Empty)
+        {
             coverage.CoverageId = Guid.NewGuid();
+        }
 
         _wdaCoverages[coverage.CoverageId] = coverage;
         return Task.FromResult(coverage.CoverageId);

@@ -309,7 +309,10 @@ public class ThresholdService : IThresholdService
             .Distinct()
             .ToList();
 
-        if (!substanceCodes.Any()) return;
+        if (!substanceCodes.Any())
+        {
+            return;
+        }
 
         // Batch load substances
         var substanceLookup = new Dictionary<string, ControlledSubstance>();

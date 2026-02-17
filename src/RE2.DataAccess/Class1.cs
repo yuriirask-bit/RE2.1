@@ -1,4 +1,4 @@
-﻿namespace RE2.DataAccess;
+namespace RE2.DataAccess;
 
 public class Class1
 {

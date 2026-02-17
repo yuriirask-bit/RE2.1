@@ -181,7 +181,10 @@ public class DataverseControlledSubstanceRepository : IControlledSubstanceReposi
         entity["phr_regulatoryrestrictions"] = dto.phr_regulatoryrestrictions;
         entity["phr_isactive"] = dto.phr_isactive;
         if (dto.phr_classificationeffectivedate.HasValue)
+        {
             entity["phr_classificationeffectivedate"] = dto.phr_classificationeffectivedate.Value;
+        }
+
         entity["phr_modifieddate"] = DateTime.UtcNow;
         return entity;
     }

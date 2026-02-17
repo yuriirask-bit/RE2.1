@@ -39,7 +39,9 @@ public class D365FoClient : ID365FoClient
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         if (string.IsNullOrWhiteSpace(resource))
+        {
             throw new ArgumentException("Resource URL is required", nameof(resource));
+        }
 
         _resource = resource;
         _credential = new DefaultAzureCredential();
@@ -221,7 +223,9 @@ public class D365FoClient : ID365FoClient
                 // Try to extract entity ID from key
                 Guid entityId = Guid.Empty;
                 if (Guid.TryParse(key.Trim('\'', '"'), out var parsedId))
+                {
                     entityId = parsedId;
+                }
 
                 throw new ConcurrencyException(
                     entitySetName,

@@ -94,10 +94,14 @@ public class GdpCredential
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
         if (ValidityStartDate.HasValue && ValidityStartDate.Value > today)
+        {
             return false;
+        }
 
         if (ValidityEndDate.HasValue && ValidityEndDate.Value < today)
+        {
             return false;
+        }
 
         return true;
     }
