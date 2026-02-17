@@ -399,6 +399,197 @@ public class ReportingServiceTests
 
     #endregion
 
+    #region Additional Edge Case Tests (T286)
+
+    [Fact]
+    public async Task GenerateTransactionAuditReportAsync_FiltersByCountry_WhenCountryCodeProvided()
+    {
+        // Arrange
+        var criteria = new TransactionAuditReportCriteria
+        {
+            FromDate = DateTime.UtcNow.AddDays(-30),
+            ToDate = DateTime.UtcNow,
+            CountryCode = "NLD"
+        };
+
+        var transactions = new List<Transaction>
+        {
+            CreateTestTransaction("CUST-001", "nlpd", "Morphine"),
+            CreateTestTransaction("CUST-002", "nlpd", "Codeine")
+        };
+
+        _transactionRepoMock.Setup(r => r.GetByDateRangeAsync(
+                criteria.FromDate, criteria.ToDate, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(transactions);
+
+        // Only CUST-001 is in NLD
+        _customerRepoMock.Setup(r => r.GetByAccountAsync("CUST-001", "nlpd", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Customer
+            {
+                CustomerAccount = "CUST-001",
+                DataAreaId = "nlpd",
+                AddressCountryRegionId = "NLD",
+                OrganizationName = "Dutch Customer"
+            });
+        _customerRepoMock.Setup(r => r.GetByAccountAsync("CUST-002", "nlpd", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Customer
+            {
+                CustomerAccount = "CUST-002",
+                DataAreaId = "nlpd",
+                AddressCountryRegionId = "DEU",
+                OrganizationName = "German Customer"
+            });
+
+        // Act
+        var report = await _service.GenerateTransactionAuditReportAsync(criteria);
+
+        // Assert
+        report.TotalCount.Should().Be(1);
+        report.FilteredByCountry.Should().Be("NLD");
+    }
+
+    [Fact]
+    public async Task GenerateLicenceUsageReportAsync_ReturnsEmpty_WhenNoLicences()
+    {
+        // Arrange
+        var criteria = new LicenceUsageReportCriteria
+        {
+            FromDate = DateTime.UtcNow.AddDays(-30),
+            ToDate = DateTime.UtcNow
+        };
+
+        _licenceRepoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Enumerable.Empty<Licence>());
+
+        _transactionRepoMock.Setup(r => r.GetByDateRangeAsync(
+                criteria.FromDate, criteria.ToDate, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Enumerable.Empty<Transaction>());
+
+        // Act
+        var report = await _service.GenerateLicenceUsageReportAsync(criteria);
+
+        // Assert
+        report.LicenceUsages.Should().BeEmpty();
+        report.TotalLicences.Should().Be(0);
+        report.TotalTransactions.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GenerateCustomerComplianceHistoryAsync_IncludesSuspendedCustomerData()
+    {
+        // Arrange
+        var complianceExtensionId = Guid.NewGuid();
+        var criteria = new CustomerComplianceHistoryCriteria
+        {
+            CustomerAccount = "CUST-SUSPENDED",
+            DataAreaId = "nlpd"
+        };
+
+        var customer = new Customer
+        {
+            CustomerAccount = "CUST-SUSPENDED",
+            DataAreaId = "nlpd",
+            ComplianceExtensionId = complianceExtensionId,
+            OrganizationName = "Suspended Customer",
+            BusinessCategory = BusinessCategory.WholesalerEU,
+            ApprovalStatus = ApprovalStatus.Suspended,
+            IsSuspended = true,
+            SuspensionReason = "Compliance violation"
+        };
+
+        _customerRepoMock.Setup(r => r.GetByAccountAsync("CUST-SUSPENDED", "nlpd", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(customer);
+
+        _auditRepoMock.Setup(r => r.GetCustomerComplianceHistoryAsync(
+                complianceExtensionId, null, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Enumerable.Empty<AuditEvent>());
+
+        // Act
+        var report = await _service.GenerateCustomerComplianceHistoryAsync(criteria);
+
+        // Assert
+        report.Should().NotBeNull();
+        report!.ApprovalStatus.Should().Be("Suspended");
+        report.CustomerName.Should().Be("Suspended Customer");
+    }
+
+    [Fact]
+    public async Task GenerateCustomerComplianceHistoryAsync_IncludesMultipleLicences()
+    {
+        // Arrange
+        var complianceExtensionId = Guid.NewGuid();
+        var criteria = new CustomerComplianceHistoryCriteria
+        {
+            CustomerAccount = "CUST-MULTI",
+            DataAreaId = "nlpd",
+            IncludeLicenceStatus = true
+        };
+
+        var customer = new Customer
+        {
+            CustomerAccount = "CUST-MULTI",
+            DataAreaId = "nlpd",
+            ComplianceExtensionId = complianceExtensionId,
+            OrganizationName = "Multi-Licence Customer",
+            BusinessCategory = BusinessCategory.CommunityPharmacy,
+            ApprovalStatus = ApprovalStatus.Approved
+        };
+
+        var licences = new List<Licence>
+        {
+            new() { LicenceId = Guid.NewGuid(), LicenceNumber = "LIC-001", IssuingAuthority = "IGJ", HolderType = "Customer", Status = "Valid" },
+            new() { LicenceId = Guid.NewGuid(), LicenceNumber = "LIC-002", IssuingAuthority = "IGJ", HolderType = "Customer", Status = "Expired" },
+            new() { LicenceId = Guid.NewGuid(), LicenceNumber = "WDA-001", IssuingAuthority = "MHRA", HolderType = "Customer", Status = "Valid" }
+        };
+
+        _customerRepoMock.Setup(r => r.GetByAccountAsync("CUST-MULTI", "nlpd", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(customer);
+
+        _licenceRepoMock.Setup(r => r.GetByHolderAsync(complianceExtensionId, "Customer", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(licences);
+
+        _auditRepoMock.Setup(r => r.GetCustomerComplianceHistoryAsync(
+                complianceExtensionId, null, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Enumerable.Empty<AuditEvent>());
+
+        // Act
+        var report = await _service.GenerateCustomerComplianceHistoryAsync(criteria);
+
+        // Assert
+        report!.CurrentLicences.Should().HaveCount(3);
+        report.CurrentLicences.Should().Contain(l => l.LicenceNumber == "LIC-001" && l.Status == "Valid");
+        report.CurrentLicences.Should().Contain(l => l.LicenceNumber == "LIC-002" && l.Status == "Expired");
+    }
+
+    [Fact]
+    public async Task GenerateTransactionAuditReportAsync_SetsDateRangeFilters_InReport()
+    {
+        // Arrange
+        var fromDate = DateTime.UtcNow.AddDays(-7);
+        var toDate = DateTime.UtcNow;
+        var criteria = new TransactionAuditReportCriteria
+        {
+            FromDate = fromDate,
+            ToDate = toDate
+        };
+
+        _transactionRepoMock.Setup(r => r.GetByDateRangeAsync(
+                fromDate, toDate, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Enumerable.Empty<Transaction>());
+
+        // Act
+        var report = await _service.GenerateTransactionAuditReportAsync(criteria);
+
+        // Assert
+        report.FromDate.Should().Be(fromDate);
+        report.ToDate.Should().Be(toDate);
+        report.FilteredBySubstanceCode.Should().BeNull();
+        report.FilteredByCustomerAccount.Should().BeNull();
+        report.FilteredByCountry.Should().BeNull();
+    }
+
+    #endregion
+
     #region Helper Methods
 
     private static Transaction CreateTestTransaction(string customerAccount, string customerDataAreaId, string substanceCode)
