@@ -1,0 +1,367 @@
+@model RE2.ComplianceCore.Models.GdpServiceProvider
+@{
+    ViewData["Title"] = "Provider Details";
+    var credentials = ViewBag.Credentials as List<RE2.ComplianceCore.Models.GdpCredential> ?? new List<RE2.ComplianceCore.Models.GdpCredential>();
+    var reviews = ViewBag.Reviews as List<RE2.ComplianceCore.Models.QualificationReview> ?? new List<RE2.ComplianceCore.Models.QualificationReview>();
+    var documents = ViewBag.Documents as List<RE2.ComplianceCore.Models.GdpDocument> ?? new List<RE2.ComplianceCore.Models.GdpDocument>();
+}
+
+<div class="container">
+    <h1><i class="bi bi-truck"></i> Provider Details</h1>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        @Model.ProviderName
+                        @if (Model.IsActive)
+                        {
+                            <span class="badge bg-success float-end">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary float-end">Inactive</span>
+                        }
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Provider ID</dt>
+                        <dd class="col-sm-7"><code>@Model.ProviderId</code></dd>
+                        <dt class="col-sm-5">Service Type</dt>
+                        <dd class="col-sm-7"><span class="badge bg-primary">@FormatServiceType(Model.ServiceType)</span></dd>
+                        <dt class="col-sm-5">Temp Controlled</dt>
+                        <dd class="col-sm-7">
+                            @if (Model.TemperatureControlledCapability)
+                            {
+                                <span class="badge bg-warning text-dark"><i class="bi bi-thermometer-half"></i> Yes</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">No</span>
+                            }
+                        </dd>
+                        <dt class="col-sm-5">Approved Routes</dt>
+                        <dd class="col-sm-7">@(Model.ApprovedRoutes ?? "-")</dd>
+                    </dl>
+                </div>
+                <div class="card-footer">
+                    <a asp-action="Edit" asp-route-id="@Model.ProviderId" class="btn btn-primary btn-sm">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clipboard-check"></i> Qualification Status</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Status</dt>
+                        <dd class="col-sm-7">
+                            @{
+                                var statusClass = Model.QualificationStatus switch
+                                {
+                                    RE2.ComplianceCore.Models.GdpQualificationStatus.Approved => "bg-success",
+                                    RE2.ComplianceCore.Models.GdpQualificationStatus.ConditionallyApproved => "bg-info",
+                                    RE2.ComplianceCore.Models.GdpQualificationStatus.Pending => "bg-warning text-dark",
+                                    RE2.ComplianceCore.Models.GdpQualificationStatus.Rejected => "bg-danger",
+                                    RE2.ComplianceCore.Models.GdpQualificationStatus.UnderReview => "bg-primary",
+                                    _ => "bg-light text-dark"
+                                };
+                            }
+                            <span class="badge @statusClass">@FormatEnumName(Model.QualificationStatus.ToString())</span>
+                        </dd>
+                        <dt class="col-sm-5">Can Be Selected</dt>
+                        <dd class="col-sm-7">
+                            @if (Model.CanBeSelected())
+                            {
+                                <span class="text-success"><i class="bi bi-check-circle-fill"></i> Yes</span>
+                            }
+                            else
+                            {
+                                <span class="text-danger"><i class="bi bi-x-circle-fill"></i> No</span>
+                            }
+                        </dd>
+                        <dt class="col-sm-5">Review Frequency</dt>
+                        <dd class="col-sm-7">Every @Model.ReviewFrequencyMonths months</dd>
+                        <dt class="col-sm-5">Last Review</dt>
+                        <dd class="col-sm-7">@(Model.LastReviewDate?.ToString("yyyy-MM-dd") ?? "Never")</dd>
+                        <dt class="col-sm-5">Next Review</dt>
+                        <dd class="col-sm-7">
+                            @if (Model.IsReviewDue())
+                            {
+                                <span class="text-danger fw-bold">
+                                    @Model.NextReviewDate?.ToString("yyyy-MM-dd")
+                                    <span class="badge bg-danger ms-1">OVERDUE</span>
+                                </span>
+                            }
+                            else if (Model.NextReviewDate.HasValue)
+                            {
+                                @Model.NextReviewDate.Value.ToString("yyyy-MM-dd")
+                            }
+                            else
+                            {
+                                <span class="text-muted">Not scheduled</span>
+                            }
+                        </dd>
+                    </dl>
+                </div>
+                <div class="card-footer">
+                    <a asp-action="RecordReview" asp-route-providerId="@Model.ProviderId" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-journal-check"></i> Record Review
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GDP Credentials Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="bi bi-award"></i> GDP Credentials
+                <span class="badge bg-secondary float-end">@credentials.Count credential(s)</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Certificate / WDA Number</th>
+                        <th>Valid From</th>
+                        <th>Valid To</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!credentials.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center">
+                                <em>No GDP credentials recorded for this provider.</em>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var cred in credentials)
+                        {
+                            <tr>
+                                <td>@(cred.GdpCertificateNumber != null ? "GDP Certificate" : "WDA")</td>
+                                <td><code>@(cred.GdpCertificateNumber ?? cred.WdaNumber ?? "-")</code></td>
+                                <td>@(cred.ValidityStartDate?.ToString("yyyy-MM-dd") ?? "-")</td>
+                                <td>
+                                    @if (cred.ValidityEndDate.HasValue)
+                                    {
+                                        var isExpired = !cred.IsValid();
+                                        <span class="@(isExpired ? "text-danger fw-bold" : "")">
+                                            @cred.ValidityEndDate.Value.ToString("yyyy-MM-dd")
+                                            @if (isExpired)
+                                            {
+                                                <span class="badge bg-danger ms-1">EXPIRED</span>
+                                            }
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">No expiry</span>
+                                    }
+                                </td>
+                                <td>
+                                    @{
+                                        var credStatusClass = cred.QualificationStatus switch
+                                        {
+                                            RE2.ComplianceCore.Models.GdpQualificationStatus.Approved => "bg-success",
+                                            RE2.ComplianceCore.Models.GdpQualificationStatus.ConditionallyApproved => "bg-info",
+                                            RE2.ComplianceCore.Models.GdpQualificationStatus.Rejected => "bg-danger",
+                                            _ => "bg-secondary"
+                                        };
+                                    }
+                                    <span class="badge @credStatusClass">@FormatEnumName(cred.QualificationStatus.ToString())</span>
+                                </td>
+                                <td>
+                                    <a asp-action="RecordVerification" asp-route-credentialId="@cred.CredentialId"
+                                       class="btn btn-sm btn-outline-primary" title="Record Verification">
+                                        <i class="bi bi-patch-check"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Documents Section (T251) -->
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="bi bi-file-earmark-text"></i> Documents
+                <span class="badge bg-secondary">@documents.Count document(s)</span>
+            </h5>
+            <a asp-controller="GdpCredentials" asp-action="UploadDocument"
+               asp-route-credentialId="@(credentials.FirstOrDefault()?.CredentialId)"
+               class="btn btn-primary btn-sm @(credentials.Any() ? "" : "disabled")">
+                <i class="bi bi-upload"></i> Upload Document
+            </a>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>File Name</th>
+                        <th>Type</th>
+                        <th>Uploaded</th>
+                        <th>Uploaded By</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!documents.Any())
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center">
+                                <em>No documents attached to this provider.</em>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var doc in documents.OrderByDescending(d => d.UploadedDate))
+                        {
+                            <tr>
+                                <td>
+                                    @if (doc.IsPdf())
+                                    {
+                                        <i class="bi bi-file-earmark-pdf text-danger"></i>
+                                    }
+                                    else if (doc.IsImage())
+                                    {
+                                        <i class="bi bi-file-earmark-image text-primary"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-file-earmark text-secondary"></i>
+                                    }
+                                    @doc.FileName
+                                </td>
+                                <td><span class="badge bg-secondary">@FormatEnumName(doc.DocumentType.ToString())</span></td>
+                                <td>@doc.UploadedDate.ToString("yyyy-MM-dd")</td>
+                                <td>@doc.UploadedBy</td>
+                                <td>@(doc.Description ?? "-")</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Qualification Reviews Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="bi bi-journal-text"></i> Qualification Reviews
+                <span class="badge bg-secondary float-end">@reviews.Count review(s)</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Method</th>
+                        <th>Outcome</th>
+                        <th>Reviewer</th>
+                        <th>Next Review</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!reviews.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center">
+                                <em>No qualification reviews recorded.</em>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var review in reviews)
+                        {
+                            <tr>
+                                <td>@review.ReviewDate.ToString("yyyy-MM-dd")</td>
+                                <td>@FormatEnumName(review.ReviewMethod.ToString())</td>
+                                <td>
+                                    @{
+                                        var outcomeClass = review.ReviewOutcome switch
+                                        {
+                                            RE2.ComplianceCore.Models.ReviewOutcome.Approved => "bg-success",
+                                            RE2.ComplianceCore.Models.ReviewOutcome.ConditionallyApproved => "bg-info",
+                                            RE2.ComplianceCore.Models.ReviewOutcome.Rejected => "bg-danger",
+                                            _ => "bg-secondary"
+                                        };
+                                    }
+                                    <span class="badge @outcomeClass">@FormatEnumName(review.ReviewOutcome.ToString())</span>
+                                </td>
+                                <td>@review.ReviewerName</td>
+                                <td>@(review.NextReviewDate?.ToString("yyyy-MM-dd") ?? "-")</td>
+                                <td>@(review.Notes ?? "-")</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Providers
+        </a>
+    </div>
+</div>
+
+@functions {
+    string FormatEnumName(string enumName)
+    {
+        return string.Concat(enumName.Select((c, i) =>
+            i > 0 && char.IsUpper(c) ? " " + c : c.ToString()));
+    }
+
+    string FormatServiceType(RE2.ComplianceCore.Models.GdpServiceType serviceType)
+    {
+        return serviceType switch
+        {
+            RE2.ComplianceCore.Models.GdpServiceType.ThirdPartyLogistics => "3PL",
+            RE2.ComplianceCore.Models.GdpServiceType.Transporter => "Transporter",
+            RE2.ComplianceCore.Models.GdpServiceType.ExternalWarehouse => "External Warehouse",
+            _ => serviceType.ToString()
+        };
+    }
+}

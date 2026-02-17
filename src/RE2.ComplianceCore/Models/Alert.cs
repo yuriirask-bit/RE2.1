@@ -201,6 +201,34 @@ public class Alert
     }
 
     /// <summary>
+    /// Creates a GDP credential expiry alert.
+    /// T211: Per FR-039.
+    /// </summary>
+    public static Alert CreateGdpCredentialExpiryAlert(Guid credentialId, string entityName, int daysUntilExpiry, DateOnly expiryDate)
+    {
+        var severity = daysUntilExpiry switch
+        {
+            <= 30 => AlertSeverity.Critical,
+            <= 60 => AlertSeverity.Warning,
+            _ => AlertSeverity.Info
+        };
+
+        return new Alert
+        {
+            AlertId = Guid.NewGuid(),
+            AlertType = daysUntilExpiry <= 0 ? AlertType.GdpCertificateExpired : AlertType.GdpCertificateExpiring,
+            Severity = severity,
+            TargetEntityType = TargetEntityType.GdpCredential,
+            TargetEntityId = credentialId,
+            GeneratedDate = DateTime.UtcNow,
+            Message = daysUntilExpiry <= 0
+                ? $"GDP credential for {entityName} has expired on {expiryDate:yyyy-MM-dd}"
+                : $"GDP credential for {entityName} expires in {daysUntilExpiry} days ({expiryDate:yyyy-MM-dd})",
+            DueDate = expiryDate
+        };
+    }
+
+    /// <summary>
     /// Creates a re-verification due alert.
     /// </summary>
     public static Alert CreateReVerificationAlert(Guid customerId, string customerName, DateOnly dueDate)
@@ -222,6 +250,26 @@ public class Alert
             TargetEntityId = customerId,
             GeneratedDate = DateTime.UtcNow,
             Message = $"Customer {customerName} requires re-verification by {dueDate:yyyy-MM-dd}",
+            DueDate = dueDate
+        };
+    }
+
+    /// <summary>
+    /// T229: Creates a CAPA overdue alert per FR-042.
+    /// </summary>
+    public static Alert CreateCapaOverdueAlert(Guid capaId, string capaNumber, string ownerName, DateOnly dueDate)
+    {
+        var daysOverdue = DateOnly.FromDateTime(DateTime.UtcNow).DayNumber - dueDate.DayNumber;
+
+        return new Alert
+        {
+            AlertId = Guid.NewGuid(),
+            AlertType = AlertType.CapaOverdue,
+            Severity = daysOverdue > 30 ? AlertSeverity.Critical : AlertSeverity.Warning,
+            TargetEntityType = TargetEntityType.Capa,
+            TargetEntityId = capaId,
+            GeneratedDate = DateTime.UtcNow,
+            Message = $"CAPA {capaNumber} assigned to {ownerName} is {daysOverdue} days overdue (due {dueDate:yyyy-MM-dd})",
             DueDate = dueDate
         };
     }
@@ -281,7 +329,12 @@ public enum AlertType
     /// <summary>
     /// T149h2: Webhook delivery has failed after all retry attempts per FR-059.
     /// </summary>
-    WebhookDeliveryFailure = 10
+    WebhookDeliveryFailure = 10,
+
+    /// <summary>
+    /// T229: CAPA is overdue (past due date and not completed) per FR-042.
+    /// </summary>
+    CapaOverdue = 11
 }
 
 /// <summary>
@@ -345,5 +398,10 @@ public enum TargetEntityType
     /// <summary>
     /// T149h2: Alert is about a webhook subscription per FR-059.
     /// </summary>
-    WebhookSubscription = 7
+    WebhookSubscription = 7,
+
+    /// <summary>
+    /// T229: Alert is about a CAPA per FR-042.
+    /// </summary>
+    Capa = 8
 }

@@ -1,0 +1,157 @@
+@model IEnumerable<RE2.ComplianceCore.Models.GdpServiceProvider>
+@{
+    ViewData["Title"] = "GDP Service Providers";
+}
+
+<div class="container">
+    <h1><i class="bi bi-truck"></i> GDP Service Providers</h1>
+    <p>Third-party logistics providers, transporters, and external warehouses configured for GDP compliance.</p>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row mb-3">
+        <div class="col">
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add Provider
+            </a>
+        </div>
+    </div>
+
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Provider Name</th>
+                <th>Service Type</th>
+                <th>Qualification Status</th>
+                <th>Temp Controlled</th>
+                <th>Review Due</th>
+                <th>Active</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="7" class="text-center">
+                        <em>No GDP service providers configured. Click "Add Provider" to create one.</em>
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var provider in Model)
+                {
+                    <tr>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@provider.ProviderId">
+                                <strong>@provider.ProviderName</strong>
+                            </a>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">@FormatServiceType(provider.ServiceType)</span>
+                        </td>
+                        <td>
+                            @{
+                                var statusClass = provider.QualificationStatus switch
+                                {
+                                    RE2.ComplianceCore.Models.GdpQualificationStatus.Approved => "bg-success",
+                                    RE2.ComplianceCore.Models.GdpQualificationStatus.ConditionallyApproved => "bg-info",
+                                    RE2.ComplianceCore.Models.GdpQualificationStatus.Pending => "bg-warning text-dark",
+                                    RE2.ComplianceCore.Models.GdpQualificationStatus.Rejected => "bg-danger",
+                                    RE2.ComplianceCore.Models.GdpQualificationStatus.UnderReview => "bg-primary",
+                                    _ => "bg-light text-dark"
+                                };
+                            }
+                            <span class="badge @statusClass">@FormatEnumName(provider.QualificationStatus.ToString())</span>
+                        </td>
+                        <td>
+                            @if (provider.TemperatureControlledCapability)
+                            {
+                                <span class="badge bg-warning text-dark"><i class="bi bi-thermometer-half"></i> Yes</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">No</span>
+                            }
+                        </td>
+                        <td>
+                            @if (provider.IsReviewDue())
+                            {
+                                <span class="text-danger fw-bold">
+                                    @provider.NextReviewDate?.ToString("yyyy-MM-dd")
+                                    <span class="badge bg-danger ms-1">DUE</span>
+                                </span>
+                            }
+                            else if (provider.NextReviewDate.HasValue)
+                            {
+                                @provider.NextReviewDate.Value.ToString("yyyy-MM-dd")
+                            }
+                            else
+                            {
+                                <span class="text-muted">Not set</span>
+                            }
+                        </td>
+                        <td>
+                            @if (provider.IsActive)
+                            {
+                                <span class="badge bg-success"><i class="bi bi-check-circle"></i> Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary"><i class="bi bi-x-circle"></i> Inactive</span>
+                            }
+                        </td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@provider.ProviderId"
+                               class="btn btn-sm btn-outline-primary" title="View Details">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a asp-action="Edit" asp-route-id="@provider.ProviderId"
+                               class="btn btn-sm btn-outline-secondary" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+
+    <div class="text-muted">
+        Showing @Model.Count() GDP service provider(s)
+    </div>
+</div>
+
+@functions {
+    string FormatEnumName(string enumName)
+    {
+        return string.Concat(enumName.Select((c, i) =>
+            i > 0 && char.IsUpper(c) ? " " + c : c.ToString()));
+    }
+
+    string FormatServiceType(RE2.ComplianceCore.Models.GdpServiceType serviceType)
+    {
+        return serviceType switch
+        {
+            RE2.ComplianceCore.Models.GdpServiceType.ThirdPartyLogistics => "3PL",
+            RE2.ComplianceCore.Models.GdpServiceType.Transporter => "Transporter",
+            RE2.ComplianceCore.Models.GdpServiceType.ExternalWarehouse => "External Warehouse",
+            _ => serviceType.ToString()
+        };
+    }
+}

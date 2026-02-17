@@ -1,0 +1,138 @@
+@model RE2.ComplianceWeb.Controllers.CredentialIndexViewModel
+@{
+    ViewData["Title"] = "GDP Credentials";
+}
+
+<div class="container">
+    <h1><i class="bi bi-award"></i> GDP Credentials</h1>
+    <p>GDP credential validity tracking per FR-043</p>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h2 class="text-primary">@Model.TotalCount</h2>
+                    <p class="mb-0"><i class="bi bi-award"></i> Total</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h2 class="text-success">@Model.ValidCount</h2>
+                    <p class="mb-0"><i class="bi bi-check-circle"></i> Valid</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card @(Model.ExpiringCount > 0 ? "border-warning" : "")">
+                <div class="card-body text-center">
+                    <h2 class="@(Model.ExpiringCount > 0 ? "text-warning" : "text-muted")">@Model.ExpiringCount</h2>
+                    <p class="mb-0"><i class="bi bi-exclamation-triangle"></i> Expiring (90d)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card @(Model.ExpiredCount > 0 ? "border-danger" : "")">
+                <div class="card-body text-center">
+                    <h2 class="@(Model.ExpiredCount > 0 ? "text-danger" : "text-muted")">@Model.ExpiredCount</h2>
+                    <p class="mb-0"><i class="bi bi-x-circle"></i> Expired</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col">
+            <a asp-action="Expiring" class="btn btn-outline-warning">
+                <i class="bi bi-clock-history"></i> Expiring Credentials Dashboard
+            </a>
+        </div>
+    </div>
+
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Entity Type</th>
+                <th>Entity Name</th>
+                <th>WDA / Certificate Number</th>
+                <th>Valid From</th>
+                <th>Valid To</th>
+                <th>Status</th>
+                <th>Last Verified</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Credentials.Any())
+            {
+                <tr>
+                    <td colspan="8" class="text-center">
+                        <em>No GDP credentials found. Create credentials from the Service Providers page.</em>
+                    </td>
+                </tr>
+            }
+            else
+            {
+                var today = DateOnly.FromDateTime(DateTime.UtcNow);
+                var expiryWindow = today.AddDays(90);
+                @foreach (var item in Model.Credentials.OrderBy(c => c.Credential.ValidityEndDate ?? DateOnly.MaxValue))
+                {
+                    var cred = item.Credential;
+                    var isExpired = cred.ValidityEndDate.HasValue && cred.ValidityEndDate.Value < today;
+                    var isExpiring = !isExpired && cred.ValidityEndDate.HasValue && cred.ValidityEndDate.Value <= expiryWindow;
+
+                    <tr class="@(isExpired ? "table-danger" : isExpiring ? "table-warning" : "")">
+                        <td>@item.EntityTypeName</td>
+                        <td>@item.EntityName</td>
+                        <td><code>@(cred.GdpCertificateNumber ?? cred.WdaNumber ?? "-")</code></td>
+                        <td>@(cred.ValidityStartDate?.ToString("yyyy-MM-dd") ?? "-")</td>
+                        <td>@(cred.ValidityEndDate?.ToString("yyyy-MM-dd") ?? "No expiry")</td>
+                        <td>
+                            @if (isExpired)
+                            {
+                                <span class="badge bg-danger">Expired</span>
+                            }
+                            else if (isExpiring)
+                            {
+                                <span class="badge bg-warning text-dark">Expiring</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success">Valid</span>
+                            }
+                        </td>
+                        <td>@(cred.LastVerificationDate?.ToString("yyyy-MM-dd") ?? "Never")</td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@cred.CredentialId"
+                               class="btn btn-sm btn-outline-primary" title="View Details">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+
+    <div class="text-muted">
+        Showing @Model.TotalCount credential(s)
+    </div>
+</div>

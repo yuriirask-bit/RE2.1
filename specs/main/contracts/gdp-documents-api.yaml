@@ -1,0 +1,346 @@
+openapi: 3.0.3
+info:
+  title: GDP Documents API
+  description: |
+    REST API for GDP document attachment management (FR-044).
+    Supports document upload, download, listing, and deletion for GDP entity records
+    (credentials, sites, inspections, providers, customers).
+  version: 1.0.0
+
+servers:
+  - url: /api/v1
+
+paths:
+  /gdp-providers/credentials/{credentialId}/documents:
+    get:
+      summary: List documents for a GDP credential
+      operationId: getCredentialDocuments
+      tags: [GDP Documents]
+      parameters:
+        - name: credentialId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GdpDocumentResponse'
+    post:
+      summary: Upload a document for a GDP credential
+      operationId: uploadCredentialDocument
+      tags: [GDP Documents]
+      parameters:
+        - name: credentialId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UploadDocumentRequest'
+      responses:
+        '201':
+          description: Document uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GdpDocumentResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /gdp-providers/documents/{documentId}:
+    get:
+      summary: Get document metadata
+      operationId: getDocument
+      tags: [GDP Documents]
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Document metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GdpDocumentResponse'
+        '404':
+          description: Document not found
+
+    delete:
+      summary: Delete a document
+      operationId: deleteDocument
+      tags: [GDP Documents]
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Document deleted
+        '404':
+          description: Document not found
+
+  /gdp-providers/documents/{documentId}/download:
+    get:
+      summary: Download a document (returns SAS URL)
+      operationId: downloadDocument
+      tags: [GDP Documents]
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Document download URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentDownloadResponse'
+        '404':
+          description: Document not found
+
+  /gdp-providers/credentials/{credentialId}/verifications:
+    get:
+      summary: List verifications for a credential (existing, FR-045)
+      operationId: getCredentialVerifications
+      tags: [GDP Verifications]
+      parameters:
+        - name: credentialId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of verifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VerificationResponse'
+
+    post:
+      summary: Record a credential verification (existing, FR-045)
+      operationId: recordVerification
+      tags: [GDP Verifications]
+      parameters:
+        - name: credentialId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVerificationRequest'
+      responses:
+        '201':
+          description: Verification recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationResponse'
+        '400':
+          description: Validation error
+        '404':
+          description: Credential not found
+
+  /gdp-providers/credentials/expiring:
+    get:
+      summary: Get credentials expiring within specified days (existing, FR-043)
+      operationId: getExpiringCredentials
+      tags: [GDP Credentials]
+      parameters:
+        - name: daysAhead
+          in: query
+          schema:
+            type: integer
+            default: 90
+      responses:
+        '200':
+          description: List of expiring credentials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CredentialResponse'
+
+components:
+  schemas:
+    GdpDocumentResponse:
+      type: object
+      properties:
+        documentId:
+          type: string
+          format: uuid
+        ownerEntityType:
+          type: string
+          enum: [Credential, Site, Inspection, Provider, Customer]
+        ownerEntityId:
+          type: string
+          format: uuid
+        documentType:
+          type: string
+          enum: [Certificate, Letter, InspectionReport, Other]
+        fileName:
+          type: string
+        uploadedDate:
+          type: string
+          format: date-time
+        uploadedBy:
+          type: string
+        contentType:
+          type: string
+        fileSizeBytes:
+          type: integer
+          format: int64
+        description:
+          type: string
+          nullable: true
+
+    UploadDocumentRequest:
+      type: object
+      required: [file, documentType]
+      properties:
+        file:
+          type: string
+          format: binary
+          description: The document file (max 50 MB)
+        documentType:
+          type: string
+          enum: [Certificate, Letter, InspectionReport, Other]
+        description:
+          type: string
+          description: Optional description
+        uploadedBy:
+          type: string
+          description: Name of uploader
+
+    DocumentDownloadResponse:
+      type: object
+      properties:
+        documentId:
+          type: string
+          format: uuid
+        fileName:
+          type: string
+        downloadUrl:
+          type: string
+          format: uri
+          description: SAS URL valid for 15 minutes
+        expiresAt:
+          type: string
+          format: date-time
+
+    VerificationResponse:
+      type: object
+      properties:
+        verificationId:
+          type: string
+          format: uuid
+        credentialId:
+          type: string
+          format: uuid
+        verificationDate:
+          type: string
+          format: date
+        verificationMethod:
+          type: string
+          enum: [EudraGMDP, NationalDatabase, Other]
+        verifiedBy:
+          type: string
+        outcome:
+          type: string
+          enum: [Valid, Invalid, NotFound]
+        notes:
+          type: string
+          nullable: true
+
+    CreateVerificationRequest:
+      type: object
+      required: [verificationDate, verificationMethod, verifiedBy, outcome]
+      properties:
+        verificationDate:
+          type: string
+          format: date
+        verificationMethod:
+          type: string
+          enum: [EudraGMDP, NationalDatabase, Other]
+        verifiedBy:
+          type: string
+        outcome:
+          type: string
+          enum: [Valid, Invalid, NotFound]
+        notes:
+          type: string
+
+    CredentialResponse:
+      type: object
+      properties:
+        credentialId:
+          type: string
+          format: uuid
+        entityType:
+          type: string
+        entityId:
+          type: string
+          format: uuid
+        wdaNumber:
+          type: string
+          nullable: true
+        gdpCertificateNumber:
+          type: string
+          nullable: true
+        validityStartDate:
+          type: string
+          format: date
+          nullable: true
+        validityEndDate:
+          type: string
+          format: date
+          nullable: true
+        qualificationStatus:
+          type: string
+        isValid:
+          type: boolean
+        isApproved:
+          type: boolean
+
+    ErrorResponse:
+      type: object
+      properties:
+        errorCode:
+          type: string
+        message:
+          type: string

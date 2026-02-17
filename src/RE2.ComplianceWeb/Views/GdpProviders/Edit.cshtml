@@ -1,0 +1,61 @@
+@model RE2.ComplianceWeb.Controllers.GdpProviderCreateViewModel
+@{
+    ViewData["Title"] = "Edit GDP Service Provider";
+}
+
+<div class="container">
+    <h1><i class="bi bi-pencil"></i> Edit GDP Service Provider</h1>
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Provider Details</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="Edit" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="mb-3">
+                    <label asp-for="ProviderName" class="form-label">Provider Name *</label>
+                    <input asp-for="ProviderName" class="form-control" required />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="ServiceType" class="form-label">Service Type *</label>
+                    <select asp-for="ServiceType" class="form-select" asp-items="@ViewBag.ServiceTypes">
+                        <option value="">Select type...</option>
+                    </select>
+                </div>
+
+                <div class="mb-3 form-check">
+                    <input asp-for="TemperatureControlledCapability" class="form-check-input" />
+                    <label asp-for="TemperatureControlledCapability" class="form-check-label">Temperature Controlled Capability</label>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="ApprovedRoutes" class="form-label">Approved Routes</label>
+                    <textarea asp-for="ApprovedRoutes" class="form-control" rows="2"></textarea>
+                    <small class="text-muted">Comma-separated list of approved route corridors.</small>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="ReviewFrequencyMonths" class="form-label">Review Frequency (months) *</label>
+                    <input asp-for="ReviewFrequencyMonths" class="form-control" type="number" min="1" max="60" />
+                </div>
+
+                <div class="mb-3 form-check">
+                    <input asp-for="IsActive" class="form-check-input" />
+                    <label asp-for="IsActive" class="form-check-label">Active</label>
+                </div>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Save Changes
+                    </button>
+                    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

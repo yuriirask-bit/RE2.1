@@ -1,0 +1,586 @@
+openapi: 3.0.3
+info:
+  title: GDP Inspections & CAPA API
+  description: |
+    REST API for managing GDP inspections, inspection findings, and CAPAs (Corrective and Preventive Actions).
+    Part of User Story 9: GDP Inspections, Audits & CAPA Tracking.
+    Covers FR-040 (inspections), FR-041 (CAPAs), FR-042 (dashboards).
+  version: 1.0.0
+
+servers:
+  - url: /api/v1
+
+tags:
+  - name: GDP Inspections
+    description: GDP inspection registration and management
+  - name: Inspection Findings
+    description: Individual findings from GDP inspections
+  - name: CAPAs
+    description: Corrective and Preventive Action tracking
+
+paths:
+  /gdp-inspections:
+    get:
+      tags: [GDP Inspections]
+      summary: List all GDP inspections
+      operationId: listGdpInspections
+      parameters:
+        - name: siteId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: inspectionType
+          in: query
+          schema:
+            type: string
+            enum: [RegulatoryAuthority, Internal, SelfInspection]
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of GDP inspections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GdpInspectionResponse'
+    post:
+      tags: [GDP Inspections]
+      summary: Create a GDP inspection record
+      operationId: createGdpInspection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGdpInspectionRequest'
+      responses:
+        '201':
+          description: Inspection created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GdpInspectionResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /gdp-inspections/{inspectionId}:
+    get:
+      tags: [GDP Inspections]
+      summary: Get inspection details with findings
+      operationId: getGdpInspection
+      parameters:
+        - name: inspectionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Inspection details with findings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GdpInspectionDetailResponse'
+        '404':
+          description: Inspection not found
+    put:
+      tags: [GDP Inspections]
+      summary: Update inspection record
+      operationId: updateGdpInspection
+      parameters:
+        - name: inspectionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGdpInspectionRequest'
+      responses:
+        '200':
+          description: Inspection updated
+        '400':
+          description: Validation error
+        '404':
+          description: Inspection not found
+
+  /gdp-inspections/{inspectionId}/findings:
+    post:
+      tags: [Inspection Findings]
+      summary: Add a finding to an inspection
+      operationId: addFinding
+      parameters:
+        - name: inspectionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFindingRequest'
+      responses:
+        '201':
+          description: Finding added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FindingResponse'
+        '400':
+          description: Validation error
+        '404':
+          description: Inspection not found
+
+  /gdp-inspections/{inspectionId}/findings/{findingId}:
+    put:
+      tags: [Inspection Findings]
+      summary: Update a finding
+      operationId: updateFinding
+      parameters:
+        - name: inspectionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: findingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFindingRequest'
+      responses:
+        '200':
+          description: Finding updated
+        '404':
+          description: Finding not found
+    delete:
+      tags: [Inspection Findings]
+      summary: Remove a finding
+      operationId: deleteFinding
+      parameters:
+        - name: inspectionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: findingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Finding removed
+        '404':
+          description: Finding not found
+
+  /gdp-inspections/upcoming:
+    get:
+      tags: [GDP Inspections]
+      summary: Get recent and upcoming inspections summary
+      operationId: getUpcomingInspections
+      parameters:
+        - name: daysAhead
+          in: query
+          schema:
+            type: integer
+            default: 90
+      responses:
+        '200':
+          description: Upcoming inspections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GdpInspectionResponse'
+
+  /capas:
+    get:
+      tags: [CAPAs]
+      summary: List all CAPAs with optional filtering
+      operationId: listCapas
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [Open, Overdue, Completed]
+        - name: ownerName
+          in: query
+          schema:
+            type: string
+        - name: classification
+          in: query
+          schema:
+            type: string
+            enum: [Critical, Major, Other]
+      responses:
+        '200':
+          description: List of CAPAs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CapaResponse'
+    post:
+      tags: [CAPAs]
+      summary: Create a CAPA linked to a finding
+      operationId: createCapa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCapaRequest'
+      responses:
+        '201':
+          description: CAPA created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapaResponse'
+        '400':
+          description: Validation error
+
+  /capas/{capaId}:
+    get:
+      tags: [CAPAs]
+      summary: Get CAPA details
+      operationId: getCapa
+      parameters:
+        - name: capaId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: CAPA details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapaResponse'
+        '404':
+          description: CAPA not found
+    put:
+      tags: [CAPAs]
+      summary: Update CAPA details
+      operationId: updateCapa
+      parameters:
+        - name: capaId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCapaRequest'
+      responses:
+        '200':
+          description: CAPA updated
+        '400':
+          description: Validation error
+        '404':
+          description: CAPA not found
+
+  /capas/{capaId}/complete:
+    post:
+      tags: [CAPAs]
+      summary: Mark CAPA as completed
+      operationId: completeCapa
+      parameters:
+        - name: capaId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteCapaRequest'
+      responses:
+        '200':
+          description: CAPA completed
+        '400':
+          description: Validation error
+        '404':
+          description: CAPA not found
+
+  /capas/dashboard:
+    get:
+      tags: [CAPAs]
+      summary: CAPA dashboard summary (FR-042)
+      operationId: getCapaDashboard
+      responses:
+        '200':
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapaDashboardResponse'
+
+components:
+  schemas:
+    GdpInspectionResponse:
+      type: object
+      properties:
+        inspectionId:
+          type: string
+          format: uuid
+        inspectionDate:
+          type: string
+          format: date
+        inspectorName:
+          type: string
+        inspectionType:
+          type: string
+          enum: [RegulatoryAuthority, Internal, SelfInspection]
+        siteId:
+          type: string
+          format: uuid
+        wdaLicenceId:
+          type: string
+          format: uuid
+          nullable: true
+        findingsSummary:
+          type: string
+          nullable: true
+        reportReferenceUrl:
+          type: string
+          nullable: true
+        findingCount:
+          type: integer
+
+    GdpInspectionDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/GdpInspectionResponse'
+        - type: object
+          properties:
+            findings:
+              type: array
+              items:
+                $ref: '#/components/schemas/FindingResponse'
+
+    CreateGdpInspectionRequest:
+      type: object
+      required: [inspectionDate, inspectorName, inspectionType, siteId]
+      properties:
+        inspectionDate:
+          type: string
+          format: date
+        inspectorName:
+          type: string
+        inspectionType:
+          type: string
+          enum: [RegulatoryAuthority, Internal, SelfInspection]
+        siteId:
+          type: string
+          format: uuid
+        wdaLicenceId:
+          type: string
+          format: uuid
+          nullable: true
+        findingsSummary:
+          type: string
+          nullable: true
+        reportReferenceUrl:
+          type: string
+          nullable: true
+
+    UpdateGdpInspectionRequest:
+      type: object
+      properties:
+        inspectorName:
+          type: string
+        findingsSummary:
+          type: string
+          nullable: true
+        reportReferenceUrl:
+          type: string
+          nullable: true
+
+    FindingResponse:
+      type: object
+      properties:
+        findingId:
+          type: string
+          format: uuid
+        inspectionId:
+          type: string
+          format: uuid
+        findingDescription:
+          type: string
+        classification:
+          type: string
+          enum: [Critical, Major, Other]
+        findingNumber:
+          type: string
+          nullable: true
+        capaCount:
+          type: integer
+
+    CreateFindingRequest:
+      type: object
+      required: [findingDescription, classification]
+      properties:
+        findingDescription:
+          type: string
+        classification:
+          type: string
+          enum: [Critical, Major, Other]
+        findingNumber:
+          type: string
+          nullable: true
+
+    CapaResponse:
+      type: object
+      properties:
+        capaId:
+          type: string
+          format: uuid
+        capaNumber:
+          type: string
+        findingId:
+          type: string
+          format: uuid
+        description:
+          type: string
+        ownerName:
+          type: string
+        dueDate:
+          type: string
+          format: date
+        completionDate:
+          type: string
+          format: date
+          nullable: true
+        status:
+          type: string
+          enum: [Open, Overdue, Completed]
+        verificationNotes:
+          type: string
+          nullable: true
+        isOverdue:
+          type: boolean
+
+    CreateCapaRequest:
+      type: object
+      required: [findingId, description, ownerName, dueDate]
+      properties:
+        findingId:
+          type: string
+          format: uuid
+        description:
+          type: string
+        ownerName:
+          type: string
+        dueDate:
+          type: string
+          format: date
+
+    UpdateCapaRequest:
+      type: object
+      properties:
+        description:
+          type: string
+        ownerName:
+          type: string
+        dueDate:
+          type: string
+          format: date
+
+    CompleteCapaRequest:
+      type: object
+      required: [completionDate]
+      properties:
+        completionDate:
+          type: string
+          format: date
+        verificationNotes:
+          type: string
+          nullable: true
+
+    CapaDashboardResponse:
+      type: object
+      properties:
+        openCapaCount:
+          type: integer
+        overdueCapaCount:
+          type: integer
+        completedCapaCount:
+          type: integer
+        criticalFindingCapaCount:
+          type: integer
+        majorFindingCapaCount:
+          type: integer
+        upcomingInspectionCount:
+          type: integer
+        overdueCapas:
+          type: array
+          items:
+            $ref: '#/components/schemas/CapaResponse'
+        recentInspections:
+          type: array
+          items:
+            $ref: '#/components/schemas/GdpInspectionResponse'
+
+    ErrorResponse:
+      type: object
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+              message:
+                type: string

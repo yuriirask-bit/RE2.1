@@ -1,0 +1,53 @@
+@model RE2.ComplianceWeb.Controllers.GdpFindingCreateViewModel
+@{
+    ViewData["Title"] = "Record Finding";
+}
+
+<div class="container">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">GDP Inspections</a></li>
+            <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@Model.InspectionId">Inspection</a></li>
+            <li class="breadcrumb-item active">Record Finding</li>
+        </ol>
+    </nav>
+
+    <h1><i class="bi bi-exclamation-circle"></i> Record Finding</h1>
+    <p>Add a finding to inspection by <strong>@ViewBag.InspectorName</strong></p>
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <form asp-action="CreateFinding" method="post" class="mt-4">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="InspectionId" />
+
+        <div class="card" style="max-width: 600px;">
+            <div class="card-body">
+                <div class="mb-3">
+                    <label asp-for="FindingNumber" class="form-label">Finding Number</label>
+                    <input asp-for="FindingNumber" class="form-control" placeholder="e.g., IGJ-2025-AMS-F001" />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Classification" class="form-label">Classification <span class="text-danger">*</span></label>
+                    <select asp-for="Classification" asp-items="@(ViewBag.Classifications as SelectList)" class="form-select">
+                        <option value="">-- Select Classification --</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="FindingDescription" class="form-label">Description <span class="text-danger">*</span></label>
+                    <textarea asp-for="FindingDescription" class="form-control" rows="5" required
+                              placeholder="Describe the deficiency found during the inspection..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i> Record Finding
+            </button>
+            <a asp-action="Details" asp-route-id="@Model.InspectionId" class="btn btn-secondary ms-2">Cancel</a>
+        </div>
+    </form>
+</div>

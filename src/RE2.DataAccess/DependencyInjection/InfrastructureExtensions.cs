@@ -66,6 +66,18 @@ public static class InfrastructureExtensions
         // Register GDP site repository (T189)
         services.AddScoped<IGdpSiteRepository, DataverseGdpSiteRepository>();
 
+        // Register GDP credential repository (T204)
+        services.AddScoped<IGdpCredentialRepository, DataverseGdpCredentialRepository>();
+
+        // Register GDP inspection repository (T221)
+        services.AddScoped<IGdpInspectionRepository, DataverseGdpInspectionRepository>();
+
+        // Register CAPA repository (T223)
+        services.AddScoped<ICapaRepository, DataverseCapaRepository>();
+
+        // Register GDP document repository (T235)
+        services.AddScoped<IGdpDocumentRepository, DataverseGdpDocumentRepository>();
+
         // Register business services
         services.AddScoped<ILicenceService, LicenceService>();
         services.AddScoped<ISubstanceReclassificationService, SubstanceReclassificationService>();
@@ -216,11 +228,15 @@ public static class InfrastructureExtensions
 
         var gdpSiteRepo = new InMemoryGdpSiteRepository();
         var productRepo = new InMemoryProductRepository();
+        var gdpCredentialRepo = new InMemoryGdpCredentialRepository();
+        var gdpInspectionRepo = new InMemoryGdpInspectionRepository();
+        var capaRepo = new InMemoryCapaRepository();
+        var gdpDocumentRepo = new InMemoryGdpDocumentRepository();
 
         // Seed test data if requested
         if (seedData)
         {
-            InMemorySeedData.SeedAll(licenceTypeRepo, substanceRepo, licenceRepo, customerRepo, thresholdRepo, gdpSiteRepo, productRepo);
+            InMemorySeedData.SeedAll(licenceTypeRepo, substanceRepo, licenceRepo, customerRepo, thresholdRepo, gdpSiteRepo, productRepo, gdpCredentialRepo, gdpInspectionRepo, capaRepo, gdpDocumentRepo);
         }
 
         // Register as singletons
@@ -236,6 +252,18 @@ public static class InfrastructureExtensions
 
         // Register in-memory GDP site repository (T189)
         services.AddSingleton<IGdpSiteRepository>(gdpSiteRepo);
+
+        // Register in-memory GDP credential repository (T204)
+        services.AddSingleton<IGdpCredentialRepository>(gdpCredentialRepo);
+
+        // Register in-memory GDP inspection repository (T221)
+        services.AddSingleton<IGdpInspectionRepository>(gdpInspectionRepo);
+
+        // Register in-memory CAPA repository (T223)
+        services.AddSingleton<ICapaRepository>(capaRepo);
+
+        // Register in-memory GDP document repository (T234)
+        services.AddSingleton<IGdpDocumentRepository>(gdpDocumentRepo);
 
         // Register in-memory product repository for D365 product browsing
         services.AddSingleton<IProductRepository>(productRepo);
