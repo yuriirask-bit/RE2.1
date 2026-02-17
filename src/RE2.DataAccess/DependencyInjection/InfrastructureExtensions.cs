@@ -8,14 +8,15 @@ using RE2.ComplianceCore.Interfaces;
 using RE2.ComplianceCore.Services.AlertGeneration;
 using RE2.ComplianceCore.Services.Auditing;
 using RE2.ComplianceCore.Services.CustomerQualification;
+using RE2.ComplianceCore.Services.GdpCompliance;
 using RE2.ComplianceCore.Services.LicenceValidation;
-using RE2.ComplianceCore.Services.SubstanceManagement;
-using RE2.ComplianceCore.Services.RiskMonitoring;
-using RE2.ComplianceCore.Services.TransactionValidation;
 using RE2.ComplianceCore.Services.Notifications;
 using RE2.ComplianceCore.Services.Reporting;
-using RE2.ComplianceCore.Services.GdpCompliance;
+using RE2.ComplianceCore.Services.RiskMonitoring;
+using RE2.ComplianceCore.Services.SubstanceManagement;
+using RE2.ComplianceCore.Services.TransactionValidation;
 using RE2.DataAccess.BlobStorage;
+using RE2.DataAccess.Caching;
 using RE2.DataAccess.D365FinanceOperations;
 using RE2.DataAccess.D365FinanceOperations.Repositories;
 using RE2.DataAccess.Dataverse;
@@ -385,6 +386,76 @@ public static class InfrastructureExtensions
             services.AddDataverseServices(configuration);
         }
 
+        // T280: Register cache service
+        services.AddSingleton<ICacheService, DistributedCacheService>();
+
+        // T281-T282: Register caching decorators for licence and customer services
+        services.AddCachingDecorators();
+
         return services;
+    }
+
+    /// <summary>
+    /// Registers caching decorators for ILicenceService and ICustomerService.
+    /// T281-T282: Wraps existing service registrations with cached versions.
+    /// </summary>
+    private static IServiceCollection AddCachingDecorators(this IServiceCollection services)
+    {
+        // T281: Decorate ILicenceService with CachedLicenceService
+        services.Decorate<ILicenceService>((inner, sp) =>
+            new CachedLicenceService(
+                inner,
+                sp.GetRequiredService<ICacheService>(),
+                sp.GetRequiredService<ILogger<CachedLicenceService>>()));
+
+        // T282: Decorate ICustomerService with CachedCustomerService
+        services.Decorate<ICustomerService>((inner, sp) =>
+            new CachedCustomerService(
+                inner,
+                sp.GetRequiredService<ICacheService>(),
+                sp.GetRequiredService<ILogger<CachedCustomerService>>()));
+
+        return services;
+    }
+
+    /// <summary>
+    /// Decorates an existing service registration with a wrapper that takes the original as a dependency.
+    /// </summary>
+    private static void Decorate<TService>(
+        this IServiceCollection services,
+        Func<TService, IServiceProvider, TService> decorator)
+        where TService : class
+    {
+        var existingDescriptor = services.LastOrDefault(d => d.ServiceType == typeof(TService));
+        if (existingDescriptor == null) return;
+
+        services.Remove(existingDescriptor);
+
+        services.Add(new ServiceDescriptor(
+            typeof(TService),
+            sp =>
+            {
+                // Resolve the original (inner) service
+                TService inner;
+                if (existingDescriptor.ImplementationFactory != null)
+                {
+                    inner = (TService)existingDescriptor.ImplementationFactory(sp);
+                }
+                else if (existingDescriptor.ImplementationInstance != null)
+                {
+                    inner = (TService)existingDescriptor.ImplementationInstance;
+                }
+                else if (existingDescriptor.ImplementationType != null)
+                {
+                    inner = (TService)ActivatorUtilities.CreateInstance(sp, existingDescriptor.ImplementationType);
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Cannot resolve inner service for {typeof(TService).Name}");
+                }
+
+                return decorator(inner, sp);
+            },
+            existingDescriptor.Lifetime));
     }
 }

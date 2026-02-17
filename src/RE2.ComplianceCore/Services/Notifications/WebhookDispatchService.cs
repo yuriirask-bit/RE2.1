@@ -282,7 +282,10 @@ public class WebhookDispatchService : IWebhookDispatchService
     {
         // Re-read current state to get accurate FailedAttempts count
         var current = await _subscriptionRepository.GetByIdAsync(subscription.SubscriptionId, cancellationToken);
-        if (current == null || !current.IsActive) return;
+        if (current == null || !current.IsActive)
+        {
+            return;
+        }
 
         if (current.FailedAttempts >= MaxConsecutiveFailuresBeforeUnhealthy)
         {

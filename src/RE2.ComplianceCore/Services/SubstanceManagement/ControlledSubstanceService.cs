@@ -27,7 +27,9 @@ public class ControlledSubstanceService : IControlledSubstanceService
     public async Task<ControlledSubstance?> GetBySubstanceCodeAsync(string substanceCode, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(substanceCode))
+        {
             return null;
+        }
 
         return await _substanceRepository.GetBySubstanceCodeAsync(substanceCode, cancellationToken);
     }
@@ -68,7 +70,9 @@ public class ControlledSubstanceService : IControlledSubstanceService
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(searchTerm))
+        {
             return await GetAllActiveAsync(cancellationToken);
+        }
 
         var allSubstances = await _substanceRepository.GetAllActiveAsync(cancellationToken);
         var lowerSearchTerm = searchTerm.ToLowerInvariant();

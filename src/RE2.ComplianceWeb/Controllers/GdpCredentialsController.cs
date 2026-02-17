@@ -72,7 +72,9 @@ public class GdpCredentialsController : Controller
     {
         var credential = await _gdpService.GetCredentialAsync(id, cancellationToken);
         if (credential == null)
+        {
             return NotFound();
+        }
 
         var documents = await _gdpService.GetDocumentsByEntityAsync(
             GdpDocumentEntityType.Credential, id, cancellationToken);
@@ -141,7 +143,9 @@ public class GdpCredentialsController : Controller
     {
         var credential = await _gdpService.GetCredentialAsync(credentialId, cancellationToken);
         if (credential == null)
+        {
             return NotFound();
+        }
 
         string entityName = "Unknown";
         if (credential.EntityType == GdpCredentialEntityType.ServiceProvider)
@@ -194,7 +198,9 @@ public class GdpCredentialsController : Controller
         if (!result.IsValid)
         {
             foreach (var violation in result.Violations)
+            {
                 ModelState.AddModelError(string.Empty, violation.Message);
+            }
 
             ViewBag.VerificationMethods = GetVerificationMethodSelectList(model.VerificationMethod.ToString());
             ViewBag.VerificationOutcomes = GetVerificationOutcomeSelectList(model.Outcome.ToString());
@@ -217,7 +223,9 @@ public class GdpCredentialsController : Controller
     {
         var credential = await _gdpService.GetCredentialAsync(credentialId, cancellationToken);
         if (credential == null)
+        {
             return NotFound();
+        }
 
         string entityName = "Unknown";
         if (credential.EntityType == GdpCredentialEntityType.ServiceProvider)
@@ -277,7 +285,9 @@ public class GdpCredentialsController : Controller
         if (!result.IsValid)
         {
             foreach (var violation in result.Violations)
+            {
                 ModelState.AddModelError(string.Empty, violation.Message);
+            }
 
             ViewBag.DocumentTypes = GetDocumentTypeSelectList(model.DocumentType.ToString());
             return View(model);

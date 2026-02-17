@@ -39,7 +39,9 @@ public class InMemoryGdpSopRepository : IGdpSopRepository
     public Task<Guid> CreateAsync(GdpSop sop, CancellationToken cancellationToken = default)
     {
         if (sop.SopId == Guid.Empty)
+        {
             sop.SopId = Guid.NewGuid();
+        }
 
         _sops[sop.SopId] = CloneSop(sop);
         return Task.FromResult(sop.SopId);
@@ -86,7 +88,9 @@ public class InMemoryGdpSopRepository : IGdpSopRepository
         // Check if link already exists
         var existing = _siteSops.Values.FirstOrDefault(l => l.SiteId == siteId && l.SopId == sopId);
         if (existing != null)
+        {
             return Task.FromResult(existing.SiteSopId);
+        }
 
         var link = new GdpSiteSop
         {

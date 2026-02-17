@@ -330,10 +330,25 @@ public class GdpSiteResponseDto
     public static GdpSiteResponseDto FromDomain(GdpSite site)
     {
         var activityNames = new List<string>();
-        if (site.HasActivity(GdpSiteActivity.StorageOver72h)) activityNames.Add("Storage Over 72h");
-        if (site.HasActivity(GdpSiteActivity.TemperatureControlled)) activityNames.Add("Temperature Controlled");
-        if (site.HasActivity(GdpSiteActivity.Outsourced)) activityNames.Add("Outsourced");
-        if (site.HasActivity(GdpSiteActivity.TransportOnly)) activityNames.Add("Transport Only");
+        if (site.HasActivity(GdpSiteActivity.StorageOver72h))
+        {
+            activityNames.Add("Storage Over 72h");
+        }
+
+        if (site.HasActivity(GdpSiteActivity.TemperatureControlled))
+        {
+            activityNames.Add("Temperature Controlled");
+        }
+
+        if (site.HasActivity(GdpSiteActivity.Outsourced))
+        {
+            activityNames.Add("Outsourced");
+        }
+
+        if (site.HasActivity(GdpSiteActivity.TransportOnly))
+        {
+            activityNames.Add("Transport Only");
+        }
 
         return new GdpSiteResponseDto
         {

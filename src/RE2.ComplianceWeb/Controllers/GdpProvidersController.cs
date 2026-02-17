@@ -40,7 +40,9 @@ public class GdpProvidersController : Controller
     {
         var provider = await _gdpService.GetProviderAsync(id, cancellationToken);
         if (provider == null)
+        {
             return NotFound();
+        }
 
         var credentials = await _gdpService.GetCredentialsByEntityAsync(
             GdpCredentialEntityType.ServiceProvider, id, cancellationToken);
@@ -93,7 +95,9 @@ public class GdpProvidersController : Controller
         if (!result.IsValid)
         {
             foreach (var violation in result.Violations)
+            {
                 ModelState.AddModelError(string.Empty, violation.Message);
+            }
 
             ViewBag.ServiceTypes = GetServiceTypeSelectList(model.ServiceType.ToString());
             return View(model);
@@ -111,7 +115,9 @@ public class GdpProvidersController : Controller
     {
         var provider = await _gdpService.GetProviderAsync(id, cancellationToken);
         if (provider == null)
+        {
             return NotFound();
+        }
 
         var model = new GdpProviderCreateViewModel
         {
@@ -157,7 +163,9 @@ public class GdpProvidersController : Controller
         if (!result.IsValid)
         {
             foreach (var violation in result.Violations)
+            {
                 ModelState.AddModelError(string.Empty, violation.Message);
+            }
 
             ViewBag.ServiceTypes = GetServiceTypeSelectList(model.ServiceType.ToString());
             return View(model);
@@ -176,7 +184,9 @@ public class GdpProvidersController : Controller
     {
         var provider = await _gdpService.GetProviderAsync(providerId, cancellationToken);
         if (provider == null)
+        {
             return NotFound();
+        }
 
         var model = new QualificationReviewViewModel
         {
@@ -214,14 +224,18 @@ public class GdpProvidersController : Controller
             model.Notes);
 
         if (model.NextReviewMonths > 0)
+        {
             review.SetNextReviewDate(model.NextReviewMonths);
+        }
 
         var (id, result) = await _gdpService.RecordReviewAsync(review, cancellationToken);
 
         if (!result.IsValid)
         {
             foreach (var violation in result.Violations)
+            {
                 ModelState.AddModelError(string.Empty, violation.Message);
+            }
 
             ViewBag.ReviewMethods = GetReviewMethodSelectList(model.ReviewMethod.ToString());
             ViewBag.ReviewOutcomes = GetReviewOutcomeSelectList(model.ReviewOutcome.ToString());
@@ -241,7 +255,9 @@ public class GdpProvidersController : Controller
     {
         var credential = await _gdpService.GetCredentialAsync(credentialId, cancellationToken);
         if (credential == null)
+        {
             return NotFound();
+        }
 
         var model = new VerificationRecordViewModel
         {
@@ -285,7 +301,9 @@ public class GdpProvidersController : Controller
         if (!result.IsValid)
         {
             foreach (var violation in result.Violations)
+            {
                 ModelState.AddModelError(string.Empty, violation.Message);
+            }
 
             ViewBag.VerificationMethods = GetVerificationMethodSelectList(model.VerificationMethod.ToString());
             ViewBag.VerificationOutcomes = GetVerificationOutcomeSelectList(model.Outcome.ToString());
@@ -297,7 +315,9 @@ public class GdpProvidersController : Controller
         // Redirect to the credential's entity details
         var credential = await _gdpService.GetCredentialAsync(model.CredentialId, cancellationToken);
         if (credential?.EntityType == GdpCredentialEntityType.ServiceProvider)
+        {
             return RedirectToAction(nameof(Details), new { id = credential.EntityId });
+        }
 
         return RedirectToAction(nameof(Index));
     }

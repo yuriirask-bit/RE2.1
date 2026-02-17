@@ -27,7 +27,9 @@ public class DocumentStorageClient : IDocumentStorage
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         if (string.IsNullOrWhiteSpace(storageAccountUrl))
+        {
             throw new ArgumentException("Storage account URL is required", nameof(storageAccountUrl));
+        }
 
         // Use Managed Identity for authentication
         var credential = new DefaultAzureCredential();

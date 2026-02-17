@@ -683,24 +683,24 @@ Project uses multi-project .NET solution structure per plan.md:
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T273 [P] Add comprehensive XML documentation comments to public APIs in RE2.ComplianceCore
-- [ ] T274 [P] Add comprehensive XML documentation comments to public APIs in RE2.ComplianceApi
-- [ ] T275 [P] Create API documentation in docs/api/ from XML comments
-- [ ] T276 [P] Create user guide in docs/user-guide/ for compliance UI
-- [ ] T277 [P] Create integration guide in docs/integration/ for external systems
-- [ ] T278 [P] Update README.md at repository root with project overview
-- [ ] T279 Code cleanup and refactoring: remove unused usings, apply consistent naming
-- [ ] T280 [P] Performance optimization: add caching for frequently-accessed external data per plan.md (Azure Cache for Redis)
-- [ ] T281 [P] Implement Redis caching layer for Dataverse licence lookups
-- [ ] T282 [P] Implement Redis caching for customer compliance status lookups
-- [ ] T283 [P] Add unit tests for LicenceValidationService in tests/RE2.ComplianceCore.Tests/Services/LicenceValidationServiceTests.cs
-- [ ] T284 [P] Add unit tests for CustomerService in tests/RE2.ComplianceCore.Tests/Services/CustomerServiceTests.cs
-- [ ] T285 [P] Add unit tests for GdpComplianceService in tests/RE2.ComplianceCore.Tests/Services/GdpComplianceServiceTests.cs
-- [ ] T286 [P] Add unit tests for ReportingService in tests/RE2.ComplianceCore.Tests/Services/ReportingServiceTests.cs
-- [ ] T287 Security hardening: implement rate limiting per transaction-validation-api.yaml headers
+- [x] T273 [P] Add comprehensive XML documentation comments to public APIs in RE2.ComplianceCore
+- [x] T274 [P] Add comprehensive XML documentation comments to public APIs in RE2.ComplianceApi
+- [x] T275 [P] Create API documentation in docs/api/ from XML comments
+- [x] T276 [P] Create user guide in docs/user-guide/ for compliance UI
+- [x] T277 [P] Create integration guide in docs/integration/ for external systems
+- [x] T278 [P] Update README.md at repository root with project overview
+- [x] T279 Code cleanup and refactoring: remove unused usings, apply consistent naming
+- [x] T280 [P] Performance optimization: add caching for frequently-accessed external data per plan.md (Azure Cache for Redis)
+- [x] T281 [P] Implement Redis caching layer for Dataverse licence lookups
+- [x] T282 [P] Implement Redis caching for customer compliance status lookups
+- [x] T283 [P] Add unit tests for LicenceValidationService in tests/RE2.ComplianceCore.Tests/Services/LicenceValidationServiceTests.cs
+- [x] T284 [P] Add unit tests for CustomerService in tests/RE2.ComplianceCore.Tests/Services/CustomerServiceTests.cs
+- [x] T285 [P] Add unit tests for GdpComplianceService in tests/RE2.ComplianceCore.Tests/Services/GdpComplianceServiceTests.cs
+- [x] T286 [P] Add unit tests for ReportingService in tests/RE2.ComplianceCore.Tests/Services/ReportingServiceTests.cs
+- [x] T287 Security hardening: implement rate limiting per transaction-validation-api.yaml headers
 - [ ] T288 Security hardening: integrate OWASP dependency check and SAST scanning (SonarQube or similar) in .azure/pipelines/ci-build.yml per NFR-005 with build failure on high/critical severity
-- [ ] T289 Security hardening: implement comprehensive input validation in RE2.ComplianceApi using FluentValidation for all DTOs, validating against OWASP injection patterns per NFR-002, with unit tests in tests/RE2.ComplianceApi.Tests/Validation/
-- [ ] T290 Security hardening: enforce HTTPS-only in production via middleware (RE2.ComplianceApi/Middleware/HttpsEnforcementMiddleware.cs) returning HTTP 403 for non-HTTPS requests per NFR-003
+- [x] T289 Security hardening: implement comprehensive input validation in RE2.ComplianceApi using FluentValidation for all DTOs, validating against OWASP injection patterns per NFR-002, with unit tests in tests/RE2.ComplianceApi.Tests/Validation/
+- [x] T290 Security hardening: enforce HTTPS-only in production via middleware (RE2.ComplianceApi/Middleware/HttpsEnforcementMiddleware.cs) returning HTTP 403 for non-HTTPS requests per NFR-003
 - [ ] T290a Security testing: perform DAST scanning with OWASP ZAP against deployed staging environment per NFR-005, verify zero high-severity findings per SC-039
 - [ ] T290b Security testing: verify API rate limiting implementation per NFR-004 using load testing tool, confirm HTTP 429 responses at threshold per SC-042
 - [ ] T290c Security testing: verify TLS configuration using SSL Labs scan, target A- or higher grade per SC-043

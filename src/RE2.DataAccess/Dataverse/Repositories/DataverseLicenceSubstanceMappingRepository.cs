@@ -244,15 +244,29 @@ public class DataverseLicenceSubstanceMappingRepository : ILicenceSubstanceMappi
         entity["phr_effectivedate"] = dto.phr_effectivedate;
 
         if (dto.phr_maxquantitypertransaction.HasValue)
+        {
             entity["phr_maxquantitypertransaction"] = dto.phr_maxquantitypertransaction.Value;
+        }
+
         if (dto.phr_maxquantityperperiod.HasValue)
+        {
             entity["phr_maxquantityperperiod"] = dto.phr_maxquantityperperiod.Value;
+        }
+
         if (!string.IsNullOrEmpty(dto.phr_periodtype))
+        {
             entity["phr_periodtype"] = dto.phr_periodtype;
+        }
+
         if (!string.IsNullOrEmpty(dto.phr_restrictions))
+        {
             entity["phr_restrictions"] = dto.phr_restrictions;
+        }
+
         if (dto.phr_expirydate.HasValue)
+        {
             entity["phr_expirydate"] = dto.phr_expirydate.Value;
+        }
 
         return entity;
     }

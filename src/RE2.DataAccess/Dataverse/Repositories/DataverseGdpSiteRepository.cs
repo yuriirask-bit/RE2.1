@@ -48,7 +48,9 @@ public class DataverseGdpSiteRepository : IGdpSiteRepository
                 cancellationToken);
 
             if (response?.Value == null)
+            {
                 return Enumerable.Empty<GdpSite>();
+            }
 
             // Load site names for enrichment
             var siteNames = await GetSiteNameLookupAsync(cancellationToken);
@@ -74,7 +76,9 @@ public class DataverseGdpSiteRepository : IGdpSiteRepository
             var warehouseDto = await _d365FoClient.GetByKeyAsync<WarehouseDto>(WarehouseEntitySet, key, cancellationToken);
 
             if (warehouseDto == null)
+            {
                 return null;
+            }
 
             // Look up site name
             string? siteName = null;
@@ -135,7 +139,9 @@ public class DataverseGdpSiteRepository : IGdpSiteRepository
             var result = await _dataverseClient.RetrieveMultipleAsync(query, cancellationToken);
             var entity = result.Entities.FirstOrDefault();
             if (entity == null)
+            {
                 return null;
+            }
 
             var dto = MapToGdpExtensionDto(entity);
             var site = dto.ToDomainModel();
@@ -195,7 +201,9 @@ public class DataverseGdpSiteRepository : IGdpSiteRepository
         try
         {
             if (site.GdpExtensionId == Guid.Empty)
+            {
                 site.GdpExtensionId = Guid.NewGuid();
+            }
 
             site.CreatedDate = DateTime.UtcNow;
             site.ModifiedDate = DateTime.UtcNow;
@@ -287,7 +295,9 @@ public class DataverseGdpSiteRepository : IGdpSiteRepository
         try
         {
             if (coverage.CoverageId == Guid.Empty)
+            {
                 coverage.CoverageId = Guid.NewGuid();
+            }
 
             var dto = GdpSiteWdaCoverageDto.FromDomainModel(coverage);
             var entity = MapToCoverageEntity(dto);
@@ -371,7 +381,10 @@ public class DataverseGdpSiteRepository : IGdpSiteRepository
         entity["phr_licenceid"] = dto.phr_licenceid;
         entity["phr_effectivedate"] = dto.phr_effectivedate;
         if (dto.phr_expirydate.HasValue)
+        {
             entity["phr_expirydate"] = dto.phr_expirydate.Value;
+        }
+
         return entity;
     }
 

@@ -903,7 +903,9 @@ public class TransactionComplianceService : ITransactionComplianceService
         {
             // Check if licence permits required activities
             if ((licence.PermittedActivities & requiredActivity) != requiredActivity)
+            {
                 continue;
+            }
 
             // Check substance coverage based on licence type
             // For Opium Act exemptions, check if it covers the opium list

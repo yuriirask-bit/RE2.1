@@ -169,13 +169,20 @@ public class Threshold
     /// </summary>
     public bool IsEffective(DateOnly date)
     {
-        if (!IsActive) return false;
+        if (!IsActive)
+        {
+            return false;
+        }
 
         if (EffectiveFrom.HasValue && date < EffectiveFrom.Value)
+        {
             return false;
+        }
 
         if (EffectiveTo.HasValue && date > EffectiveTo.Value)
+        {
             return false;
+        }
 
         return true;
     }
@@ -203,7 +210,9 @@ public class Threshold
     public bool ExceedsMaxOverride(decimal value)
     {
         if (!AllowOverride || !MaxOverridePercent.HasValue)
+        {
             return false;
+        }
 
         var maxAllowed = LimitValue * (MaxOverridePercent.Value / 100m);
         return value > maxAllowed;
@@ -214,7 +223,11 @@ public class Threshold
     /// </summary>
     public decimal GetUsagePercent(decimal value)
     {
-        if (LimitValue == 0) return 100m;
+        if (LimitValue == 0)
+        {
+            return 100m;
+        }
+
         return (value / LimitValue) * 100m;
     }
 
@@ -243,7 +256,9 @@ public class Threshold
     {
         // Specific customer match
         if (CustomerId.HasValue)
+        {
             return CustomerId.Value == customerId;
+        }
 
         // Category match
         return AppliesToCustomerCategory(category);

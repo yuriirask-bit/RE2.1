@@ -73,7 +73,9 @@ public class DataverseGdpDocumentRepository : IGdpDocumentRepository
         try
         {
             if (document.DocumentId == Guid.Empty)
+            {
                 document.DocumentId = Guid.NewGuid();
+            }
 
             var entity = MapDocumentToEntity(document);
             await _dataverseClient.CreateAsync(entity, cancellationToken);
@@ -135,11 +137,20 @@ public class DataverseGdpDocumentRepository : IGdpDocumentRepository
         entity["phr_uploadeddate"] = document.UploadedDate;
         entity["phr_uploadedby"] = document.UploadedBy;
         if (document.ContentType != null)
+        {
             entity["phr_contenttype"] = document.ContentType;
+        }
+
         if (document.FileSizeBytes.HasValue)
+        {
             entity["phr_filesizebytes"] = document.FileSizeBytes.Value;
+        }
+
         if (document.Description != null)
+        {
             entity["phr_description"] = document.Description;
+        }
+
         return entity;
     }
 

@@ -42,7 +42,9 @@ public class GdpInspectionsController : Controller
     {
         var inspection = await _gdpService.GetInspectionAsync(id, cancellationToken);
         if (inspection == null)
+        {
             return NotFound();
+        }
 
         var findings = await _gdpService.GetFindingsAsync(id, cancellationToken);
         ViewBag.Findings = findings.ToList();
@@ -100,7 +102,9 @@ public class GdpInspectionsController : Controller
         if (!result.IsValid)
         {
             foreach (var violation in result.Violations)
+            {
                 ModelState.AddModelError(string.Empty, violation.Message);
+            }
 
             await PopulateSiteSelectListAsync(cancellationToken);
             PopulateInspectionTypeSelectList();
@@ -123,7 +127,9 @@ public class GdpInspectionsController : Controller
     {
         var inspection = await _gdpService.GetInspectionAsync(inspectionId, cancellationToken);
         if (inspection == null)
+        {
             return NotFound();
+        }
 
         ViewBag.InspectionId = inspectionId;
         ViewBag.InspectorName = inspection.InspectorName;
@@ -157,7 +163,9 @@ public class GdpInspectionsController : Controller
         if (!result.IsValid)
         {
             foreach (var violation in result.Violations)
+            {
                 ModelState.AddModelError(string.Empty, violation.Message);
+            }
 
             PopulateClassificationSelectList();
             return View(model);
@@ -195,7 +203,9 @@ public class GdpInspectionsController : Controller
     {
         var finding = await _gdpService.GetFindingAsync(findingId, cancellationToken);
         if (finding == null)
+        {
             return NotFound();
+        }
 
         ViewBag.Finding = finding;
         return View(new CapaCreateViewModel { FindingId = findingId });
@@ -229,7 +239,9 @@ public class GdpInspectionsController : Controller
         if (!result.IsValid)
         {
             foreach (var violation in result.Violations)
+            {
                 ModelState.AddModelError(string.Empty, violation.Message);
+            }
 
             var finding = await _gdpService.GetFindingAsync(model.FindingId, cancellationToken);
             ViewBag.Finding = finding;
@@ -248,7 +260,9 @@ public class GdpInspectionsController : Controller
     {
         var capa = await _gdpService.GetCapaAsync(id, cancellationToken);
         if (capa == null)
+        {
             return NotFound();
+        }
 
         ViewBag.Capa = capa;
         return View(new CapaCompleteViewModel
@@ -277,7 +291,9 @@ public class GdpInspectionsController : Controller
         if (!result.IsValid)
         {
             foreach (var violation in result.Violations)
+            {
                 ModelState.AddModelError(string.Empty, violation.Message);
+            }
 
             var capa = await _gdpService.GetCapaAsync(model.CapaId, cancellationToken);
             ViewBag.Capa = capa;

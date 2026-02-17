@@ -41,7 +41,9 @@ public class DataverseCustomerRepository : ICustomerRepository
                 cancellationToken);
 
             if (response?.Value == null)
+            {
                 return Enumerable.Empty<Customer>();
+            }
 
             var customers = response.Value.Select(dto => dto.ToDomainModel()).ToList();
 
@@ -74,7 +76,9 @@ public class DataverseCustomerRepository : ICustomerRepository
                 cancellationToken);
 
             if (response == null)
+            {
                 return null;
+            }
 
             var customer = response.ToDomainModel();
 
@@ -103,7 +107,9 @@ public class DataverseCustomerRepository : ICustomerRepository
         // Get compliance extension first (this is the primary lookup for compliance-configured customers)
         var extension = await GetComplianceExtensionAsync(customerAccount, dataAreaId, cancellationToken);
         if (extension == null)
+        {
             return null;
+        }
 
         var customer = extension.ToDomainModel();
 
@@ -294,7 +300,9 @@ public class DataverseCustomerRepository : ICustomerRepository
                 cancellationToken);
 
             if (response?.Value == null)
+            {
                 return Enumerable.Empty<Customer>();
+            }
 
             var customers = new List<Customer>();
             foreach (var dto in response.Value)

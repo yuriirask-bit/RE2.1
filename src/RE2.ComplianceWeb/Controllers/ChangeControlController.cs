@@ -47,7 +47,11 @@ public class ChangeControlController : Controller
     public async Task<IActionResult> Details(Guid id)
     {
         var record = await _changeRepository.GetByIdAsync(id);
-        if (record == null) return NotFound();
+        if (record == null)
+        {
+            return NotFound();
+        }
+
         return View(record);
     }
 
@@ -97,7 +101,10 @@ public class ChangeControlController : Controller
     public async Task<IActionResult> Approve(Guid id)
     {
         var record = await _changeRepository.GetByIdAsync(id);
-        if (record == null) return NotFound();
+        if (record == null)
+        {
+            return NotFound();
+        }
 
         // In a real app, UserId would come from the authenticated user claims
         await _changeRepository.ApproveAsync(id, Guid.Empty);
@@ -111,7 +118,10 @@ public class ChangeControlController : Controller
     public async Task<IActionResult> Reject(Guid id)
     {
         var record = await _changeRepository.GetByIdAsync(id);
-        if (record == null) return NotFound();
+        if (record == null)
+        {
+            return NotFound();
+        }
 
         await _changeRepository.RejectAsync(id, Guid.Empty);
         TempData["SuccessMessage"] = $"Change record '{record.ChangeNumber}' rejected.";

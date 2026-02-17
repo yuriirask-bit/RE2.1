@@ -37,7 +37,9 @@ public class InMemoryCustomerRepository : ICustomerRepository
     {
         var key = GetKey(customerAccount, dataAreaId);
         if (!_d365Customers.TryGetValue(key, out var customer))
+        {
             return Task.FromResult<Customer?>(null);
+        }
 
         var result = CloneD365Customer(customer);
         if (_complianceExtensions.TryGetValue(key, out var extension))
@@ -56,7 +58,9 @@ public class InMemoryCustomerRepository : ICustomerRepository
     {
         var key = GetKey(customerAccount, dataAreaId);
         if (!_complianceExtensions.TryGetValue(key, out var extension))
+        {
             return Task.FromResult<Customer?>(null);
+        }
 
         var result = CloneComplianceExtension(extension);
         if (_d365Customers.TryGetValue(key, out var d365Customer))
@@ -92,7 +96,10 @@ public class InMemoryCustomerRepository : ICustomerRepository
                 var result = CloneComplianceExtension(ext);
                 var key = GetKey(ext.CustomerAccount, ext.DataAreaId);
                 if (_d365Customers.TryGetValue(key, out var d365Customer))
+                {
                     MergeD365Data(result, d365Customer);
+                }
+
                 return result;
             }).ToList();
 
@@ -108,7 +115,10 @@ public class InMemoryCustomerRepository : ICustomerRepository
                 var result = CloneComplianceExtension(ext);
                 var key = GetKey(ext.CustomerAccount, ext.DataAreaId);
                 if (_d365Customers.TryGetValue(key, out var d365Customer))
+                {
                     MergeD365Data(result, d365Customer);
+                }
+
                 return result;
             }).ToList();
 
@@ -124,7 +134,10 @@ public class InMemoryCustomerRepository : ICustomerRepository
                 var result = CloneComplianceExtension(ext);
                 var key = GetKey(ext.CustomerAccount, ext.DataAreaId);
                 if (_d365Customers.TryGetValue(key, out var d365Customer))
+                {
                     MergeD365Data(result, d365Customer);
+                }
+
                 return result;
             }).ToList();
 
@@ -143,7 +156,10 @@ public class InMemoryCustomerRepository : ICustomerRepository
                 var result = CloneComplianceExtension(ext);
                 var key = GetKey(ext.CustomerAccount, ext.DataAreaId);
                 if (_d365Customers.TryGetValue(key, out var d365Customer))
+                {
                     MergeD365Data(result, d365Customer);
+                }
+
                 return result;
             }).ToList();
 
@@ -159,7 +175,10 @@ public class InMemoryCustomerRepository : ICustomerRepository
                 var result = CloneComplianceExtension(ext);
                 var key = GetKey(ext.CustomerAccount, ext.DataAreaId);
                 if (_d365Customers.TryGetValue(key, out var d365Customer))
+                {
                     MergeD365Data(result, d365Customer);
+                }
+
                 return result;
             }).ToList();
 
@@ -173,7 +192,9 @@ public class InMemoryCustomerRepository : ICustomerRepository
     public Task<Guid> SaveComplianceExtensionAsync(Customer customer, CancellationToken cancellationToken = default)
     {
         if (customer.ComplianceExtensionId == Guid.Empty)
+        {
             customer.ComplianceExtensionId = Guid.NewGuid();
+        }
 
         customer.CreatedDate = DateTime.UtcNow;
         customer.ModifiedDate = DateTime.UtcNow;
@@ -216,7 +237,10 @@ public class InMemoryCustomerRepository : ICustomerRepository
                 var result = CloneD365Customer(c);
                 var key = GetKey(c.CustomerAccount, c.DataAreaId);
                 if (_complianceExtensions.TryGetValue(key, out var extension))
+                {
                     MergeComplianceExtension(result, extension);
+                }
+
                 return result;
             });
 

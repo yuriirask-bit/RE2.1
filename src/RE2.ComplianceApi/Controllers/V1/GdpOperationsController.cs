@@ -194,7 +194,9 @@ public class GdpOperationsController : ControllerBase
         {
             var errorCode = result.Violations.First().ErrorCode;
             if (errorCode == ErrorCodes.NOT_FOUND)
+            {
                 return NotFound(new ErrorResponseDto { ErrorCode = errorCode, Message = result.Violations.First().Message });
+            }
 
             return BadRequest(new ErrorResponseDto
             {

@@ -61,21 +61,31 @@ public class InMemoryAlertRepository : IAlertRepository
         var query = _alerts.Values.AsEnumerable();
 
         if (type.HasValue)
+        {
             query = query.Where(a => a.AlertType == type.Value);
+        }
 
         if (severity.HasValue)
+        {
             query = query.Where(a => a.Severity == severity.Value);
+        }
 
         if (entityType.HasValue)
+        {
             query = query.Where(a => a.TargetEntityType == entityType.Value);
+        }
 
         if (isAcknowledged.HasValue)
+        {
             query = query.Where(a => a.IsAcknowledged() == isAcknowledged.Value);
+        }
 
         query = query.OrderByDescending(a => a.Severity).ThenByDescending(a => a.GeneratedDate);
 
         if (maxResults.HasValue)
+        {
             query = query.Take(maxResults.Value);
+        }
 
         return Task.FromResult<IEnumerable<Alert>>(query.ToList());
     }
@@ -92,7 +102,9 @@ public class InMemoryAlertRepository : IAlertRepository
     public Task<Guid> CreateAsync(Alert alert, CancellationToken cancellationToken = default)
     {
         if (alert.AlertId == Guid.Empty)
+        {
             alert.AlertId = Guid.NewGuid();
+        }
 
         _alerts[alert.AlertId] = alert;
         return Task.FromResult(alert.AlertId);
@@ -104,7 +116,9 @@ public class InMemoryAlertRepository : IAlertRepository
         foreach (var alert in alerts)
         {
             if (alert.AlertId == Guid.Empty)
+            {
                 alert.AlertId = Guid.NewGuid();
+            }
 
             _alerts[alert.AlertId] = alert;
             ids.Add(alert.AlertId);

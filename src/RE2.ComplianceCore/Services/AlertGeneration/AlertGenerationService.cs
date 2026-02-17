@@ -60,11 +60,17 @@ public class AlertGenerationService
 
         foreach (var licence in expiringLicences)
         {
-            if (!licence.ExpiryDate.HasValue) continue;
+            if (!licence.ExpiryDate.HasValue)
+            {
+                continue;
+            }
 
             // Calculate days until expiry
             var daysUntilExpiry = (licence.ExpiryDate.Value.ToDateTime(TimeOnly.MinValue) - DateTime.UtcNow).Days;
-            if (daysUntilExpiry < 0) continue; // Skip already expired licences (handled separately)
+            if (daysUntilExpiry < 0)
+            {
+                continue; // Skip already expired licences (handled separately)
+            }
 
             // Check if alert already exists to prevent duplicates
             var alertExists = await _alertRepository.ExistsAsync(
@@ -123,7 +129,10 @@ public class AlertGenerationService
                 licence.LicenceId,
                 cancellationToken);
 
-            if (alertExists) continue;
+            if (alertExists)
+            {
+                continue;
+            }
 
             var alert = new Alert
             {
@@ -170,8 +179,15 @@ public class AlertGenerationService
 
         foreach (var customer in customers)
         {
-            if (!customer.NextReVerificationDate.HasValue) continue;
-            if (customer.NextReVerificationDate.Value > threshold) continue;
+            if (!customer.NextReVerificationDate.HasValue)
+            {
+                continue;
+            }
+
+            if (customer.NextReVerificationDate.Value > threshold)
+            {
+                continue;
+            }
 
             // Check if alert already exists (use ComplianceExtensionId as entity Guid)
             var alertExists = await _alertRepository.ExistsAsync(
@@ -180,7 +196,10 @@ public class AlertGenerationService
                 customer.ComplianceExtensionId,
                 cancellationToken);
 
-            if (alertExists) continue;
+            if (alertExists)
+            {
+                continue;
+            }
 
             var alert = Alert.CreateReVerificationAlert(
                 customer.ComplianceExtensionId,
@@ -219,7 +238,10 @@ public class AlertGenerationService
 
         foreach (var credential in expiringCredentials)
         {
-            if (!credential.ValidityEndDate.HasValue) continue;
+            if (!credential.ValidityEndDate.HasValue)
+            {
+                continue;
+            }
 
             var daysUntilExpiry = (credential.ValidityEndDate.Value.ToDateTime(TimeOnly.MinValue) - DateTime.UtcNow).Days;
 
@@ -230,7 +252,10 @@ public class AlertGenerationService
                 credential.CredentialId,
                 cancellationToken);
 
-            if (alertExists) continue;
+            if (alertExists)
+            {
+                continue;
+            }
 
             // Resolve entity name for the alert message
             var entityName = await ResolveCredentialEntityNameAsync(credential, cancellationToken);
@@ -272,7 +297,10 @@ public class AlertGenerationService
 
         foreach (var provider in providersNeedingReview)
         {
-            if (!provider.NextReviewDate.HasValue) continue;
+            if (!provider.NextReviewDate.HasValue)
+            {
+                continue;
+            }
 
             // Check if alert already exists
             var alertExists = await _alertRepository.ExistsAsync(
@@ -281,7 +309,10 @@ public class AlertGenerationService
                 provider.ProviderId,
                 cancellationToken);
 
-            if (alertExists) continue;
+            if (alertExists)
+            {
+                continue;
+            }
 
             var daysOverdue = (DateTime.UtcNow - provider.NextReviewDate.Value.ToDateTime(TimeOnly.MinValue)).Days;
             var severity = daysOverdue switch
@@ -351,7 +382,10 @@ public class AlertGenerationService
                 capa.CapaId,
                 cancellationToken);
 
-            if (alertExists) continue;
+            if (alertExists)
+            {
+                continue;
+            }
 
             var alert = Alert.CreateCapaOverdueAlert(
                 capa.CapaId,

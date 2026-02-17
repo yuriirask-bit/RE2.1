@@ -1,10 +1,10 @@
+using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using RE2.ComplianceApi.Authorization;
-using System.Security.Claims;
 
 namespace RE2.ComplianceApi.Tests.Authorization;
 

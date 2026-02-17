@@ -54,7 +54,9 @@ public class InMemoryGdpEquipmentRepository : IGdpEquipmentRepository
     public Task<Guid> CreateAsync(GdpEquipmentQualification equipment, CancellationToken cancellationToken = default)
     {
         if (equipment.EquipmentQualificationId == Guid.Empty)
+        {
             equipment.EquipmentQualificationId = Guid.NewGuid();
+        }
 
         equipment.CreatedDate = DateTime.UtcNow;
         equipment.ModifiedDate = DateTime.UtcNow;

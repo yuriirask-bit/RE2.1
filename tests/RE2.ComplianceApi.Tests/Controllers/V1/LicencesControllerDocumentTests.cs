@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using System.Text;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -8,8 +10,6 @@ using RE2.ComplianceCore.Interfaces;
 using RE2.ComplianceCore.Models;
 using RE2.Shared.Constants;
 using RE2.Shared.Models;
-using System.Security.Claims;
-using System.Text;
 
 namespace RE2.ComplianceApi.Tests.Controllers.V1;
 

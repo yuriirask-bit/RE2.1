@@ -138,7 +138,9 @@ public class AuditEvent
     public T? GetDetails<T>() where T : class
     {
         if (string.IsNullOrWhiteSpace(Details))
+        {
             return null;
+        }
 
         return JsonSerializer.Deserialize<T>(Details, new JsonSerializerOptions
         {

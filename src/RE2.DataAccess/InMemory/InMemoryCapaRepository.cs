@@ -63,7 +63,9 @@ public class InMemoryCapaRepository : ICapaRepository
     public Task<Guid> CreateAsync(Capa capa, CancellationToken cancellationToken = default)
     {
         if (capa.CapaId == Guid.Empty)
+        {
             capa.CapaId = Guid.NewGuid();
+        }
 
         capa.CreatedDate = DateTime.UtcNow;
         capa.ModifiedDate = DateTime.UtcNow;

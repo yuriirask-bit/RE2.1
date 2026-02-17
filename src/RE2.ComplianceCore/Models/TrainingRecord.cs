@@ -118,7 +118,9 @@ public class TrainingRecord
     public bool IsExpired()
     {
         if (!ExpiryDate.HasValue)
+        {
             return false;
+        }
 
         return ExpiryDate.Value < DateOnly.FromDateTime(DateTime.UtcNow);
     }

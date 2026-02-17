@@ -57,7 +57,9 @@ public class InMemoryGdpInspectionRepository : IGdpInspectionRepository
     public Task<Guid> CreateAsync(GdpInspection inspection, CancellationToken cancellationToken = default)
     {
         if (inspection.InspectionId == Guid.Empty)
+        {
             inspection.InspectionId = Guid.NewGuid();
+        }
 
         inspection.CreatedDate = DateTime.UtcNow;
         inspection.ModifiedDate = DateTime.UtcNow;
@@ -95,7 +97,9 @@ public class InMemoryGdpInspectionRepository : IGdpInspectionRepository
     public Task<Guid> CreateFindingAsync(GdpInspectionFinding finding, CancellationToken cancellationToken = default)
     {
         if (finding.FindingId == Guid.Empty)
+        {
             finding.FindingId = Guid.NewGuid();
+        }
 
         _findings[finding.FindingId] = CloneFinding(finding);
         return Task.FromResult(finding.FindingId);

@@ -103,7 +103,9 @@ public class GdpProvidersController : ControllerBase
         {
             var errorCode = result.Violations.First().ErrorCode;
             if (errorCode == ErrorCodes.NOT_FOUND)
+            {
                 return NotFound(new ErrorResponseDto { ErrorCode = errorCode, Message = result.Violations.First().Message });
+            }
 
             return BadRequest(new ErrorResponseDto
             {
@@ -127,7 +129,9 @@ public class GdpProvidersController : ControllerBase
     {
         var result = await _gdpService.DeleteProviderAsync(providerId, cancellationToken);
         if (!result.IsValid)
+        {
             return NotFound(new ErrorResponseDto { ErrorCode = ErrorCodes.NOT_FOUND, Message = result.Violations.First().Message });
+        }
 
         return NoContent();
     }
@@ -249,7 +253,9 @@ public class GdpProvidersController : ControllerBase
         {
             var errorCode = result.Violations.First().ErrorCode;
             if (errorCode == ErrorCodes.NOT_FOUND)
+            {
                 return NotFound(new ErrorResponseDto { ErrorCode = errorCode, Message = result.Violations.First().Message });
+            }
 
             return BadRequest(new ErrorResponseDto
             {
@@ -294,7 +300,9 @@ public class GdpProvidersController : ControllerBase
         {
             var errorCode = result.Violations.First().ErrorCode;
             if (errorCode == ErrorCodes.NOT_FOUND)
+            {
                 return NotFound(new ErrorResponseDto { ErrorCode = errorCode, Message = result.Violations.First().Message });
+            }
 
             return BadRequest(new ErrorResponseDto
             {
@@ -409,7 +417,9 @@ public class GdpProvidersController : ControllerBase
         {
             var errorCode = result.Violations.First().ErrorCode;
             if (errorCode == ErrorCodes.NOT_FOUND)
+            {
                 return NotFound(new ErrorResponseDto { ErrorCode = errorCode, Message = result.Violations.First().Message });
+            }
 
             return BadRequest(new ErrorResponseDto
             {
@@ -440,7 +450,9 @@ public class GdpProvidersController : ControllerBase
         {
             var errorCode = result.Violations.First().ErrorCode;
             if (errorCode == ErrorCodes.NOT_FOUND)
+            {
                 return NotFound(new ErrorResponseDto { ErrorCode = errorCode, Message = result.Violations.First().Message });
+            }
 
             return BadRequest(new ErrorResponseDto
             {
@@ -645,7 +657,9 @@ public class CreateReviewRequestDto
         };
 
         if (NextReviewMonths.HasValue)
+        {
             review.SetNextReviewDate(NextReviewMonths.Value);
+        }
 
         return review;
     }

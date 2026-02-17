@@ -17,7 +17,9 @@ public class InMemoryAuditRepository : IAuditRepository
     public Task<Guid> CreateAsync(AuditEvent auditEvent, CancellationToken cancellationToken = default)
     {
         if (auditEvent.EventId == Guid.Empty)
+        {
             auditEvent.EventId = Guid.NewGuid();
+        }
 
         lock (_lock)
         {
@@ -36,7 +38,9 @@ public class InMemoryAuditRepository : IAuditRepository
             foreach (var auditEvent in auditEvents)
             {
                 if (auditEvent.EventId == Guid.Empty)
+                {
                     auditEvent.EventId = Guid.NewGuid();
+                }
 
                 _events.Add(auditEvent);
                 ids.Add(auditEvent.EventId);
@@ -254,10 +258,14 @@ public class InMemoryAuditRepository : IAuditRepository
                 .Where(e => e.EntityType == AuditEntityType.Customer && e.EntityId == customerId);
 
             if (fromDate.HasValue)
+            {
                 query = query.Where(e => e.EventDate >= fromDate.Value);
+            }
 
             if (toDate.HasValue)
+            {
                 query = query.Where(e => e.EventDate <= toDate.Value);
+            }
 
             var result = query.OrderByDescending(e => e.EventDate).ToList();
 
@@ -300,28 +308,44 @@ public class InMemoryAuditRepository : IAuditRepository
             var query = _events.AsEnumerable();
 
             if (criteria.EntityType.HasValue)
+            {
                 query = query.Where(e => e.EntityType == criteria.EntityType.Value);
+            }
 
             if (criteria.EntityId.HasValue)
+            {
                 query = query.Where(e => e.EntityId == criteria.EntityId.Value);
+            }
 
             if (criteria.EventType.HasValue)
+            {
                 query = query.Where(e => e.EventType == criteria.EventType.Value);
+            }
 
             if (criteria.PerformedBy.HasValue)
+            {
                 query = query.Where(e => e.PerformedBy == criteria.PerformedBy.Value);
+            }
 
             if (criteria.FromDate.HasValue)
+            {
                 query = query.Where(e => e.EventDate >= criteria.FromDate.Value);
+            }
 
             if (criteria.ToDate.HasValue)
+            {
                 query = query.Where(e => e.EventDate <= criteria.ToDate.Value);
+            }
 
             if (!string.IsNullOrEmpty(criteria.DetailsContains))
+            {
                 query = query.Where(e => e.Details?.Contains(criteria.DetailsContains) ?? false);
+            }
 
             if (!string.IsNullOrEmpty(criteria.CorrelationId))
+            {
                 query = query.Where(e => e.CorrelationId == criteria.CorrelationId);
+            }
 
             var orderedQuery = query.OrderByDescending(e => e.EventDate);
             var totalCount = orderedQuery.Count();

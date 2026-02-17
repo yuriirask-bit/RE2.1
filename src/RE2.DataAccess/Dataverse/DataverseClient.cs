@@ -31,7 +31,9 @@ public class DataverseClient : IDataverseClient, IDisposable
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         if (string.IsNullOrWhiteSpace(dataverseUrl))
+        {
             throw new ArgumentException("Dataverse URL is required", nameof(dataverseUrl));
+        }
 
         // Per research.md: Use DefaultAzureCredential for Managed Identity
         var credential = new DefaultAzureCredential();
@@ -259,7 +261,9 @@ public class DataverseClient : IDataverseClient, IDisposable
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
+        }
 
         _serviceClient?.Dispose();
         _disposed = true;

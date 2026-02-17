@@ -341,12 +341,16 @@ public class ConflictsController : Controller
     private static object? ConvertValue(object? value, Type targetType)
     {
         if (value == null)
+        {
             return null;
+        }
 
         var underlyingType = Nullable.GetUnderlyingType(targetType) ?? targetType;
 
         if (value.GetType() == underlyingType)
+        {
             return value;
+        }
 
         return Convert.ChangeType(value, underlyingType);
     }

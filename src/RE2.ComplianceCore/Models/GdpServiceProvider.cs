@@ -104,7 +104,9 @@ public class GdpServiceProvider
     public bool IsReviewDue()
     {
         if (!NextReviewDate.HasValue)
+        {
             return false;
+        }
 
         return NextReviewDate.Value <= DateOnly.FromDateTime(DateTime.UtcNow);
     }

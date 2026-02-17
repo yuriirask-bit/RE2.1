@@ -23,13 +23,25 @@ public class ProductAttributeValueDto
     public string? GetEffectiveValue()
     {
         if (!string.IsNullOrWhiteSpace(TextValue))
+        {
             return TextValue;
+        }
+
         if (IntegerValue.HasValue)
+        {
             return IntegerValue.Value.ToString();
+        }
+
         if (DecimalValue.HasValue)
+        {
             return DecimalValue.Value.ToString();
+        }
+
         if (BooleanValue.HasValue)
+        {
             return BooleanValue.Value.ToString();
+        }
+
         return null;
     }
 }
