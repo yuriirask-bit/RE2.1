@@ -62,6 +62,63 @@ public static class InMemorySeedData
     public static readonly Guid GdpDocumentInspectionReportId = Guid.Parse("83000000-0000-0000-0000-000000000002");
     public static readonly Guid GdpDocumentSiteWdaCopyId = Guid.Parse("83000000-0000-0000-0000-000000000003");
 
+    // GDP Equipment Qualification IDs for testing (US11)
+    public static readonly Guid GdpEquipmentVehicleId = Guid.Parse("84000000-0000-0000-0000-000000000001");
+    public static readonly Guid GdpEquipmentMonitorId = Guid.Parse("84000000-0000-0000-0000-000000000002");
+    public static readonly Guid GdpEquipmentExpiredId = Guid.Parse("84000000-0000-0000-0000-000000000003");
+
+    // GDP SOP IDs for testing (US12)
+    public static readonly Guid GdpSopReturnsId = Guid.Parse("85000000-0000-0000-0000-000000000001");
+    public static readonly Guid GdpSopRecallsId = Guid.Parse("85000000-0000-0000-0000-000000000002");
+    public static readonly Guid GdpSopDeviationsId = Guid.Parse("85000000-0000-0000-0000-000000000003");
+
+    // Training Record IDs for testing (US12)
+    public static readonly Guid TrainingGdpAwarenessId = Guid.Parse("86000000-0000-0000-0000-000000000001");
+    public static readonly Guid TrainingReturnsHandlingId = Guid.Parse("86000000-0000-0000-0000-000000000002");
+    public static readonly Guid TrainingExpiredId = Guid.Parse("86000000-0000-0000-0000-000000000003");
+
+    // GDP Change Record IDs for testing (US12)
+    public static readonly Guid GdpChangePendingId = Guid.Parse("87000000-0000-0000-0000-000000000001");
+    public static readonly Guid GdpChangeApprovedId = Guid.Parse("87000000-0000-0000-0000-000000000002");
+
+    /// <summary>
+    /// Seeds all repositories with test data.
+    /// Extended overload for User Stories 11+12 including equipment, SOPs, training, and change records.
+    /// </summary>
+    public static void SeedAll(
+        InMemoryLicenceTypeRepository licenceTypeRepo,
+        InMemoryControlledSubstanceRepository substanceRepo,
+        InMemoryLicenceRepository licenceRepo,
+        InMemoryCustomerRepository customerRepo,
+        InMemoryThresholdRepository thresholdRepo,
+        InMemoryGdpSiteRepository gdpSiteRepo,
+        InMemoryProductRepository productRepo,
+        InMemoryGdpCredentialRepository gdpCredentialRepo,
+        InMemoryGdpInspectionRepository gdpInspectionRepo,
+        InMemoryCapaRepository capaRepo,
+        InMemoryGdpDocumentRepository gdpDocumentRepo,
+        InMemoryGdpEquipmentRepository gdpEquipmentRepo,
+        InMemoryGdpSopRepository gdpSopRepo,
+        InMemoryTrainingRepository trainingRepo,
+        InMemoryGdpChangeRepository gdpChangeRepo)
+    {
+        licenceTypeRepo.Seed(GetLicenceTypes());
+        substanceRepo.Seed(GetControlledSubstances());
+        licenceRepo.Seed(GetLicences());
+        customerRepo.SeedD365Customers(GetD365Customers());
+        customerRepo.SeedComplianceExtensions(GetCustomerComplianceExtensions());
+        thresholdRepo.Seed(GetThresholds());
+        productRepo.Seed(GetProducts());
+        SeedGdpData(gdpSiteRepo);
+        SeedGdpCredentialData(gdpCredentialRepo);
+        SeedGdpInspectionData(gdpInspectionRepo, capaRepo);
+        SeedGdpDocumentData(gdpDocumentRepo);
+        SeedGdpEquipmentData(gdpEquipmentRepo);
+        SeedGdpSopData(gdpSopRepo);
+        SeedTrainingData(trainingRepo);
+        SeedGdpChangeData(gdpChangeRepo);
+    }
+
     /// <summary>
     /// Seeds all repositories with test data.
     /// Extended overload for User Story 10 including GDP document data.
@@ -1359,5 +1416,219 @@ public static class InMemorySeedData
         };
 
         gdpDocumentRepo.SeedDocuments(documents);
+    }
+
+    /// <summary>
+    /// Seeds GDP equipment qualification data for User Story 11 testing.
+    /// Creates sample equipment: one qualified vehicle, one monitoring system at a site, one expired.
+    /// </summary>
+    public static void SeedGdpEquipmentData(InMemoryGdpEquipmentRepository gdpEquipmentRepo)
+    {
+        var equipment = new List<GdpEquipmentQualification>
+        {
+            // Qualified temperature-controlled vehicle owned by 3PL provider
+            new()
+            {
+                EquipmentQualificationId = GdpEquipmentVehicleId,
+                EquipmentName = "Temperature Vehicle TRK-001",
+                EquipmentType = GdpEquipmentType.TemperatureControlledVehicle,
+                ProviderId = GdpProvider3PlId,
+                QualificationDate = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(-3),
+                RequalificationDueDate = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(9),
+                QualificationStatus = GdpQualificationStatusType.Qualified,
+                QualifiedBy = "Jan de Vries",
+                Notes = "Annual qualification — all temperature mapping tests passed.",
+                CreatedDate = DateTime.UtcNow.AddMonths(-3),
+                ModifiedDate = DateTime.UtcNow.AddMonths(-3)
+            },
+            // Monitoring system at Amsterdam site
+            new()
+            {
+                EquipmentQualificationId = GdpEquipmentMonitorId,
+                EquipmentName = "Cold Storage Monitor CSM-003",
+                EquipmentType = GdpEquipmentType.MonitoringSystem,
+                SiteId = Guid.Parse("50000000-0000-0000-0000-000000000001"), // Amsterdam GDP extension
+                QualificationDate = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(-6),
+                RequalificationDueDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(20),
+                QualificationStatus = GdpQualificationStatusType.DueForRequalification,
+                QualifiedBy = "Marie Jansen",
+                Notes = "Calibration check due within 30 days.",
+                CreatedDate = DateTime.UtcNow.AddMonths(-6),
+                ModifiedDate = DateTime.UtcNow.AddDays(-5)
+            },
+            // Expired storage equipment
+            new()
+            {
+                EquipmentQualificationId = GdpEquipmentExpiredId,
+                EquipmentName = "Walk-in Cooler WC-007",
+                EquipmentType = GdpEquipmentType.StorageEquipment,
+                SiteId = Guid.Parse("50000000-0000-0000-0000-000000000001"), // Amsterdam GDP extension
+                QualificationDate = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(-18),
+                RequalificationDueDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-30),
+                QualificationStatus = GdpQualificationStatusType.Expired,
+                QualifiedBy = "Pieter Bakker",
+                Notes = "Qualification expired — temperature mapping overdue.",
+                CreatedDate = DateTime.UtcNow.AddMonths(-18),
+                ModifiedDate = DateTime.UtcNow.AddDays(-30)
+            }
+        };
+
+        gdpEquipmentRepo.SeedEquipment(equipment);
+    }
+
+    /// <summary>
+    /// Seeds GDP SOP data for User Story 12 testing.
+    /// Creates 3 SOPs with site links.
+    /// </summary>
+    public static void SeedGdpSopData(InMemoryGdpSopRepository gdpSopRepo)
+    {
+        var amsterdamSiteId = Guid.Parse("50000000-0000-0000-0000-000000000001");
+
+        var sops = new List<GdpSop>
+        {
+            new()
+            {
+                SopId = GdpSopReturnsId,
+                SopNumber = "SOP-GDP-001",
+                Title = "Returns Handling Procedure",
+                Category = GdpSopCategory.Returns,
+                Version = "2.1",
+                EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(-6),
+                DocumentUrl = "https://docs.example.com/sop-gdp-001",
+                IsActive = true
+            },
+            new()
+            {
+                SopId = GdpSopRecallsId,
+                SopNumber = "SOP-GDP-002",
+                Title = "Product Recall Procedure",
+                Category = GdpSopCategory.Recalls,
+                Version = "1.3",
+                EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(-12),
+                DocumentUrl = "https://docs.example.com/sop-gdp-002",
+                IsActive = true
+            },
+            new()
+            {
+                SopId = GdpSopDeviationsId,
+                SopNumber = "SOP-GDP-003",
+                Title = "Temperature Excursion Management",
+                Category = GdpSopCategory.TemperatureExcursions,
+                Version = "3.0",
+                EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(-2),
+                DocumentUrl = "https://docs.example.com/sop-gdp-003",
+                IsActive = true
+            }
+        };
+
+        gdpSopRepo.SeedSops(sops);
+
+        // Link all SOPs to Amsterdam site
+        var siteSops = new List<GdpSiteSop>
+        {
+            new() { SiteSopId = Guid.NewGuid(), SiteId = amsterdamSiteId, SopId = GdpSopReturnsId },
+            new() { SiteSopId = Guid.NewGuid(), SiteId = amsterdamSiteId, SopId = GdpSopRecallsId },
+            new() { SiteSopId = Guid.NewGuid(), SiteId = amsterdamSiteId, SopId = GdpSopDeviationsId }
+        };
+
+        gdpSopRepo.SeedSiteSops(siteSops);
+    }
+
+    /// <summary>
+    /// Seeds training record data for User Story 12 testing.
+    /// Creates 3 training records: 2 current, 1 expired.
+    /// </summary>
+    public static void SeedTrainingData(InMemoryTrainingRepository trainingRepo)
+    {
+        var staffMemberId = Guid.Parse("86000000-0000-0000-0000-000000000010");
+
+        var records = new List<TrainingRecord>
+        {
+            // Current GDP awareness training
+            new()
+            {
+                TrainingRecordId = TrainingGdpAwarenessId,
+                StaffMemberId = staffMemberId,
+                StaffMemberName = "Jan de Vries",
+                TrainingCurriculum = "GDP Awareness Training",
+                SopId = null,
+                SiteId = Guid.Parse("50000000-0000-0000-0000-000000000001"),
+                CompletionDate = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(-2),
+                ExpiryDate = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(10),
+                TrainerName = "Marie Jansen",
+                AssessmentResult = AssessmentResult.Pass
+            },
+            // Current returns handling training linked to SOP
+            new()
+            {
+                TrainingRecordId = TrainingReturnsHandlingId,
+                StaffMemberId = staffMemberId,
+                StaffMemberName = "Jan de Vries",
+                TrainingCurriculum = "Returns Handling (SOP-GDP-001)",
+                SopId = GdpSopReturnsId,
+                SiteId = Guid.Parse("50000000-0000-0000-0000-000000000001"),
+                CompletionDate = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(-3),
+                ExpiryDate = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(9),
+                TrainerName = "Pieter Bakker",
+                AssessmentResult = AssessmentResult.Pass
+            },
+            // Expired training
+            new()
+            {
+                TrainingRecordId = TrainingExpiredId,
+                StaffMemberId = Guid.Parse("86000000-0000-0000-0000-000000000011"),
+                StaffMemberName = "Kees van Dijk",
+                TrainingCurriculum = "Temperature Excursion Management",
+                SopId = GdpSopDeviationsId,
+                SiteId = Guid.Parse("50000000-0000-0000-0000-000000000001"),
+                CompletionDate = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(-14),
+                ExpiryDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-30),
+                TrainerName = "Marie Jansen",
+                AssessmentResult = AssessmentResult.Pass
+            }
+        };
+
+        trainingRepo.SeedTrainingRecords(records);
+    }
+
+    /// <summary>
+    /// Seeds GDP change record data for User Story 12 testing.
+    /// Creates 2 change records: 1 pending, 1 approved.
+    /// </summary>
+    public static void SeedGdpChangeData(InMemoryGdpChangeRepository gdpChangeRepo)
+    {
+        var records = new List<GdpChangeRecord>
+        {
+            // Pending change — new warehouse
+            new()
+            {
+                ChangeRecordId = GdpChangePendingId,
+                ChangeNumber = "CHG-2026-001",
+                ChangeType = GdpChangeType.NewWarehouse,
+                Description = "Adding new temperature-controlled warehouse in Rotterdam for expanded cold chain capacity.",
+                RiskAssessment = "Medium risk — requires GDP qualification of new facility, temperature mapping, and staff training before go-live.",
+                ApprovalStatus = ChangeApprovalStatus.Pending,
+                CreatedDate = DateTime.UtcNow.AddDays(-5),
+                ModifiedDate = DateTime.UtcNow.AddDays(-5)
+            },
+            // Approved change — new 3PL
+            new()
+            {
+                ChangeRecordId = GdpChangeApprovedId,
+                ChangeNumber = "CHG-2026-002",
+                ChangeType = GdpChangeType.New3PL,
+                Description = "Onboarding CoolTrans B.V. as secondary temperature-controlled transport provider.",
+                RiskAssessment = "Low risk — CoolTrans holds valid GDP certificate and has been audited.",
+                ApprovalStatus = ChangeApprovalStatus.Approved,
+                ApprovedBy = Guid.Parse("86000000-0000-0000-0000-000000000010"),
+                ApprovalDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-2),
+                ImplementationDate = null,
+                UpdatedDocumentationRefs = "SOP-GDP-001 v2.2 updated, Training plan TR-2026-003 created",
+                CreatedDate = DateTime.UtcNow.AddDays(-10),
+                ModifiedDate = DateTime.UtcNow.AddDays(-2)
+            }
+        };
+
+        gdpChangeRepo.SeedChangeRecords(records);
     }
 }

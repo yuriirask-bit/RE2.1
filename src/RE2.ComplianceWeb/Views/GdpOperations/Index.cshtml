@@ -1,0 +1,143 @@
+@model RE2.ComplianceWeb.Controllers.GdpOperationsDashboardViewModel
+@{
+    ViewData["Title"] = "GDP Operations Dashboard";
+}
+
+<div class="container">
+    <h1><i class="bi bi-speedometer2"></i> GDP Operations Dashboard</h1>
+    <p>Operational overview of GDP compliance: providers, equipment, and site validation</p>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white"><h5 class="mb-0"><i class="bi bi-truck"></i> Approved Providers</h5></div>
+                <div class="card-body text-center">
+                    <h2>@Model.ApprovedProviderCount</h2>
+                    <p class="text-muted">Total approved</p>
+                    <span class="badge bg-info">@Model.TempControlledProviderCount temp-controlled</span>
+                </div>
+                <div class="card-footer">
+                    <a asp-controller="GdpProviders" asp-action="Index" class="btn btn-sm btn-outline-primary w-100">View Providers</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white"><h5 class="mb-0"><i class="bi bi-gear-wide-connected"></i> Equipment Status</h5></div>
+                <div class="card-body text-center">
+                    <h2>@Model.TotalEquipmentCount</h2>
+                    <p class="text-muted">Total equipment</p>
+                    <span class="badge bg-success">@Model.QualifiedEquipmentCount qualified</span>
+                    <span class="badge bg-warning text-dark">@Model.DueEquipmentCount due</span>
+                    <span class="badge bg-danger">@Model.ExpiredEquipmentCount expired</span>
+                </div>
+                <div class="card-footer">
+                    <a asp-controller="GdpEquipment" asp-action="Index" class="btn btn-sm btn-outline-success w-100">View Equipment</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark"><h5 class="mb-0"><i class="bi bi-clock-history"></i> Requalification Due (30 days)</h5></div>
+                <div class="card-body text-center">
+                    <h2>@Model.EquipmentDueIn30Days.Count</h2>
+                    <p class="text-muted">Equipment needing attention</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.EquipmentDueIn30Days.Any())
+    {
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Equipment Due for Requalification</h5></div>
+            <div class="card-body">
+                <table class="table table-sm table-hover">
+                    <thead>
+                        <tr>
+                            <th>Equipment</th>
+                            <th>Type</th>
+                            <th>Due Date</th>
+                            <th>Qualified By</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var eq in Model.EquipmentDueIn30Days.OrderBy(e => e.RequalificationDueDate))
+                        {
+                            <tr>
+                                <td>@eq.EquipmentName</td>
+                                <td>@eq.EquipmentType</td>
+                                <td>@eq.RequalificationDueDate?.ToString("yyyy-MM-dd")</td>
+                                <td>@eq.QualifiedBy</td>
+                                <td>
+                                    <a asp-controller="GdpEquipment" asp-action="Edit" asp-route-id="@eq.EquipmentQualificationId"
+                                       class="btn btn-sm btn-outline-warning">
+                                        <i class="bi bi-pencil"></i> Requalify
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0"><i class="bi bi-building"></i> Validate Site Assignment</h5></div>
+                <div class="card-body">
+                    <form asp-action="ValidateSite" method="post">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label class="form-label">Warehouse ID</label>
+                            <input name="warehouseId" class="form-control" placeholder="e.g., WH-AMS-01" required />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Data Area ID</label>
+                            <input name="dataAreaId" class="form-control" placeholder="e.g., nlp1" required />
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Validate
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0"><i class="bi bi-truck"></i> Validate Provider Assignment</h5></div>
+                <div class="card-body">
+                    <form asp-action="ValidateProvider" method="post">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label class="form-label">Provider ID</label>
+                            <input name="providerId" type="text" class="form-control" placeholder="GUID of the provider" required />
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Validate
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

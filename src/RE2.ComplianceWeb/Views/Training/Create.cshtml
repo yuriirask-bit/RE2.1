@@ -1,0 +1,102 @@
+@model RE2.ComplianceWeb.Controllers.TrainingCreateViewModel
+@{
+    ViewData["Title"] = "Record Training";
+}
+
+<div class="container">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Training Records</a></li>
+            <li class="breadcrumb-item active">Record Training</li>
+        </ol>
+    </nav>
+
+    <h1><i class="bi bi-plus-circle"></i> Record Training</h1>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <form asp-action="Create" method="post" class="mt-4">
+        @Html.AntiForgeryToken()
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header"><h5 class="mb-0">Staff & Training</h5></div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label asp-for="StaffMemberId" class="form-label">Staff Member ID <span class="text-danger">*</span></label>
+                            <input asp-for="StaffMemberId" class="form-control" placeholder="Staff member GUID" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="StaffMemberName" class="form-label">Staff Member Name <span class="text-danger">*</span></label>
+                            <input asp-for="StaffMemberName" class="form-control" placeholder="e.g., Jan de Vries" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="TrainingCurriculum" class="form-label">Training Curriculum <span class="text-danger">*</span></label>
+                            <input asp-for="TrainingCurriculum" class="form-control" placeholder="e.g., GDP Awareness Training" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="SopId" class="form-label">Related SOP</label>
+                            <select asp-for="SopId" asp-items="@(ViewBag.Sops as SelectList)" class="form-select">
+                                <option value="">-- None --</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="SiteId" class="form-label">Site</label>
+                            <select asp-for="SiteId" asp-items="@(ViewBag.Sites as SelectList)" class="form-select">
+                                <option value="">-- None --</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header"><h5 class="mb-0">Assessment & Dates</h5></div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label asp-for="CompletionDate" class="form-label">Completion Date <span class="text-danger">*</span></label>
+                            <input asp-for="CompletionDate" type="date" class="form-control" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ExpiryDate" class="form-label">Expiry Date</label>
+                            <input asp-for="ExpiryDate" type="date" class="form-control" />
+                            <small class="text-muted">When retraining is required.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="TrainerName" class="form-label">Trainer Name</label>
+                            <input asp-for="TrainerName" class="form-control" placeholder="e.g., Training Department" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="AssessmentResult" class="form-label">Assessment Result</label>
+                            <select asp-for="AssessmentResult" asp-items="@(ViewBag.AssessmentResults as SelectList)" class="form-select">
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i> Record Training
+            </button>
+            <a asp-action="Index" class="btn btn-secondary ms-2">Cancel</a>
+        </div>
+    </form>
+</div>

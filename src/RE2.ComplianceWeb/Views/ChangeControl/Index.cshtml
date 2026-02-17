@@ -1,0 +1,124 @@
+@model RE2.ComplianceWeb.Controllers.ChangeIndexViewModel
+@{
+    ViewData["Title"] = "GDP Change Control";
+}
+
+<div class="container">
+    <h1><i class="bi bi-signpost-split"></i> GDP Change Control</h1>
+    <p>Manage GDP-impacting changes requiring risk assessment and approval</p>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row mb-3">
+        <div class="col">
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> New Change Record
+            </a>
+            @if (Model.PendingCount > 0)
+            {
+                <a asp-action="Index" asp-route-statusFilter="Pending" class="btn btn-outline-warning ms-2">
+                    <i class="bi bi-clock-history"></i> Pending (@Model.PendingCount)
+                </a>
+            }
+            <a asp-action="Index" asp-route-statusFilter="Approved" class="btn btn-outline-success ms-1">Approved</a>
+            <a asp-action="Index" asp-route-statusFilter="Rejected" class="btn btn-outline-danger ms-1">Rejected</a>
+            <a asp-action="Index" class="btn btn-outline-secondary ms-1">All</a>
+        </div>
+    </div>
+
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Change Number</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Records.Any())
+            {
+                <tr>
+                    <td colspan="6" class="text-center">
+                        <em>No change records found. Click "New Change Record" to create one.</em>
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var record in Model.Records.OrderByDescending(r => r.CreatedDate))
+                {
+                    <tr>
+                        <td><strong>@record.ChangeNumber</strong></td>
+                        <td>
+                            @switch (record.ChangeType)
+                            {
+                                case RE2.ComplianceCore.Models.GdpChangeType.NewWarehouse:
+                                    <span class="badge bg-primary">New Warehouse</span>
+                                    break;
+                                case RE2.ComplianceCore.Models.GdpChangeType.New3PL:
+                                    <span class="badge bg-info">New 3PL</span>
+                                    break;
+                                case RE2.ComplianceCore.Models.GdpChangeType.NewProductType:
+                                    <span class="badge bg-secondary">New Product Type</span>
+                                    break;
+                                case RE2.ComplianceCore.Models.GdpChangeType.StorageConditionChange:
+                                    <span class="badge bg-warning text-dark">Storage Change</span>
+                                    break;
+                                default:
+                                    <span class="badge bg-light text-dark">Other</span>
+                                    break;
+                            }
+                        </td>
+                        <td>
+                            @(record.Description.Length > 80
+                                ? record.Description[..80] + "..."
+                                : record.Description)
+                        </td>
+                        <td>
+                            @switch (record.ApprovalStatus)
+                            {
+                                case RE2.ComplianceCore.Models.ChangeApprovalStatus.Pending:
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                    break;
+                                case RE2.ComplianceCore.Models.ChangeApprovalStatus.Approved:
+                                    <span class="badge bg-success">Approved</span>
+                                    break;
+                                case RE2.ComplianceCore.Models.ChangeApprovalStatus.Rejected:
+                                    <span class="badge bg-danger">Rejected</span>
+                                    break;
+                            }
+                        </td>
+                        <td>@record.CreatedDate.ToString("yyyy-MM-dd")</td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@record.ChangeRecordId"
+                               class="btn btn-sm btn-outline-primary" title="View Details">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+
+    <div class="text-muted">
+        Showing @Model.TotalCount change record(s)
+    </div>
+</div>

@@ -1,8 +1,8 @@
 # RE2 - Controlled Drug Licence & GDP Compliance Management System
 
-**Status**: **Implemented** - User Stories 1-7 complete, 911 tests passing
+**Status**: **Implemented** - User Stories 1-12 complete, 1,205 tests passing
 **Build**: 0 errors, 0 warnings
-**Last Updated**: 2026-02-16
+**Last Updated**: 2026-02-17
 
 ---
 
@@ -13,7 +13,9 @@ A comprehensive licence management and GDP compliance system for Dutch pharmaceu
 - **Real-time compliance validation** for controlled drug transactions
 - **Licence lifecycle management** (capture, verification, monitoring)
 - **Customer qualification tracking** with approval workflows
-- **GDP compliance** (sites, credentials, inspections, CAPA)
+- **GDP compliance** (sites, credentials, inspections, CAPA, equipment qualifications)
+- **GDP documentation management** (SOPs, training records, change control)
+- **GDP operational validation** (site/provider eligibility, equipment requalification)
 - **Audit trails and reporting** for regulatory compliance
 - **CLI tooling** for transaction validation, customer/licence lookup, and report generation
 
@@ -27,7 +29,7 @@ A comprehensive licence management and GDP compliance system for Dutch pharmaceu
 - CLI tool for debugging, scripting, and automation
 - Automated expiry monitoring and alerts
 - In-memory repositories for local development without external dependencies
-- TDD approach with comprehensive test coverage (911 tests across 5 projects)
+- TDD approach with comprehensive test coverage (1,205 tests across 6 projects)
 
 ---
 
@@ -60,23 +62,23 @@ Key domain entities follow a **composite model** pattern where master data origi
 RE2/
 ├── src/
 │   ├── RE2.ComplianceCore/          # Core domain logic (library-first)
-│   │   ├── Models/                  # Domain entities (24 models)
-│   │   ├── Services/                # Business logic (14 services)
-│   │   └── Interfaces/              # Abstractions (27 interfaces)
+│   │   ├── Models/                  # Domain entities (35 models)
+│   │   ├── Services/                # Business logic (15 services)
+│   │   └── Interfaces/              # Abstractions (36 interfaces)
 │   │
 │   ├── RE2.DataAccess/              # External API clients & repositories
 │   │   ├── Dataverse/               # Virtual tables (licences, customers)
 │   │   ├── D365FinanceOperations/   # Virtual entities (transactions)
-│   │   ├── InMemory/                # In-memory repositories (17 repos + seed data)
+│   │   ├── InMemory/                # In-memory repositories (23 repos + seed data)
 │   │   └── BlobStorage/             # Document storage
 │   │
 │   ├── RE2.ComplianceApi/           # REST API (Azure App Service)
-│   │   ├── Controllers/V1/          # Versioned endpoints (14 controllers)
+│   │   ├── Controllers/V1/          # Versioned endpoints (19 controllers)
 │   │   ├── Middleware/              # Error handling, logging
 │   │   └── Authorization/           # Custom policies
 │   │
 │   ├── RE2.ComplianceWeb/           # Web UI (ASP.NET MVC)
-│   │   ├── Controllers/             # MVC controllers (15 controllers)
+│   │   ├── Controllers/             # MVC controllers (23 controllers)
 │   │   └── Views/                   # Razor views
 │   │
 │   ├── RE2.ComplianceCli/           # CLI tool (console application)
@@ -89,18 +91,19 @@ RE2/
 │       └── Constants/               # ErrorCodes, LicenceTypes, etc.
 │
 └── tests/
-    ├── RE2.ComplianceCore.Tests/    # Unit tests
-    ├── RE2.ComplianceApi.Tests/     # Integration tests
-    ├── RE2.DataAccess.Tests/        # Data access tests
-    ├── RE2.Contract.Tests/          # Contract tests
-    └── RE2.ComplianceCli.Tests/     # CLI tests
+    ├── RE2.ComplianceCore.Tests/    # Unit tests (732)
+    ├── RE2.ComplianceApi.Tests/     # Integration tests (295)
+    ├── RE2.Contract.Tests/          # Contract tests (125)
+    ├── RE2.DataAccess.Tests/        # Data access tests (32)
+    ├── RE2.ComplianceCli.Tests/     # CLI tests (14)
+    └── RE2.ComplianceFunctions.Tests/ # Functions tests (7)
 ```
 
 ---
 
 ## Domain Models
 
-### Core Entities (24 models)
+### Core Entities (35 models)
 
 | Model | Description |
 |-------|-------------|
@@ -112,7 +115,7 @@ RE2/
 | `LicenceSubstanceMapping` | Licence-to-substance authorization mapping |
 | `ControlledSubstance` | **Composite**: D365 product attributes + Dataverse compliance extension |
 | `Customer` | **Composite**: D365 F&O customer + Dataverse compliance extension |
-| `QualificationReview` | Customer qualification review tracking |
+| `QualificationReview` | Customer/provider qualification review tracking |
 | `Product` | D365 F&O released product with substance classification |
 | `Transaction` | Compliance validation transaction |
 | `TransactionLine` | Transaction line items (ItemNumber/DataAreaId-based) |
@@ -124,6 +127,17 @@ RE2/
 | `AuditEvent` | Audit trail entry |
 | `GdpSite` | **Composite**: D365 warehouse + Dataverse GDP extension |
 | `GdpSiteWdaCoverage` | WDA licence coverage for GDP sites |
+| `GdpServiceProvider` | GDP service provider with qualification status (FR-038) |
+| `GdpCredential` | GDP credential (WDA licence, GDP certificate, ISO cert) |
+| `GdpCredentialVerification` | Credential verification records (EudraGMDP checks) |
+| `GdpDocument` | GDP document metadata with blob storage URL |
+| `GdpInspection` | GDP inspection records with findings (FR-040) |
+| `Capa` | Corrective and Preventive Actions (FR-041, FR-042) |
+| `GdpEquipmentQualification` | Equipment qualification tracking (FR-048) |
+| `GdpSop` | GDP Standard Operating Procedure (FR-049) |
+| `GdpSiteSop` | SOP-to-site linkage |
+| `TrainingRecord` | Staff training records with assessment (FR-050) |
+| `GdpChangeRecord` | Change control records with approval workflow (FR-051) |
 | `RegulatoryInspection` | Regulatory inspection records |
 | `WebhookSubscription` | Webhook event subscriptions |
 | `IntegrationSystem` | Registered API client systems |
@@ -247,6 +261,74 @@ All endpoints are under `/api/v1/`.
 - `POST /api/v1/gdpsites/{warehouseId}/wda-coverage` - Add WDA coverage [ComplianceManager]
 - `DELETE /api/v1/gdpsites/{warehouseId}/wda-coverage/{coverageId}` - Remove WDA coverage [ComplianceManager]
 
+### GDP Providers (`/api/v1/gdp-providers`)
+- `GET /api/v1/gdp-providers` - List all GDP service providers
+- `GET /api/v1/gdp-providers/{providerId}` - Get provider by ID
+- `POST /api/v1/gdp-providers` - Create provider [QAUser, ComplianceManager]
+- `PUT /api/v1/gdp-providers/{providerId}` - Update provider [QAUser, ComplianceManager]
+- `DELETE /api/v1/gdp-providers/{providerId}` - Delete provider [ComplianceManager]
+- `GET /api/v1/gdp-providers/requiring-review` - Providers due for re-qualification (FR-039)
+- `GET /api/v1/gdp-providers/{providerId}/credentials` - Provider credentials
+- `GET /api/v1/gdp-providers/credentials/{credentialId}` - Get credential
+- `POST /api/v1/gdp-providers/credentials` - Create credential [QAUser, ComplianceManager]
+- `GET /api/v1/gdp-providers/credentials/expiring` - Expiring credentials (query: daysAhead)
+- `GET /api/v1/gdp-providers/{providerId}/reviews` - Provider qualification reviews
+- `POST /api/v1/gdp-providers/{providerId}/reviews` - Record review [QAUser, ComplianceManager]
+- `GET /api/v1/gdp-providers/credentials/{credentialId}/verifications` - Credential verifications
+- `POST /api/v1/gdp-providers/credentials/{credentialId}/verifications` - Record verification [QAUser, ComplianceManager]
+- `GET /api/v1/gdp-providers/credentials/{credentialId}/documents` - Credential documents (FR-044)
+- `POST /api/v1/gdp-providers/credentials/{credentialId}/documents` - Upload document [QAUser, ComplianceManager]
+- `GET /api/v1/gdp-providers/documents/{documentId}/download` - Download document
+- `DELETE /api/v1/gdp-providers/documents/{documentId}` - Delete document [QAUser, ComplianceManager]
+- `GET /api/v1/gdp-providers/check-qualification` - Check partner GDP qualification (FR-038)
+
+### GDP Inspections (`/api/v1/gdp-inspections`)
+- `GET /api/v1/gdp-inspections` - List all GDP inspections
+- `GET /api/v1/gdp-inspections/{inspectionId}` - Get inspection by ID
+- `GET /api/v1/gdp-inspections/by-site/{siteId}` - Inspections for a site
+- `POST /api/v1/gdp-inspections` - Create inspection [QAUser, ComplianceManager]
+- `PUT /api/v1/gdp-inspections/{inspectionId}` - Update inspection [QAUser, ComplianceManager]
+- `GET /api/v1/gdp-inspections/{inspectionId}/findings` - Inspection findings
+- `GET /api/v1/gdp-inspections/findings/{findingId}` - Get finding by ID
+- `POST /api/v1/gdp-inspections/findings` - Create finding [QAUser, ComplianceManager]
+- `DELETE /api/v1/gdp-inspections/findings/{findingId}` - Delete finding [QAUser, ComplianceManager]
+- `GET /api/v1/gdp-inspections/capas` - List all CAPAs
+- `GET /api/v1/gdp-inspections/capas/{capaId}` - Get CAPA by ID
+- `GET /api/v1/gdp-inspections/capas/by-finding/{findingId}` - CAPAs for a finding
+- `GET /api/v1/gdp-inspections/capas/overdue` - Overdue CAPAs (FR-042)
+- `POST /api/v1/gdp-inspections/capas` - Create CAPA [QAUser, ComplianceManager]
+- `PUT /api/v1/gdp-inspections/capas/{capaId}` - Update CAPA [QAUser, ComplianceManager]
+- `POST /api/v1/gdp-inspections/capas/{capaId}/complete` - Complete CAPA [QAUser, ComplianceManager]
+
+### GDP Operations (`/api/v1/gdp-operations`)
+- `POST /api/v1/gdp-operations/validate/site-assignment` - Validate site eligibility (FR-046)
+- `POST /api/v1/gdp-operations/validate/provider-assignment` - Validate provider eligibility (FR-047)
+- `GET /api/v1/gdp-operations/approved-providers` - Approved providers (query: tempControlled)
+- `GET /api/v1/gdp-operations/equipment` - List equipment qualifications
+- `GET /api/v1/gdp-operations/equipment/{equipmentId}` - Get equipment by ID
+- `GET /api/v1/gdp-operations/equipment/due-for-requalification` - Equipment due (query: daysAhead)
+- `POST /api/v1/gdp-operations/equipment` - Create equipment [QAUser, ComplianceManager]
+- `PUT /api/v1/gdp-operations/equipment/{equipmentId}` - Update equipment [QAUser, ComplianceManager]
+- `DELETE /api/v1/gdp-operations/equipment/{equipmentId}` - Delete equipment [QAUser, ComplianceManager]
+
+### GDP SOPs (`/api/v1/gdp-sops`)
+- `GET /api/v1/gdp-sops` - List all SOPs
+- `GET /api/v1/gdp-sops/{sopId}` - Get SOP by ID
+- `POST /api/v1/gdp-sops` - Create SOP [QAUser, ComplianceManager]
+- `PUT /api/v1/gdp-sops/{sopId}` - Update SOP [QAUser, ComplianceManager]
+- `DELETE /api/v1/gdp-sops/{sopId}` - Delete SOP [QAUser, ComplianceManager]
+- `GET /api/v1/gdp-sops/{sopId}/sites` - Get linked sites
+- `POST /api/v1/gdp-sops/{sopId}/sites/{siteId}` - Link SOP to site [QAUser, ComplianceManager]
+- `DELETE /api/v1/gdp-sops/{sopId}/sites/{siteId}` - Unlink SOP from site [QAUser, ComplianceManager]
+
+### GDP Change Control (`/api/v1/gdp-changes`)
+- `GET /api/v1/gdp-changes` - List all change records
+- `GET /api/v1/gdp-changes/{changeId}` - Get change record by ID
+- `GET /api/v1/gdp-changes/pending` - Pending change records
+- `POST /api/v1/gdp-changes` - Create change record [QAUser, ComplianceManager]
+- `POST /api/v1/gdp-changes/{changeId}/approve` - Approve change [ComplianceManager]
+- `POST /api/v1/gdp-changes/{changeId}/reject` - Reject change [ComplianceManager]
+
 ### Approval Workflows (`/api/v1/workflows`)
 - `POST /api/v1/workflows/trigger` - Trigger approval workflow [ComplianceManager]
 - `POST /api/v1/workflows/callback` - Workflow callback (Logic App)
@@ -360,6 +442,46 @@ All commands output structured JSON to stdout and support `--verbose` for debug 
 - RegulatoryInspection model and repository
 - Web UI: GDP sites, inspections
 
+### Phase 10: User Story 8 (GDP Provider Qualification) - COMPLETE
+- GdpServiceProvider model with qualification status and review dates
+- GdpCredential, GdpCredentialVerification, GdpDocument models
+- IGdpCredentialRepository, IGdpDocumentRepository interfaces
+- GdpProvidersController (API) with credential, verification, document, review endpoints
+- GdpProvidersController, GdpCredentialsController (Web) with full CRUD
+- Partner qualification check endpoint (FR-038)
+- Web UI: provider listing, credential management, expiring credentials dashboard
+
+### Phase 11: User Story 9 (GDP Inspections & CAPA) - COMPLETE
+- GdpInspection model with inspection findings
+- Capa model with corrective/preventive action tracking (FR-041, FR-042)
+- IGdpInspectionRepository, ICapaRepository interfaces
+- GdpInspectionsController (API) with findings, CAPAs, overdue tracking
+- GdpInspectionsController (Web) with inspection/finding/CAPA management
+- Web UI: inspections list, CAPA dashboard, overdue corrective actions
+
+### Phase 12: User Story 10 (GDP Certificates & Monitoring) - COMPLETE
+- Extended GdpCredential with certificate types and monitoring
+- Credential verification workflows (EudraGMDP integration)
+- Document upload/download for GDP credentials (FR-044)
+- Expiry monitoring with configurable look-ahead
+
+### Phase 13: User Story 11 (GDP Operational Checks) - COMPLETE
+- GdpEquipmentQualification model with qualification status tracking (FR-048)
+- GdpOperationalService for site/provider validation (FR-046, FR-047)
+- GdpOperationsController (API) with validation and equipment CRUD
+- GdpEquipmentController (Web) with equipment qualification management
+- GdpOperationsController (Web) with operations dashboard
+- Web UI: equipment qualifications, operations dashboard with provider stats
+
+### Phase 14: User Story 12 (GDP Documentation, Training & Change Control) - COMPLETE
+- GdpSop, GdpSiteSop models for SOP management (FR-049)
+- TrainingRecord model with assessment tracking (FR-050)
+- GdpChangeRecord model with approval workflow (FR-051)
+- IGdpSopRepository, ITrainingRepository, IGdpChangeRepository interfaces
+- GdpSopsController, GdpChangeControlController (API)
+- GdpSopsController, TrainingController, ChangeControlController (Web)
+- Web UI: SOP management with site linking, training records, change control with approval
+
 ---
 
 ## Quick Start
@@ -385,12 +507,13 @@ dotnet build
 dotnet test
 ```
 
-911 tests across 5 test projects:
-- `RE2.ComplianceCore.Tests` - Domain model and service unit tests
-- `RE2.ComplianceApi.Tests` - API controller integration tests
-- `RE2.DataAccess.Tests` - Repository and data access tests
-- `RE2.Contract.Tests` - API contract tests
-- `RE2.ComplianceCli.Tests` - CLI command tests
+1,205 tests across 6 test projects:
+- `RE2.ComplianceCore.Tests` - Domain model and service unit tests (732)
+- `RE2.ComplianceApi.Tests` - API controller integration tests (295)
+- `RE2.Contract.Tests` - API contract tests (125)
+- `RE2.DataAccess.Tests` - Repository and data access tests (32)
+- `RE2.ComplianceCli.Tests` - CLI command tests (14)
+- `RE2.ComplianceFunctions.Tests` - Azure Functions tests (7)
 
 ### Run the API
 
@@ -420,7 +543,7 @@ dotnet run --project src/RE2.ComplianceCli -- lookup-customer --account CUST001 
 
 For local development, all repositories use in-memory implementations backed by `InMemorySeedData`. This provides:
 
-- **17 in-memory repositories** covering all domain entities
+- **23 in-memory repositories** covering all domain entities
 - Pre-seeded reference data (licence types, substances, customers, products, thresholds)
 - No external service dependencies (no Azure, no Dataverse, no D365 F&O)
 - Registered via `services.AddInMemoryRepositories()` in DI
@@ -485,7 +608,7 @@ The same in-memory mode is used by the CLI tool and test projects.
 - **API Contracts**: `specs/001-licence-management/contracts/`
 - **Quickstart Guide**: `specs/001-licence-management/quickstart.md`
 - **Research**: `specs/001-licence-management/research.md`
-- **Tasks**: `specs/001-licence-management/tasks.md` (298 tasks total)
+- **Tasks**: `specs/001-licence-management/tasks.md` and `specs/main/tasks.md`
 
 ---
 
@@ -508,6 +631,6 @@ The same in-memory mode is used by the CLI tool and test projects.
 
 ---
 
-**Status**: Implemented (User Stories 1-7)
+**Status**: Implemented (User Stories 1-12)
 **Version**: MVP Complete
-**Last Updated**: 2026-02-16
+**Last Updated**: 2026-02-17

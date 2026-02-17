@@ -1,0 +1,138 @@
+@model RE2.ComplianceCore.Models.GdpChangeRecord
+@{
+    ViewData["Title"] = $"Change Record - {Model.ChangeNumber}";
+}
+
+<div class="container">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Change Control</a></li>
+            <li class="breadcrumb-item active">Details</li>
+        </ol>
+    </nav>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <h1><i class="bi bi-signpost-split"></i> @Model.ChangeNumber</h1>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">Change Information</h5></div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Change Number</dt>
+                        <dd class="col-sm-7"><strong>@Model.ChangeNumber</strong></dd>
+
+                        <dt class="col-sm-5">Type</dt>
+                        <dd class="col-sm-7">
+                            @switch (Model.ChangeType)
+                            {
+                                case RE2.ComplianceCore.Models.GdpChangeType.NewWarehouse:
+                                    <span class="badge bg-primary">New Warehouse</span>
+                                    break;
+                                case RE2.ComplianceCore.Models.GdpChangeType.New3PL:
+                                    <span class="badge bg-info">New 3PL</span>
+                                    break;
+                                case RE2.ComplianceCore.Models.GdpChangeType.NewProductType:
+                                    <span class="badge bg-secondary">New Product Type</span>
+                                    break;
+                                case RE2.ComplianceCore.Models.GdpChangeType.StorageConditionChange:
+                                    <span class="badge bg-warning text-dark">Storage Change</span>
+                                    break;
+                                default:
+                                    <span class="badge bg-light text-dark">Other</span>
+                                    break;
+                            }
+                        </dd>
+
+                        <dt class="col-sm-5">Status</dt>
+                        <dd class="col-sm-7">
+                            @switch (Model.ApprovalStatus)
+                            {
+                                case RE2.ComplianceCore.Models.ChangeApprovalStatus.Pending:
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                    break;
+                                case RE2.ComplianceCore.Models.ChangeApprovalStatus.Approved:
+                                    <span class="badge bg-success">Approved</span>
+                                    break;
+                                case RE2.ComplianceCore.Models.ChangeApprovalStatus.Rejected:
+                                    <span class="badge bg-danger">Rejected</span>
+                                    break;
+                            }
+                        </dd>
+
+                        <dt class="col-sm-5">Created</dt>
+                        <dd class="col-sm-7">@Model.CreatedDate.ToString("yyyy-MM-dd HH:mm")</dd>
+
+                        @if (Model.ApprovalDate.HasValue)
+                        {
+                            <dt class="col-sm-5">Approval Date</dt>
+                            <dd class="col-sm-7">@Model.ApprovalDate.Value.ToString("yyyy-MM-dd")</dd>
+                        }
+
+                        @if (Model.ImplementationDate.HasValue)
+                        {
+                            <dt class="col-sm-5">Implementation Date</dt>
+                            <dd class="col-sm-7">@Model.ImplementationDate.Value.ToString("yyyy-MM-dd")</dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">Description & Risk Assessment</h5></div>
+                <div class="card-body">
+                    <h6>Description</h6>
+                    <p>@Model.Description</p>
+
+                    <h6>Risk Assessment</h6>
+                    @if (!string.IsNullOrEmpty(Model.RiskAssessment))
+                    {
+                        <p>@Model.RiskAssessment</p>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No risk assessment recorded.</p>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.UpdatedDocumentationRefs))
+                    {
+                        <h6>Updated Documentation</h6>
+                        <p>@Model.UpdatedDocumentationRefs</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        @if (Model.IsPending())
+        {
+            <form asp-action="Approve" asp-route-id="@Model.ChangeRecordId" method="post" class="d-inline"
+                  onsubmit="return confirm('Approve this change record?');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> Approve
+                </button>
+            </form>
+            <form asp-action="Reject" asp-route-id="@Model.ChangeRecordId" method="post" class="d-inline ms-2"
+                  onsubmit="return confirm('Reject this change record?');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-danger">
+                    <i class="bi bi-x-circle"></i> Reject
+                </button>
+            </form>
+        }
+        <a asp-action="Index" class="btn btn-secondary ms-2">
+            <i class="bi bi-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
