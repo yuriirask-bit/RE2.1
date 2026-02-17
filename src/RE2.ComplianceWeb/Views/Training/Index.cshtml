@@ -1,0 +1,144 @@
+@model RE2.ComplianceWeb.Controllers.TrainingIndexViewModel
+@{
+    ViewData["Title"] = "GDP Training Records";
+}
+
+<div class="container">
+    <h1><i class="bi bi-mortarboard"></i> GDP Training Records</h1>
+    <p>Track GDP-specific training completion and competency assessments for distribution staff</p>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <h3 class="card-title">@Model.TotalCount</h3>
+                    <p class="card-text text-muted">Total Records</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <h3 class="card-title text-success">@Model.PassCount</h3>
+                    <p class="card-text text-muted">Passed</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-danger">
+                <div class="card-body">
+                    <h3 class="card-title text-danger">@Model.FailCount</h3>
+                    <p class="card-text text-muted">Failed</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-warning">
+                <div class="card-body">
+                    <h3 class="card-title text-warning">@Model.ExpiredCount</h3>
+                    <p class="card-text text-muted">Expired</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col">
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Record Training
+            </a>
+        </div>
+    </div>
+
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Staff Member</th>
+                <th>Curriculum</th>
+                <th>Completion Date</th>
+                <th>Expiry Date</th>
+                <th>Trainer</th>
+                <th>Assessment</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Records.Any())
+            {
+                <tr>
+                    <td colspan="8" class="text-center">
+                        <em>No training records yet. Click "Record Training" to create one.</em>
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var record in Model.Records.OrderByDescending(r => r.CompletionDate))
+                {
+                    <tr class="@(record.IsExpired() ? "table-warning" : "")">
+                        <td>
+                            <a asp-action="StaffReport" asp-route-staffId="@record.StaffMemberId">
+                                @record.StaffMemberName
+                            </a>
+                        </td>
+                        <td>@record.TrainingCurriculum</td>
+                        <td>@record.CompletionDate.ToString("yyyy-MM-dd")</td>
+                        <td>@(record.ExpiryDate?.ToString("yyyy-MM-dd") ?? "—")</td>
+                        <td>@(record.TrainerName ?? "—")</td>
+                        <td>
+                            @switch (record.AssessmentResult)
+                            {
+                                case RE2.ComplianceCore.Models.AssessmentResult.Pass:
+                                    <span class="badge bg-success">Pass</span>
+                                    break;
+                                case RE2.ComplianceCore.Models.AssessmentResult.Fail:
+                                    <span class="badge bg-danger">Fail</span>
+                                    break;
+                                case RE2.ComplianceCore.Models.AssessmentResult.NotAssessed:
+                                    <span class="badge bg-secondary">Not Assessed</span>
+                                    break;
+                            }
+                        </td>
+                        <td>
+                            @if (record.IsExpired())
+                            {
+                                <span class="badge bg-warning text-dark">Expired</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success">Current</span>
+                            }
+                        </td>
+                        <td>
+                            <a asp-action="StaffReport" asp-route-staffId="@record.StaffMemberId"
+                               class="btn btn-sm btn-outline-primary" title="Staff Report">
+                                <i class="bi bi-person-lines-fill"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+
+    <div class="text-muted">
+        Showing @Model.TotalCount training record(s)
+    </div>
+</div>

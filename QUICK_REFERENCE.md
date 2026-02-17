@@ -1,7 +1,7 @@
 # RE2 MVP - Quick Reference Guide
 
 **Purpose**: Fast reference for common tasks and commands
-**Last Updated**: 2026-02-16
+**Last Updated**: 2026-02-17
 
 ---
 
@@ -16,8 +16,13 @@
 | **US5** | Substance Reclassification & Thresholds | Implemented |
 | **US6** | Risk Management, Workflows & Access Control | Implemented |
 | **US7** | GDP Sites Master Data & Navigation | Implemented |
+| **US8** | GDP Provider Qualification | Implemented |
+| **US9** | GDP Inspections & CAPA | Implemented |
+| **US10** | GDP Certificates, Validity & Monitoring | Implemented |
+| **US11** | GDP Operational Checks | Implemented |
+| **US12** | GDP Documentation, Training & Change Control | Implemented |
 
-**Tests**: 911 passing across 5 test projects. Build: 0 errors.
+**Tests**: 1,205 passing across 6 test projects. Build: 0 errors.
 
 ---
 
@@ -64,19 +69,20 @@ dotnet clean
 ```
 RE2/
 ├── src/
-│   ├── RE2.ComplianceCore/      Core business logic (models, services, interfaces)
-│   ├── RE2.DataAccess/          External API clients (Dataverse, D365 F&O, Blob Storage)
-│   ├── RE2.ComplianceApi/       REST API (14 controllers, Swagger)
-│   ├── RE2.ComplianceWeb/       Web UI (MVC, 15 controllers)
+│   ├── RE2.ComplianceCore/      Core business logic (35 models, 15 services, 36 interfaces)
+│   ├── RE2.DataAccess/          External API clients (Dataverse, D365 F&O, Blob Storage, 23 InMemory repos)
+│   ├── RE2.ComplianceApi/       REST API (19 controllers, Swagger)
+│   ├── RE2.ComplianceWeb/       Web UI (MVC, 23 controllers)
 │   ├── RE2.ComplianceCli/       CLI tool (4 commands)
 │   ├── RE2.ComplianceFunctions/ Azure Functions (background jobs)
 │   └── RE2.Shared/              Constants & DTOs
 └── tests/
-    ├── RE2.ComplianceCore.Tests/    521 tests
-    ├── RE2.ComplianceApi.Tests/     219 tests
-    ├── RE2.Contract.Tests/          125 tests
-    ├── RE2.DataAccess.Tests/         32 tests
-    └── RE2.ComplianceCli.Tests/      14 tests
+    ├── RE2.ComplianceCore.Tests/       732 tests
+    ├── RE2.ComplianceApi.Tests/        295 tests
+    ├── RE2.Contract.Tests/             125 tests
+    ├── RE2.DataAccess.Tests/            32 tests
+    ├── RE2.ComplianceCli.Tests/         14 tests
+    └── RE2.ComplianceFunctions.Tests/    7 tests
 ```
 
 All projects build and all tests pass.
@@ -90,7 +96,7 @@ All projects build and all tests pass.
 - `appsettings.json` (Web) — Azure AD, API base URL
 - `.editorconfig` — C# formatting rules
 
-### Domain Models (RE2.ComplianceCore/Models/)
+### Domain Models (RE2.ComplianceCore/Models/) — 35 models
 - `Licence.cs`, `LicenceType.cs`, `LicenceDocument.cs`, `LicenceVerification.cs`, `LicenceScopeChange.cs`
 - `ControlledSubstance.cs`, `SubstanceReclassification.cs`, `LicenceSubstanceMapping.cs`
 - `Customer.cs` — Composite key: CustomerAccount + DataAreaId
@@ -98,17 +104,24 @@ All projects build and all tests pass.
 - `Transaction.cs`, `TransactionLine.cs`, `TransactionViolation.cs`, `TransactionLicenceUsage.cs`
 - `Threshold.cs`, `Alert.cs`, `AuditEvent.cs`
 - `GdpSite.cs`, `GdpSiteWdaCoverage.cs` — Composite key: WarehouseId + DataAreaId
+- `GdpServiceProvider.cs`, `GdpCredential.cs`, `GdpCredentialVerification.cs`, `GdpDocument.cs`
+- `GdpInspection.cs`, `Capa.cs`
+- `GdpEquipmentQualification.cs`
+- `GdpSop.cs`, `GdpSiteSop.cs`, `TrainingRecord.cs`, `GdpChangeRecord.cs`
 - `WebhookSubscription.cs`, `IntegrationSystem.cs`, `RegulatoryInspection.cs`
 - `ValidationResult.cs`, `QualificationReview.cs`
 
-### Interfaces (RE2.ComplianceCore/Interfaces/)
+### Interfaces (RE2.ComplianceCore/Interfaces/) — 36 interfaces
 
-Repositories (17 total, all with InMemory implementations):
+Repositories (23 total, all with InMemory implementations):
 - `ILicenceRepository`, `ILicenceTypeRepository`, `ILicenceSubstanceMappingRepository`
 - `IControlledSubstanceRepository`, `ISubstanceReclassificationRepository`
 - `ICustomerRepository`, `IProductRepository`, `ITransactionRepository`
 - `IThresholdRepository`, `IAlertRepository`, `IAuditRepository`
 - `IGdpSiteRepository`, `IRegulatoryInspectionRepository`
+- `IGdpCredentialRepository`, `IGdpDocumentRepository`
+- `IGdpInspectionRepository`, `ICapaRepository`, `IGdpEquipmentRepository`
+- `IGdpSopRepository`, `ITrainingRepository`, `IGdpChangeRepository`
 - `IWebhookSubscriptionRepository`, `IIntegrationSystemRepository`
 - `IDocumentStorage`, `IDataverseClient`, `ID365FoClient`
 
@@ -116,10 +129,10 @@ Services:
 - `ILicenceService`, `ILicenceSubstanceMappingService`
 - `IControlledSubstanceService`, `ISubstanceReclassificationService`
 - `ICustomerService`, `ITransactionComplianceService`
-- `IThresholdService`, `IGdpComplianceService`
+- `IThresholdService`, `IGdpComplianceService`, `IGdpOperationalService`
 - `IReportingService`
 
-### API Controllers (RE2.ComplianceApi/Controllers/V1/) — 14 total
+### API Controllers (RE2.ComplianceApi/Controllers/V1/) — 19 total
 - `LicencesController.cs` — CRUD, documents, verifications, scope changes
 - `LicenceTypesController.cs` — Licence type reference data
 - `LicenceSubstanceMappingsController.cs` — Substance authorization per licence
@@ -130,17 +143,25 @@ Services:
 - `ThresholdsController.cs` — Threshold CRUD
 - `ReportsController.cs` — Audit reports, licence usage, customer compliance
 - `GdpSitesController.cs` — GDP site management, WDA coverage
+- `GdpProvidersController.cs` — Provider qualification, credentials, documents, reviews
+- `GdpInspectionsController.cs` — Inspections, findings, CAPAs
+- `GdpOperationsController.cs` — Site/provider validation, equipment qualifications
+- `GdpSopsController.cs` — SOP management, site linking
+- `GdpChangeControlController.cs` — Change records, approval/rejection workflow
 - `SubstanceReclassificationController.cs` — Reclassification workflow
 - `WebhookSubscriptionsController.cs` — Webhook CRUD
 - `IntegrationSystemsController.cs` — API client registration
 - `ApprovalWorkflowController.cs` — Approval workflows (FR-030)
 
-### Web Controllers (RE2.ComplianceWeb/Controllers/) — 15 total
+### Web Controllers (RE2.ComplianceWeb/Controllers/) — 23 total
 - `HomeController`, `DashboardController`, `LicencesController`, `LicenceTypesController`
 - `CustomersController`, `SubstancesController`, `TransactionsController`
 - `ThresholdsController`, `ReportsController`, `GdpSitesController`
 - `AlertsController`, `InspectionsController`, `ConflictsController`
 - `ReclassificationsController`, `LicenceMappingsController`
+- `GdpProvidersController`, `GdpCredentialsController`, `GdpInspectionsController`
+- `GdpEquipmentController`, `GdpOperationsController`, `GdpSopsController`
+- `TrainingController`, `ChangeControlController`
 
 ### Constants (RE2.Shared/Constants/)
 - `ErrorCodes.cs` — Standardized error codes
@@ -243,6 +264,48 @@ All routes under `/api/v1/`. Authorize header required (JWT).
 - `POST /api/v1/gdpsites/{warehouseId}/wda-coverage` — Add WDA coverage
 - `DELETE /api/v1/gdpsites/{warehouseId}/wda-coverage/{coverageId}` — Remove WDA coverage
 
+### GDP Providers (`/api/v1/gdp-providers`)
+- `GET /api/v1/gdp-providers` — List providers
+- `GET /api/v1/gdp-providers/{providerId}` — Get provider
+- `POST /api/v1/gdp-providers` — Create (QAUser/ComplianceManager)
+- `PUT /api/v1/gdp-providers/{providerId}` — Update (QAUser/ComplianceManager)
+- `DELETE /api/v1/gdp-providers/{providerId}` — Delete (ComplianceManager)
+- `GET /api/v1/gdp-providers/requiring-review` — Providers due for review
+- `GET /api/v1/gdp-providers/{providerId}/credentials` — Provider credentials
+- `POST /api/v1/gdp-providers/credentials` — Create credential
+- `GET /api/v1/gdp-providers/credentials/expiring` — Expiring credentials
+- `POST /api/v1/gdp-providers/{providerId}/reviews` — Record review
+- `POST /api/v1/gdp-providers/credentials/{credentialId}/verifications` — Record verification
+- `POST /api/v1/gdp-providers/credentials/{credentialId}/documents` — Upload document
+- `GET /api/v1/gdp-providers/check-qualification` — Check GDP qualification
+
+### GDP Inspections (`/api/v1/gdp-inspections`)
+- `GET /api/v1/gdp-inspections` — List inspections
+- `POST /api/v1/gdp-inspections` — Create (QAUser/ComplianceManager)
+- `GET /api/v1/gdp-inspections/by-site/{siteId}` — By site
+- `POST /api/v1/gdp-inspections/findings` — Create finding
+- `GET /api/v1/gdp-inspections/capas` — List CAPAs
+- `GET /api/v1/gdp-inspections/capas/overdue` — Overdue CAPAs
+- `POST /api/v1/gdp-inspections/capas/{capaId}/complete` — Complete CAPA
+
+### GDP Operations (`/api/v1/gdp-operations`)
+- `POST /api/v1/gdp-operations/validate/site-assignment` — Validate site
+- `POST /api/v1/gdp-operations/validate/provider-assignment` — Validate provider
+- `GET /api/v1/gdp-operations/approved-providers` — Approved providers
+- `GET /api/v1/gdp-operations/equipment` — List equipment
+- `GET /api/v1/gdp-operations/equipment/due-for-requalification` — Equipment due
+- CRUD operations for equipment qualifications
+
+### GDP SOPs (`/api/v1/gdp-sops`)
+- CRUD operations + site linking/unlinking (QAUser/ComplianceManager)
+
+### GDP Change Control (`/api/v1/gdp-changes`)
+- `GET /api/v1/gdp-changes` — List change records
+- `GET /api/v1/gdp-changes/pending` — Pending changes
+- `POST /api/v1/gdp-changes` — Create change record
+- `POST /api/v1/gdp-changes/{changeId}/approve` — Approve (ComplianceManager)
+- `POST /api/v1/gdp-changes/{changeId}/reject` — Reject (ComplianceManager)
+
 ### Substance Reclassification (`/api/v1`)
 - `POST /api/v1/substances/{substanceCode}/reclassify` — Create reclassification (ComplianceManager)
 - `GET /api/v1/substances/{substanceCode}/reclassifications` — List for substance
@@ -308,7 +371,7 @@ All commands output JSON to stdout. Use `-v` for verbose logging to stderr.
 - External systems never need to know substance codes
 
 ### Data Access
-- 17 repository interfaces, each with an InMemory implementation
+- 23 repository interfaces, each with an InMemory implementation
 - In-memory mode works for all local development (no external services needed)
 - Production uses Dataverse virtual tables + D365 F&O virtual entities
 
@@ -316,14 +379,15 @@ All commands output JSON to stdout. Use `-v` for verbose logging to stderr.
 
 ## Testing
 
-### Test Counts (911 total)
+### Test Counts (1,205 total)
 | Project | Tests |
 |---------|-------|
-| RE2.ComplianceCore.Tests | 521 |
-| RE2.ComplianceApi.Tests | 219 |
+| RE2.ComplianceCore.Tests | 732 |
+| RE2.ComplianceApi.Tests | 295 |
 | RE2.Contract.Tests | 125 |
 | RE2.DataAccess.Tests | 32 |
 | RE2.ComplianceCli.Tests | 14 |
+| RE2.ComplianceFunctions.Tests | 7 |
 
 ### Test Commands
 ```bash
@@ -342,10 +406,11 @@ dotnet test --filter "FullyQualifiedName~LicenceTypeTests"     # Specific test
 - **External**: Azure AD B2C (SSO)
 
 ### Roles
-- **ComplianceManager**: Full access (licences, approvals, overrides, reclassification)
-- **QAUser**: GDP management (sites, inspections, reports)
+- **ComplianceManager**: Full access (licences, approvals, overrides, reclassification, GDP change approval)
+- **QAUser**: GDP management (sites, providers, inspections, equipment, SOPs, reports)
 - **SalesAdmin**: Customer onboarding
 - **SystemAdmin**: Integration systems, webhook subscriptions
+- **TrainingCoordinator**: Training records management
 
 ---
 

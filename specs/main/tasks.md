@@ -1,138 +1,184 @@
-# Tasks: User Story 10 - GDP Certificates, Validity & Monitoring
+# Tasks: User Stories 11 & 12 - GDP Operational Checks, Documentation & Training
 
-**Input**: Design documents from `/specs/main/`
-**Prerequisites**: plan.md, research.md, data-model.md, contracts/gdp-documents-api.yaml, quickstart.md
-**Continues from**: specs/001-licence-management/tasks.md (replaces stale T231-T239 with detailed breakdown)
+**Input**: Design documents from `/specs/main/` and `/specs/001-licence-management/`
+**Prerequisites**: US7-US10 complete (GDP sites, providers, credentials, documents, inspections, CAPAs)
+**Continues from**: US10 tasks (T231-T253 all complete)
 
 **Tests**: TDD approach — test tasks precede implementation tasks.
 
-**Organization**: Single user story (US10) broken into implementation phases following established codebase patterns.
+**Organization**: Two user stories (US11 + US12) broken into implementation phases following established codebase patterns.
 
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
-- **[US10]**: All tasks belong to User Story 10
+- **[US11]** / **[US12]**: Maps to specific user story
 - Include exact file paths in descriptions
 
 ---
 
-## Phase A: Domain Model (GdpDocument)
+## Phase A: US11 Domain Model (GdpEquipmentQualification)
 
-**Purpose**: Create the GdpDocument domain model following the established LicenceDocument pattern.
-
-### Tests (Write First)
-
-- [X] T231 [US10] Write GdpDocument validation tests in tests/RE2.ComplianceCore.Tests/Models/GdpDocumentTests.cs — test Validate() for: missing OwnerEntityId, missing FileName, missing BlobStorageUrl, missing UploadedBy, invalid file extensions, valid document, GetFileExtension(), IsPdf(), IsImage() helper methods. Follow existing pattern from LicenceDocumentTests if present, or GdpInspectionTests.
-
-### Implementation
-
-- [X] T232 [US10] Create GdpDocument domain model in src/RE2.ComplianceCore/Models/GdpDocument.cs per data-model.md — include GdpDocumentEntityType enum (Credential, Site, Inspection, Provider, Customer), properties (DocumentId, OwnerEntityType, OwnerEntityId, DocumentType, FileName, BlobStorageUrl, UploadedDate, UploadedBy, ContentType, FileSizeBytes, Description), Validate() method with same rules as LicenceDocument, and helper methods (GetFileExtension, IsPdf, IsImage). Reuse existing DocumentType enum from LicenceDocument.cs.
-
-**Checkpoint**: GdpDocument model compiles, all T231 tests pass.
-
----
-
-## Phase B: Data Access (Repository Layer)
-
-**Purpose**: Create repository interface and implementations for GdpDocument CRUD.
-
-- [X] T233 [US10] Create IGdpDocumentRepository interface in src/RE2.ComplianceCore/Interfaces/IGdpDocumentRepository.cs — methods: GetDocumentsByEntityAsync(GdpDocumentEntityType, Guid), GetDocumentAsync(Guid), CreateDocumentAsync(GdpDocument), DeleteDocumentAsync(Guid). Follow IGdpInspectionRepository pattern.
-
-- [X] T234 [P] [US10] Create InMemoryGdpDocumentRepository in src/RE2.DataAccess/InMemory/InMemoryGdpDocumentRepository.cs — ConcurrentDictionary pattern with Clone helper, SeedDocuments method. Follow InMemoryGdpInspectionRepository pattern.
-
-- [X] T235 [P] [US10] Create DataverseGdpDocumentRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseGdpDocumentRepository.cs — Dataverse entity name "phr_gdpdocument", QueryExpression/ConditionExpression pattern, MapToDocumentDto/MapDocumentToEntity mappers. Follow DataverseGdpInspectionRepository pattern.
-
-- [X] T236 [US10] Update InMemorySeedData.cs in src/RE2.DataAccess/InMemory/InMemorySeedData.cs — add SeedGdpDocumentData method with 3 sample documents: one GDP certificate attached to an existing credential (OwnerEntityType.Credential), one inspection report attached to an existing inspection (OwnerEntityType.Inspection), one WDA copy attached to an existing site (OwnerEntityType.Site). Add well-known document IDs. Update SeedAll overload to include InMemoryGdpDocumentRepository parameter.
-
-- [X] T237 [US10] Update InfrastructureExtensions.cs in src/RE2.DataAccess/DependencyInjection/InfrastructureExtensions.cs — register DataverseGdpDocumentRepository in AddDataverseServices, register InMemoryGdpDocumentRepository in AddInMemoryRepositories with seed data call, add both as scoped/singleton DI registrations for IGdpDocumentRepository.
-
-**Checkpoint**: All repository implementations compile, DI wiring complete, build succeeds with 0 errors.
-
----
-
-## Phase C: Business Logic (Service Layer)
-
-**Purpose**: Extend GdpComplianceService with document CRUD methods using IDocumentStorage for blob operations.
-
-- [X] T238 [US10] Extend IGdpComplianceService interface in src/RE2.ComplianceCore/Interfaces/IGdpComplianceService.cs — add #region GDP Documents with methods: GetDocumentsByEntityAsync(GdpDocumentEntityType, Guid), GetDocumentAsync(Guid), UploadDocumentAsync(GdpDocument, Stream), GetDocumentDownloadUrlAsync(Guid, TimeSpan), DeleteDocumentAsync(Guid). Follow existing region pattern.
-
-- [X] T239 [US10] Extend GdpComplianceService in src/RE2.ComplianceCore/Services/GdpCompliance/GdpComplianceService.cs — add IGdpDocumentRepository and IDocumentStorage dependencies to constructor, implement document methods using container name "gdp-documents", blob path pattern "{entityType}/{entityId}/{documentId}/{filename}", metadata dictionary pattern from LicenceService. UploadDocumentAsync: validate document, upload blob, set BlobStorageUrl, save metadata. GetDocumentDownloadUrlAsync: get document, generate SAS URI with configurable expiry (default 15 minutes). DeleteDocumentAsync: delete blob, delete metadata.
-
-**Checkpoint**: Build succeeds, service methods compile with proper dependencies.
-
----
-
-## Phase D: Azure Function (GdpCertificateMonitor)
-
-**Purpose**: Create timer-triggered Azure Function for automated GDP credential expiry monitoring per FR-043.
+**Purpose**: Create new entity for FR-048 equipment/process qualification tracking. FR-046 and FR-047 use existing entities.
 
 ### Tests (Write First)
 
-- [X] T240 [US10] Write GdpCertificateMonitor tests in tests/RE2.ComplianceFunctions.Tests/GdpCertificateMonitorTests.cs — test Run() calls GenerateGdpCredentialExpiryAlertsAsync(90), GenerateProviderRequalificationAlertsAsync(), GenerateCapaOverdueAlertsAsync() and logs results. Test GenerateGdpAlertsManual HTTP trigger returns GdpAlertGenerationResult with counts. Use Mock<AlertGenerationService> and Mock<ILogger>. Follow LicenceExpiryMonitorTests pattern.
+- [X] T254 [P] [US11] Write GdpEquipmentQualification model tests in tests/RE2.ComplianceCore.Tests/Models/GdpEquipmentQualificationTests.cs — test Validate() for: missing EquipmentName, missing QualifiedBy, future QualificationDate, valid record, IsExpired(), IsDueForRequalification() helpers. Follow GdpCredential test pattern.
 
 ### Implementation
 
-- [X] T241 [US10] Create GdpCertificateMonitor Azure Function in src/RE2.ComplianceFunctions/GdpCertificateMonitor.cs — timer trigger at "0 0 3 * * *" (3 AM UTC daily, 1 hour after LicenceExpiryMonitor). Inject AlertGenerationService and ILogger. Run() calls three existing methods: GenerateGdpCredentialExpiryAlertsAsync(90), GenerateProviderRequalificationAlertsAsync(), GenerateCapaOverdueAlertsAsync(). Add GenerateGdpAlertsManual HTTP trigger (POST, AuthorizationLevel.Admin, route "gdp-alerts/generate") for manual execution. Create GdpAlertGenerationResult DTO with CredentialExpiryAlertsGenerated, RequalificationAlertsGenerated, CapaOverdueAlertsGenerated, TotalAlertsGenerated, GeneratedAt, Success, ErrorMessage. Follow LicenceExpiryMonitor pattern exactly.
+- [X] T255 [US11] Create GdpEquipmentQualification domain model in src/RE2.ComplianceCore/Models/GdpEquipmentQualification.cs — include GdpEquipmentType enum (TemperatureControlledVehicle, MonitoringSystem, StorageEquipment, Other), properties (EquipmentQualificationId, EquipmentName, EquipmentType, ProviderId nullable FK, SiteId nullable FK, QualificationDate, RequalificationDueDate, QualificationStatus enum [Qualified, DueForRequalification, Expired, NotQualified], QualifiedBy, Notes, CreatedDate, ModifiedDate), Validate() method, IsExpired(), IsDueForRequalification() helpers. Dataverse table: phr_gdpequipmentqualification.
 
-**Checkpoint**: Azure Function compiles, tests pass.
+**Checkpoint**: Model compiles, T254 tests pass.
 
 ---
 
-## Phase E: API Layer (Document Endpoints)
+## Phase B: US11 Data Access & Service Layer
 
-**Purpose**: Add document CRUD REST endpoints to GdpProvidersController per contracts/gdp-documents-api.yaml.
+**Purpose**: Repository + service for equipment qualification and operational validation.
+
+- [X] T256 [US11] Create IGdpEquipmentRepository interface in src/RE2.ComplianceCore/Interfaces/IGdpEquipmentRepository.cs — methods: GetAllAsync, GetByIdAsync, GetByProviderAsync(Guid), GetBySiteAsync(Guid), GetDueForRequalificationAsync, CreateAsync, UpdateAsync, DeleteAsync. Follow IGdpInspectionRepository pattern.
+
+- [X] T257 [P] [US11] Create InMemoryGdpEquipmentRepository in src/RE2.DataAccess/InMemory/InMemoryGdpEquipmentRepository.cs — ConcurrentDictionary pattern, Clone helper, SeedEquipment method. Follow InMemoryGdpInspectionRepository pattern.
+
+- [X] T258 [P] [US11] Create DataverseGdpEquipmentRepository + GdpEquipmentQualificationDto in src/RE2.DataAccess/Dataverse/Repositories/DataverseGdpEquipmentRepository.cs and src/RE2.DataAccess/Dataverse/Models/GdpEquipmentQualificationDto.cs — entity name "phr_gdpequipmentqualification". Follow DataverseGdpInspectionRepository pattern.
+
+- [X] T259 [US11] Update InMemorySeedData.cs — add SeedGdpEquipmentData method with 3 sample records (one qualified vehicle for a provider, one monitoring system at a site, one expired equipment). Add well-known IDs (84000000 range). Update SeedAll overload.
+
+- [X] T260 [US11] Update InfrastructureExtensions.cs — register IGdpEquipmentRepository in both Dataverse and InMemory sections.
+
+- [X] T261 [US11] Write GdpOperationalService tests in tests/RE2.ComplianceCore.Tests/Services/GdpOperationalServiceTests.cs — test ValidateSiteAssignmentAsync (FR-046: site must be GDP active with valid WDA coverage), ValidateProviderAssignmentAsync (FR-046: provider must have valid approved credentials), GetApprovedProvidersAsync (FR-047: filter by temp-controlled capability), GetEquipmentDueForRequalificationAsync (FR-048). Use in-memory repositories with seed data.
+
+- [X] T262 [US11] Create IGdpOperationalService interface in src/RE2.ComplianceCore/Interfaces/IGdpOperationalService.cs and GdpOperationalService in src/RE2.ComplianceCore/Services/GdpCompliance/GdpOperationalService.cs — inject IGdpComplianceService, IGdpEquipmentRepository. Methods: ValidateSiteAssignmentAsync(string warehouseId, string dataAreaId) returns (bool IsAllowed, string Reason), ValidateProviderAssignmentAsync(Guid providerId) returns (bool IsAllowed, string Reason), GetApprovedProvidersAsync(bool? requireTempControl), GetApprovedRoutesAsync, GetAllEquipmentAsync, GetEquipmentAsync, CreateEquipmentAsync, UpdateEquipmentAsync, DeleteEquipmentAsync, GetEquipmentDueForRequalificationAsync.
+
+**Checkpoint**: Build succeeds, T261 tests pass.
+
+---
+
+## Phase C: US11 API & Web UI
+
+**Purpose**: API endpoints and web views for operational checks, equipment tracking, and dashboard.
+
+### API
+
+- [X] T263 [US11] Write GdpOperationsController tests in tests/RE2.ComplianceApi.Tests/Controllers/V1/GdpOperationsControllerTests.cs — test ValidateSiteAssignment (allowed/blocked), ValidateProviderAssignment (allowed/blocked), GetApprovedProviders (with/without temp filter), equipment CRUD. Use Mock<IGdpOperationalService>.
+
+- [X] T264 [US11] Create GdpOperationsController v1 in src/RE2.ComplianceApi/Controllers/V1/GdpOperationsController.cs — endpoints: POST validate/site-assignment (FR-046), POST validate/provider-assignment (FR-046), GET approved-providers?tempControlled=true (FR-047), GET approved-routes (FR-047), CRUD for equipment qualifications (FR-048). DTOs: SiteAssignmentValidationRequest/Response, ProviderAssignmentValidationRequest/Response, ApprovedProviderDto, EquipmentQualificationDto.
+
+### Web UI
+
+- [X] T265 [US11] Create GdpEquipmentController MVC in src/RE2.ComplianceWeb/Controllers/GdpEquipmentController.cs — inject IGdpOperationalService. Actions: Index (list all equipment with status badges), Details (equipment + provider/site info), Create GET/POST, Edit GET/POST, Delete POST. View models: EquipmentIndexViewModel, EquipmentCreateViewModel, EquipmentEditViewModel.
+
+- [X] T266 [P] [US11] Create GdpEquipment views in src/RE2.ComplianceWeb/Views/GdpEquipment/ — Index.cshtml (table with status badges: Qualified=green, DueForRequalification=warning, Expired=danger; summary cards for total/qualified/due/expired), Details.cshtml (card layout), Create.cshtml (form with equipment type dropdown, provider/site selectors, date pickers), Edit.cshtml (same form pre-populated).
+
+- [X] T267 [US11] Create GDP Operations dashboard in src/RE2.ComplianceWeb/Views/GdpOperations/Index.cshtml + GdpOperationsController MVC in src/RE2.ComplianceWeb/Controllers/GdpOperationsController.cs — dashboard showing: approved providers count (with temp-controlled filter), equipment qualification summary, site compliance status overview. Include quick-validate forms for site and provider assignments.
+
+- [X] T268 [US11] Update _Layout.cshtml — add "GDP Equipment" and "Operations Dashboard" to GDP dropdown menu. Update InfrastructureExtensions for IGdpOperationalService DI registration.
+
+**Checkpoint**: Build succeeds, all T263 tests pass, web views render.
+
+---
+
+## Phase D: US12 Domain Models
+
+**Purpose**: Create GdpSop, GdpSiteSop, TrainingRecord, GdpChangeRecord domain models per data-model.md entities 23-26.
 
 ### Tests (Write First)
 
-- [X] T242 [US10] Write document API endpoint tests in tests/RE2.ComplianceApi.Tests/Controllers/V1/GdpProvidersControllerDocumentTests.cs — test GetDocuments (returns list), GetDocument (found/not found), UploadDocument (valid/invalid), DownloadDocument (returns SAS URL / not found), DeleteDocument (success/not found). Use Mock<IGdpComplianceService>. Follow GdpInspectionsControllerTests pattern.
+- [X] T269 [P] [US12] Write GdpSop model tests in tests/RE2.ComplianceCore.Tests/Models/GdpSopTests.cs — test Validate() for: missing SopNumber, missing Title, missing Version, invalid EffectiveDate, valid SOP. Follow GdpInspection test pattern.
+
+- [X] T270 [P] [US12] Write TrainingRecord model tests in tests/RE2.ComplianceCore.Tests/Models/TrainingRecordTests.cs — test Validate() for: missing StaffMemberId, missing TrainingCurriculum, future CompletionDate, ExpiryDate before CompletionDate, valid record, IsExpired() helper.
+
+- [X] T271 [P] [US12] Write GdpChangeRecord model tests in tests/RE2.ComplianceCore.Tests/Models/GdpChangeRecordTests.cs — test Validate() for: missing ChangeNumber, missing Description, valid record, IsPending(), IsApproved(), CanImplement() helpers.
 
 ### Implementation
 
-- [X] T243 [US10] Extend GdpProvidersController in src/RE2.ComplianceApi/Controllers/V1/GdpProvidersController.cs — add #region Documents with endpoints: GET credentials/{credentialId}/documents (list), GET documents/{documentId} (metadata), POST credentials/{credentialId}/documents (upload via multipart/form-data), GET documents/{documentId}/download (SAS URL), DELETE documents/{documentId}. Add DTOs: GdpDocumentResponseDto (with FromDomain static method), UploadDocumentRequestDto, DocumentDownloadResponseDto. Upload endpoint accepts IFormFile, validates size (50 MB max), creates GdpDocument, calls service UploadDocumentAsync. Download endpoint calls GetDocumentDownloadUrlAsync with 15-minute expiry. Authorization: [Authorize(Roles = "QAUser,ComplianceManager")] on write operations.
+- [X] T272 [P] [US12] Create GdpSop domain model in src/RE2.ComplianceCore/Models/GdpSop.cs — include GdpSopCategory enum (Returns, Recalls, Deviations, TemperatureExcursions, OutsourcedActivities, Other), properties (SopId, SopNumber, Title, Category, Version, EffectiveDate, DocumentUrl, IsActive), Validate() method. Dataverse: phr_gdpsop.
 
-**Checkpoint**: API endpoints compile, all T242 tests pass, build succeeds.
+- [X] T273 [P] [US12] Create GdpSiteSop domain model in src/RE2.ComplianceCore/Models/GdpSiteSop.cs — join entity linking GdpSop to GdpSite. Properties: SiteSopId, SiteId (FK), SopId (FK). Dataverse: phr_gdpsitesop.
 
----
+- [X] T274 [P] [US12] Create TrainingRecord domain model in src/RE2.ComplianceCore/Models/TrainingRecord.cs — include AssessmentResult enum (Pass, Fail, NotAssessed), properties (TrainingRecordId, StaffMemberId, StaffMemberName, TrainingCurriculum, SopId nullable FK, SiteId nullable FK, CompletionDate, ExpiryDate, TrainerName, AssessmentResult), Validate(), IsExpired(). Dataverse: phr_trainingrecord.
 
-## Phase F: Web UI (Credential Management, Documents & Verifications)
+- [X] T275 [P] [US12] Create GdpChangeRecord domain model in src/RE2.ComplianceCore/Models/GdpChangeRecord.cs — include GdpChangeType enum (NewWarehouse, New3PL, NewProductType, StorageConditionChange, Other), ChangeApprovalStatus enum (Pending, Approved, Rejected), properties (ChangeRecordId, ChangeNumber, ChangeType, Description, RiskAssessment, ApprovalStatus, ApprovedBy, ApprovalDate, ImplementationDate, UpdatedDocumentationRefs, CreatedDate, ModifiedDate, RowVersion), Validate(), IsPending(), IsApproved(), CanImplement(). Dataverse: phr_gdpchangerecord.
 
-**Purpose**: Create web UI for credential validity management (FR-043), document attachment (FR-044), and verification logging (FR-045).
-
-### MVC Controller
-
-- [X] T244 [US10] Create GdpCredentialsController MVC controller in src/RE2.ComplianceWeb/Controllers/GdpCredentialsController.cs — inject IGdpComplianceService and ILogger. Actions: Index (list all credentials with validity status), Details (credential + documents + verifications), Expiring (credentials expiring within configurable days, default 90), RecordVerification GET/POST (verification form), UploadDocument GET/POST (document upload form), DeleteDocument POST (delete with redirect). View models: CredentialIndexViewModel (list with computed IsExpiring/IsExpired), CredentialDetailsViewModel (credential + documents list + verifications list), RecordVerificationViewModel (CredentialId, VerificationDate, VerificationMethod, VerifiedBy, Outcome, Notes), UploadDocumentViewModel (OwnerEntityType, OwnerEntityId, DocumentType, Description, File as IFormFile). Helper methods: PopulateVerificationMethodSelectList, PopulateOutcomeSelectList, PopulateDocumentTypeSelectList.
-
-### Views
-
-- [X] T245 [P] [US10] Create GdpCredentials/Index.cshtml in src/RE2.ComplianceWeb/Views/GdpCredentials/Index.cshtml — table listing all credentials with columns: Entity Type, Entity Name, WDA/Certificate Number, Validity Start, Validity End, Status badge (Valid=green, Expiring=warning, Expired=danger), Last Verified. Summary cards at top: total credentials, valid, expiring (within 90 days), expired. Link to Details and Expiring views. Follow GdpInspections/Index.cshtml pattern.
-
-- [X] T246 [P] [US10] Create GdpCredentials/Details.cshtml in src/RE2.ComplianceWeb/Views/GdpCredentials/Details.cshtml — card layout showing credential details (WDA number, GDP certificate number, EudraGMDP URL, validity dates, qualification status, last verification date). Two tabbed sections: (1) Documents tab — table of attached documents with download/delete buttons, "Upload Document" action button; (2) Verifications tab — table of verification history (date, method, verifier, outcome, notes), "Record Verification" action button. Follow GdpProviders/Details.cshtml pattern.
-
-- [X] T247 [P] [US10] Create GdpCredentials/Expiring.cshtml in src/RE2.ComplianceWeb/Views/GdpCredentials/Expiring.cshtml — dashboard showing credentials expiring within configurable window. Alert banner for expired credentials. Table sorted by expiry date (soonest first) with days remaining column. Filter controls for entity type and days ahead. Follow Capas.cshtml dashboard pattern.
-
-- [X] T248 [P] [US10] Create GdpCredentials/RecordVerification.cshtml in src/RE2.ComplianceWeb/Views/GdpCredentials/RecordVerification.cshtml — form to record EudraGMDP/national DB verification. Breadcrumb: GDP Credentials > [Credential] > Record Verification. Card showing credential summary (WDA/certificate number, entity name, last verified date). Form fields: Verification Date (date picker, required), Verification Method (dropdown: EudraGMDP, NationalDatabase, Other), Verified By (text, required), Outcome (dropdown: Valid, Invalid, NotFound), Notes (textarea). Submit + Cancel buttons. Follow CompleteCapa.cshtml pattern.
-
-- [X] T249 [P] [US10] Create GdpCredentials/UploadDocument.cshtml in src/RE2.ComplianceWeb/Views/GdpCredentials/UploadDocument.cshtml — form to upload document. Breadcrumb: GDP Credentials > [Credential] > Upload Document. Form fields: Document Type (dropdown: Certificate, Letter, InspectionReport, Other), Description (textarea, optional), File (file input with accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.tiff", max 50 MB). File type and size validation hint text. Submit + Cancel buttons. Use enctype="multipart/form-data". Follow CreateFinding.cshtml pattern.
-
-### Navigation & Integration
-
-- [X] T250 [US10] Update _Layout.cshtml in src/RE2.ComplianceWeb/Views/Shared/_Layout.cshtml — add "GDP Credentials" and "Expiring Credentials" links to GDP dropdown menu section (between GDP Providers and GDP Inspections links, with divider).
-
-- [X] T251 [US10] Update GdpProviders/Details.cshtml in src/RE2.ComplianceWeb/Views/GdpProviders/Details.cshtml — add Documents section below existing credentials section. Show table of documents attached to this provider (OwnerEntityType.Provider). Include upload document link that routes to GdpCredentials/UploadDocument with pre-set entity type and ID.
-
-**Checkpoint**: All web views render correctly, forms submit and redirect properly, navigation links work. Build succeeds with 0 errors.
+**Checkpoint**: All models compile, T269-T271 tests pass.
 
 ---
 
-## Phase G: Polish & Cross-Cutting
+## Phase E: US12 Data Access
 
-**Purpose**: Final validation and cleanup.
+**Purpose**: Repository interfaces and implementations for all US12 entities.
 
-- [X] T252 [US10] Verify all existing tests still pass — run full test suite (`dotnet test RE2.sln`) and confirm 0 regressions from US10 changes. All new tests must also pass.
+- [X] T276 [US12] Create IGdpSopRepository interface in src/RE2.ComplianceCore/Interfaces/IGdpSopRepository.cs — methods: GetAllAsync, GetByIdAsync, GetByCategoryAsync, CreateAsync, UpdateAsync, DeleteAsync, GetSiteSopsAsync(Guid siteId), LinkSopToSiteAsync, UnlinkSopFromSiteAsync.
 
-- [X] T253 [US10] Update specs/001-licence-management/tasks.md — replace stale T231-T239 placeholders with reference to specs/main/tasks.md, or mark them as superseded by this detailed task list.
+- [X] T277 [P] [US12] Create InMemoryGdpSopRepository in src/RE2.DataAccess/InMemory/InMemoryGdpSopRepository.cs — ConcurrentDictionary for SOPs and SiteSops, seed method.
 
-**Checkpoint**: Full build clean (0 errors, 0 warnings), all tests pass, US10 feature complete.
+- [X] T278 [P] [US12] Create DataverseGdpSopRepository + GdpSopDto + GdpSiteSopDto in src/RE2.DataAccess/Dataverse/Repositories/DataverseGdpSopRepository.cs and src/RE2.DataAccess/Dataverse/Models/GdpSopDto.cs.
+
+- [X] T279 [US12] Create ITrainingRepository interface in src/RE2.ComplianceCore/Interfaces/ITrainingRepository.cs — methods: GetAllAsync, GetByIdAsync, GetByStaffAsync(Guid), GetBySiteAsync(Guid), GetBySopAsync(Guid), GetExpiredAsync, CreateAsync, UpdateAsync, DeleteAsync.
+
+- [X] T280 [P] [US12] Create InMemoryTrainingRepository in src/RE2.DataAccess/InMemory/InMemoryTrainingRepository.cs.
+
+- [X] T281 [P] [US12] Create DataverseTrainingRepository + TrainingRecordDto in src/RE2.DataAccess/Dataverse/Repositories/DataverseTrainingRepository.cs and src/RE2.DataAccess/Dataverse/Models/TrainingRecordDto.cs.
+
+- [X] T282 [US12] Create IGdpChangeRepository interface in src/RE2.ComplianceCore/Interfaces/IGdpChangeRepository.cs — methods: GetAllAsync, GetByIdAsync, GetPendingAsync, CreateAsync, UpdateAsync, ApproveAsync(Guid, Guid approvedBy), RejectAsync(Guid, Guid rejectedBy).
+
+- [X] T283 [P] [US12] Create InMemoryGdpChangeRepository in src/RE2.DataAccess/InMemory/InMemoryGdpChangeRepository.cs.
+
+- [X] T284 [P] [US12] Create DataverseGdpChangeRepository + GdpChangeRecordDto in src/RE2.DataAccess/Dataverse/Repositories/DataverseGdpChangeRepository.cs and src/RE2.DataAccess/Dataverse/Models/GdpChangeRecordDto.cs.
+
+- [X] T285 [US12] Update InMemorySeedData.cs — add SeedGdpSopData (3 SOPs with site links), SeedTrainingData (3 training records), SeedGdpChangeData (2 change records: 1 pending, 1 approved). Add well-known IDs (85000000, 86000000, 87000000 ranges). Update SeedAll overload.
+
+- [X] T286 [US12] Update InfrastructureExtensions.cs — register all US12 repositories in both Dataverse and InMemory sections.
+
+**Checkpoint**: All repositories compile, DI wiring complete.
+
+---
+
+## Phase F: US12 Service & API Layer
+
+**Purpose**: Extend service layer and create API endpoints for SOPs, training, and change control.
+
+- [X] T287 [US12] Extend IGdpComplianceService and GdpComplianceService — add #region GDP SOPs, #region Training Records, #region Change Control with CRUD methods + approval workflow for change records. Inject IGdpSopRepository, ITrainingRepository, IGdpChangeRepository.
+
+- [X] T288 [US12] Write API controller tests in tests/RE2.ComplianceApi.Tests/Controllers/V1/GdpSopsControllerTests.cs and tests/RE2.ComplianceApi.Tests/Controllers/V1/GdpChangeControllerTests.cs — test CRUD for SOPs, site linking, change record creation, approval/rejection workflow.
+
+- [X] T289 [US12] Create GdpSopsController v1 in src/RE2.ComplianceApi/Controllers/V1/GdpSopsController.cs — endpoints: CRUD for SOPs, GET sops/{id}/sites (linked sites), POST sops/{id}/sites/{siteId} (link), DELETE sops/{id}/sites/{siteId} (unlink). DTOs: GdpSopResponseDto, CreateGdpSopRequestDto.
+
+- [X] T290 [US12] Create GdpChangeControlController v1 in src/RE2.ComplianceApi/Controllers/V1/GdpChangeControlController.cs — endpoints: CRUD for change records, POST changes/{id}/approve, POST changes/{id}/reject. DTOs: GdpChangeRecordResponseDto, CreateChangeRecordRequestDto.
+
+**Checkpoint**: API endpoints compile, T288 tests pass.
+
+---
+
+## Phase G: US12 Web UI
+
+**Purpose**: MVC controllers and views for SOPs, training records, and change control management.
+
+- [X] T291 [US12] Create GdpSopsController MVC in src/RE2.ComplianceWeb/Controllers/GdpSopsController.cs — actions: Index, Details (SOP + linked sites), Create GET/POST, Edit GET/POST, LinkSite POST, UnlinkSite POST. View models: SopIndexViewModel, SopCreateViewModel, SopEditViewModel.
+
+- [X] T292 [P] [US12] Create GdpSops views in src/RE2.ComplianceWeb/Views/GdpSops/ — Index.cshtml (table with category badges, active filter), Details.cshtml (SOP details + linked sites table with link/unlink), Create.cshtml (form with category dropdown), Edit.cshtml.
+
+- [X] T293 [US12] Create TrainingController MVC in src/RE2.ComplianceWeb/Controllers/TrainingController.cs — actions: Index (all records), StaffReport(Guid staffId) (records for one person), Create GET/POST. View models: TrainingIndexViewModel, TrainingCreateViewModel, StaffTrainingReportViewModel. [Authorize(Roles = "QAUser,TrainingCoordinator")].
+
+- [X] T294 [P] [US12] Create Training views in src/RE2.ComplianceWeb/Views/Training/ — Index.cshtml (table with assessment result badges, expiry warnings), StaffReport.cshtml (per-staff view), Create.cshtml (form with SOP dropdown, site dropdown, assessment result, dates).
+
+- [X] T295 [US12] Create ChangeControlController MVC in src/RE2.ComplianceWeb/Controllers/ChangeControlController.cs — actions: Index (all changes with status filter), Details, Create GET/POST, Approve POST, Reject POST. View models: ChangeIndexViewModel, ChangeCreateViewModel. [Authorize(Roles = "QAUser,ComplianceManager")] for approval actions.
+
+- [X] T296 [P] [US12] Create ChangeControl views in src/RE2.ComplianceWeb/Views/ChangeControl/ — Index.cshtml (table with approval status badges, pending count), Details.cshtml (change details + risk assessment + approval actions), Create.cshtml (form with change type dropdown, risk assessment textarea).
+
+- [X] T297 [US12] Update _Layout.cshtml navigation — add "GDP SOPs", "Training Records", and "Change Control" links under appropriate menu sections. Configure authorization for TrainingCoordinator role.
+
+**Checkpoint**: All web views render, forms work, navigation links present.
+
+---
+
+## Phase H: Polish & Cross-Cutting
+
+- [X] T298 [US11+US12] Verify all tests pass — run full test suite (`dotnet test RE2.sln`) and confirm 0 regressions.
+
+- [X] T299 [US11+US12] Update specs/001-licence-management/tasks.md — mark Phase 13 (US11) and Phase 14 (US12) tasks as complete.
+
+**Checkpoint**: Full build clean, all tests pass, US11+US12 complete.
 
 ---
 
@@ -140,82 +186,34 @@
 
 ### Phase Dependencies
 
-- **Phase A (Domain Model)**: No dependencies on other US10 phases — can start immediately
-- **Phase B (Data Access)**: Depends on Phase A (GdpDocument model must exist)
-- **Phase C (Business Logic)**: Depends on Phase B (IGdpDocumentRepository must exist)
-- **Phase D (Azure Function)**: No dependencies on Phases B/C — uses existing AlertGenerationService methods. Can run in parallel with B/C.
-- **Phase E (API Layer)**: Depends on Phase C (service document methods must exist)
-- **Phase F (Web UI)**: Depends on Phase C (service methods) and Phase E (for consistency). Can partially parallelize view creation.
-- **Phase G (Polish)**: Depends on all other phases
-
-### Within-Phase Parallel Opportunities
-
-- **Phase B**: T234 and T235 can run in parallel (different files, same interface)
-- **Phase D**: T240 and T241 can run sequentially (TDD), but T240 can be written while Phase B/C run
-- **Phase F**: T245, T246, T247, T248, T249 can all run in parallel (different view files)
+- **Phase A (US11 Model)**: No dependencies — start immediately
+- **Phase B (US11 Data+Service)**: Depends on Phase A
+- **Phase C (US11 API+Web)**: Depends on Phase B
+- **Phase D (US12 Models)**: No dependencies — can run in parallel with Phases A-C
+- **Phase E (US12 Data)**: Depends on Phase D
+- **Phase F (US12 Service+API)**: Depends on Phase E
+- **Phase G (US12 Web)**: Depends on Phase F
+- **Phase H (Polish)**: Depends on all
 
 ### Critical Path
 
 ```text
-T231 → T232 → T233 → T234/T235 → T236 → T237 → T238 → T239 → T243 → T244 → T245-T251 → T252
-                                                    ↘ T240 → T241 (parallel with B/C) ↗
+Phase A → Phase B → Phase C → Phase H
+Phase D → Phase E → Phase F → Phase G → Phase H
 ```
 
 ---
 
-## Parallel Example: Phase F Views
+## Task Count Summary
 
-```text
-# Launch all view creation tasks in parallel (different files):
-Task: T245 "Create GdpCredentials/Index.cshtml"
-Task: T246 "Create GdpCredentials/Details.cshtml"
-Task: T247 "Create GdpCredentials/Expiring.cshtml"
-Task: T248 "Create GdpCredentials/RecordVerification.cshtml"
-Task: T249 "Create GdpCredentials/UploadDocument.cshtml"
-```
-
----
-
-## Implementation Strategy
-
-### Task Count Summary
-
-| Phase | Tasks | New Files | Modified Files |
-|-------|-------|-----------|----------------|
-| A: Domain Model | 2 (T231-T232) | 2 | 0 |
-| B: Data Access | 5 (T233-T237) | 3 | 2 |
-| C: Business Logic | 2 (T238-T239) | 0 | 2 |
-| D: Azure Function | 2 (T240-T241) | 2 | 0 |
-| E: API Layer | 2 (T242-T243) | 1 | 1 |
-| F: Web UI | 8 (T244-T251) | 6 | 2 |
-| G: Polish | 2 (T252-T253) | 0 | 1 |
-| **Total** | **23** | **14** | **8** |
-
-### MVP Scope
-
-All tasks are US10 — implement sequentially in phase order for a single developer, or parallelize Phases D and B/C for faster delivery.
-
-### Key Patterns to Follow
-
-| Component | Pattern Source | Key File |
-|-----------|---------------|----------|
-| GdpDocument model | LicenceDocument | src/RE2.ComplianceCore/Models/LicenceDocument.cs |
-| InMemory repository | InMemoryGdpInspectionRepository | src/RE2.DataAccess/InMemory/InMemoryGdpInspectionRepository.cs |
-| Dataverse repository | DataverseGdpInspectionRepository | src/RE2.DataAccess/Dataverse/Repositories/DataverseGdpInspectionRepository.cs |
-| Service document methods | LicenceService.UploadDocumentAsync | src/RE2.ComplianceCore/Services/LicenceValidation/LicenceService.cs |
-| Azure Function | LicenceExpiryMonitor | src/RE2.ComplianceFunctions/LicenceExpiryMonitor.cs |
-| API controller DTOs | GdpProvidersController | src/RE2.ComplianceApi/Controllers/V1/GdpProvidersController.cs |
-| MVC controller + views | GdpInspectionsController | src/RE2.ComplianceWeb/Controllers/GdpInspectionsController.cs |
-| View templates | CompleteCapa.cshtml, Capas.cshtml | src/RE2.ComplianceWeb/Views/GdpInspections/ |
-
----
-
-## Notes
-
-- [P] tasks = different files, no dependencies
-- FR-043 core (validity periods, expiry alerts) already implemented in US8 — US10 adds the Azure Function timer trigger and web UI
-- FR-044 (document attachment) is the primary new capability — follows LicenceDocument pattern
-- FR-045 core (verification logging) already implemented in US8 — US10 adds the web UI forms
-- GdpDocument reuses existing DocumentType enum — no new enum file needed
-- GdpCertificateMonitor calls existing AlertGenerationService methods — no new alert logic
-- Company's own WDAs tracked via Licence model (HolderType=Company) — not GdpCredential
+| Phase | Tasks | Story |
+|-------|-------|-------|
+| A: US11 Domain Model | 2 (T254-T255) | US11 |
+| B: US11 Data+Service | 7 (T256-T262) | US11 |
+| C: US11 API+Web | 6 (T263-T268) | US11 |
+| D: US12 Domain Models | 8 (T269-T275) | US12 |
+| E: US12 Data Access | 11 (T276-T286) | US12 |
+| F: US12 Service+API | 4 (T287-T290) | US12 |
+| G: US12 Web UI | 7 (T291-T297) | US12 |
+| H: Polish | 2 (T298-T299) | Both |
+| **Total** | **47** | |

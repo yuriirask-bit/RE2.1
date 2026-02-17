@@ -1,0 +1,83 @@
+@model RE2.ComplianceWeb.Controllers.SopEditViewModel
+@{
+    ViewData["Title"] = "Edit GDP SOP";
+}
+
+<div class="container">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">GDP SOPs</a></li>
+            <li class="breadcrumb-item active">Edit</li>
+        </ol>
+    </nav>
+
+    <h1><i class="bi bi-pencil"></i> Edit GDP SOP</h1>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <form asp-action="Edit" method="post" class="mt-4">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="SopId" />
+
+        <div class="card">
+            <div class="card-header"><h5 class="mb-0">SOP Details</h5></div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label asp-for="SopNumber" class="form-label">SOP Number <span class="text-danger">*</span></label>
+                            <input asp-for="SopNumber" class="form-control" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Title" class="form-label">Title <span class="text-danger">*</span></label>
+                            <input asp-for="Title" class="form-control" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Category" class="form-label">Category <span class="text-danger">*</span></label>
+                            <select asp-for="Category" asp-items="@(ViewBag.Categories as SelectList)" class="form-select">
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label asp-for="Version" class="form-label">Version <span class="text-danger">*</span></label>
+                            <input asp-for="Version" class="form-control" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="EffectiveDate" class="form-label">Effective Date <span class="text-danger">*</span></label>
+                            <input asp-for="EffectiveDate" type="date" class="form-control" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="DocumentUrl" class="form-label">Document URL</label>
+                            <input asp-for="DocumentUrl" type="url" class="form-control" />
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input asp-for="IsActive" class="form-check-input" />
+                            <label asp-for="IsActive" class="form-check-label">Active</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i> Save Changes
+            </button>
+            <a asp-action="Details" asp-route-id="@Model.SopId" class="btn btn-secondary ms-2">Cancel</a>
+        </div>
+    </form>
+</div>

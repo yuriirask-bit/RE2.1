@@ -621,18 +621,18 @@ Project uses multi-project .NET solution structure per plan.md:
 
 ### Tests for User Story 11 (TDD - Write First)
 
-- [ ] T240 [P] [US11] Unit tests for GDP operational validation in tests/RE2.ComplianceCore.Tests/Services/GdpOperationalServiceTests.cs
-- [ ] T241 [US11] Integration tests for GDP site assignment validation in tests/RE2.ComplianceApi.Tests/Controllers/V1/GdpOperationsControllerTests.cs
+- [X] T240 [P] [US11] Unit tests for GDP operational validation in tests/RE2.ComplianceCore.Tests/Services/GdpOperationalServiceTests.cs
+- [X] T241 [US11] Integration tests for GDP site assignment validation in tests/RE2.ComplianceApi.Tests/Controllers/V1/GdpOperationsControllerTests.cs
 
 ### Implementation for User Story 11
 
-- [ ] T242 [US11] Create GdpOperationalService in src/RE2.ComplianceCore/Services/GdpCompliance/GdpOperationalService.cs
-- [ ] T243 [US11] Implement site assignment validation per FR-046 (prevent non-GDP-compliant assignments)
-- [ ] T244 [US11] Implement transport provider GDP approval checking per FR-047
-- [ ] T245 [US11] Create GdpOperationsController v1 in src/RE2.ComplianceApi/Controllers/V1/GdpOperationsController.cs
-- [ ] T246 [US11] Implement equipment qualification tracking UI in src/RE2.ComplianceWeb/Views/GdpEquipment/ per FR-048
-- [ ] T247 [US11] Create GDP-approved routes/providers lookup API endpoint
-- [ ] T248 [US11] Add GDP operational checks dashboard in src/RE2.ComplianceWeb/Views/Dashboard/GdpOperations.cshtml
+- [X] T242 [US11] Create GdpOperationalService in src/RE2.ComplianceCore/Services/GdpCompliance/GdpOperationalService.cs
+- [X] T243 [US11] Implement site assignment validation per FR-046 (prevent non-GDP-compliant assignments)
+- [X] T244 [US11] Implement transport provider GDP approval checking per FR-047
+- [X] T245 [US11] Create GdpOperationsController v1 in src/RE2.ComplianceApi/Controllers/V1/GdpOperationsController.cs
+- [X] T246 [US11] Implement equipment qualification tracking UI in src/RE2.ComplianceWeb/Views/GdpEquipment/ per FR-048
+- [X] T247 [US11] Create GDP-approved routes/providers lookup API endpoint
+- [X] T248 [US11] Add GDP operational checks dashboard in src/RE2.ComplianceWeb/Views/Dashboard/GdpOperations.cshtml
 
 **Checkpoint**: At this point, User Stories 7-11 are complete - GDP operational controls enforce compliance at execution level
 
@@ -646,34 +646,34 @@ Project uses multi-project .NET solution structure per plan.md:
 
 ### Tests for User Story 12 (TDD - Write First)
 
-- [ ] T249 [P] [US12] Unit tests for GdpSop model in tests/RE2.ComplianceCore.Tests/Models/GdpSopTests.cs
-- [ ] T250 [P] [US12] Unit tests for TrainingRecord model in tests/RE2.ComplianceCore.Tests/Models/TrainingRecordTests.cs
-- [ ] T251 [P] [US12] Unit tests for GdpChangeRecord model in tests/RE2.ComplianceCore.Tests/Models/GdpChangeRecordTests.cs
-- [ ] T252 [US12] Integration tests for change control workflow in tests/RE2.ComplianceApi.Tests/Controllers/V1/GdpChangeControllerTests.cs
+- [X] T249 [P] [US12] Unit tests for GdpSop model in tests/RE2.ComplianceCore.Tests/Models/GdpSopTests.cs
+- [X] T250 [P] [US12] Unit tests for TrainingRecord model in tests/RE2.ComplianceCore.Tests/Models/TrainingRecordTests.cs
+- [X] T251 [P] [US12] Unit tests for GdpChangeRecord model in tests/RE2.ComplianceCore.Tests/Models/GdpChangeRecordTests.cs
+- [X] T252 [US12] Integration tests for change control workflow in tests/RE2.ComplianceApi.Tests/Controllers/V1/GdpChangeControllerTests.cs
 
 ### Implementation for User Story 12
 
-- [ ] T253 [P] [US12] Create GdpSop domain model in src/RE2.ComplianceCore/Models/GdpSop.cs per data-model.md entity 23
-- [ ] T254 [P] [US12] Create GdpSiteSop domain model in src/RE2.ComplianceCore/Models/GdpSiteSop.cs per data-model.md entity 24
-- [ ] T255 [P] [US12] Create TrainingRecord domain model in src/RE2.ComplianceCore/Models/TrainingRecord.cs per data-model.md entity 25
-- [ ] T256 [P] [US12] Create GdpChangeRecord domain model in src/RE2.ComplianceCore/Models/GdpChangeRecord.cs per data-model.md entity 26
+- [X] T253 [P] [US12] Create GdpSop domain model in src/RE2.ComplianceCore/Models/GdpSop.cs per data-model.md entity 23
+- [X] T254 [P] [US12] Create GdpSiteSop domain model in src/RE2.ComplianceCore/Models/GdpSiteSop.cs per data-model.md entity 24
+- [X] T255 [P] [US12] Create TrainingRecord domain model in src/RE2.ComplianceCore/Models/TrainingRecord.cs per data-model.md entity 25
+- [X] T256 [P] [US12] Create GdpChangeRecord domain model in src/RE2.ComplianceCore/Models/GdpChangeRecord.cs per data-model.md entity 26
 
-- [ ] T257 [P] [US12] Create GdpSop DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/GdpSopDto.cs
-- [ ] T258 [US12] Create IGdpSopRepository interface in src/RE2.ComplianceCore/Interfaces/IGdpSopRepository.cs
-- [ ] T259 [US12] Implement DataverseGdpSopRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseGdpSopRepository.cs
-- [ ] T260 [US12] Create ITrainingRepository interface in src/RE2.ComplianceCore/Interfaces/ITrainingRepository.cs
-- [ ] T261 [US12] Implement DataverseTrainingRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseTrainingRepository.cs
-- [ ] T262 [US12] Create IGdpChangeRepository interface in src/RE2.ComplianceCore/Interfaces/IGdpChangeRepository.cs
-- [ ] T263 [US12] Implement DataverseGdpChangeRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseGdpChangeRepository.cs
-- [ ] T264 [US12] Create GdpSopsController v1 in src/RE2.ComplianceApi/Controllers/V1/GdpSopsController.cs
-- [ ] T265 [US12] Create GDP SOPs management UI in src/RE2.ComplianceWeb/Views/GdpSops/ (Index, Create, Edit views)
-- [ ] T266 [US12] Create GdpSopsController for web UI in src/RE2.ComplianceWeb/Controllers/GdpSopsController.cs
-- [ ] T267 [US12] Create training records UI in src/RE2.ComplianceWeb/Views/Training/ (Index, Create, StaffReport views) per FR-050
-- [ ] T268 [US12] Create TrainingController for web UI in src/RE2.ComplianceWeb/Controllers/TrainingController.cs
-- [ ] T269 [US12] Create change control UI in src/RE2.ComplianceWeb/Views/ChangeControl/ (Index, Create, Approve views) per FR-051
-- [ ] T270 [US12] Create ChangeControlController for web UI in src/RE2.ComplianceWeb/Controllers/ChangeControlController.cs
-- [ ] T271 [US12] Implement change approval workflow per FR-051 (GDP risk assessment before implementation)
-- [ ] T272 [US12] Configure authorization: QAUser and TrainingCoordinator roles for respective functions
+- [X] T257 [P] [US12] Create GdpSop DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/GdpSopDto.cs
+- [X] T258 [US12] Create IGdpSopRepository interface in src/RE2.ComplianceCore/Interfaces/IGdpSopRepository.cs
+- [X] T259 [US12] Implement DataverseGdpSopRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseGdpSopRepository.cs
+- [X] T260 [US12] Create ITrainingRepository interface in src/RE2.ComplianceCore/Interfaces/ITrainingRepository.cs
+- [X] T261 [US12] Implement DataverseTrainingRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseTrainingRepository.cs
+- [X] T262 [US12] Create IGdpChangeRepository interface in src/RE2.ComplianceCore/Interfaces/IGdpChangeRepository.cs
+- [X] T263 [US12] Implement DataverseGdpChangeRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseGdpChangeRepository.cs
+- [X] T264 [US12] Create GdpSopsController v1 in src/RE2.ComplianceApi/Controllers/V1/GdpSopsController.cs
+- [X] T265 [US12] Create GDP SOPs management UI in src/RE2.ComplianceWeb/Views/GdpSops/ (Index, Create, Edit views)
+- [X] T266 [US12] Create GdpSopsController for web UI in src/RE2.ComplianceWeb/Controllers/GdpSopsController.cs
+- [X] T267 [US12] Create training records UI in src/RE2.ComplianceWeb/Views/Training/ (Index, Create, StaffReport views) per FR-050
+- [X] T268 [US12] Create TrainingController for web UI in src/RE2.ComplianceWeb/Controllers/TrainingController.cs
+- [X] T269 [US12] Create change control UI in src/RE2.ComplianceWeb/Views/ChangeControl/ (Index, Create, Approve views) per FR-051
+- [X] T270 [US12] Create ChangeControlController for web UI in src/RE2.ComplianceWeb/Controllers/ChangeControlController.cs
+- [X] T271 [US12] Implement change approval workflow per FR-051 (GDP risk assessment before implementation)
+- [X] T272 [US12] Configure authorization: QAUser and TrainingCoordinator roles for respective functions
 
 **Checkpoint**: At this point, all User Stories 1-12 are complete - full system functionality operational
 

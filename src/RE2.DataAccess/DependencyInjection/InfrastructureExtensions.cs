@@ -78,6 +78,18 @@ public static class InfrastructureExtensions
         // Register GDP document repository (T235)
         services.AddScoped<IGdpDocumentRepository, DataverseGdpDocumentRepository>();
 
+        // Register GDP equipment repository (T258)
+        services.AddScoped<IGdpEquipmentRepository, DataverseGdpEquipmentRepository>();
+
+        // Register GDP SOP repository (T278)
+        services.AddScoped<IGdpSopRepository, DataverseGdpSopRepository>();
+
+        // Register training repository (T281)
+        services.AddScoped<ITrainingRepository, DataverseTrainingRepository>();
+
+        // Register GDP change repository (T284)
+        services.AddScoped<IGdpChangeRepository, DataverseGdpChangeRepository>();
+
         // Register business services
         services.AddScoped<ILicenceService, LicenceService>();
         services.AddScoped<ISubstanceReclassificationService, SubstanceReclassificationService>();
@@ -86,6 +98,9 @@ public static class InfrastructureExtensions
 
         // Register GDP compliance service (T190)
         services.AddScoped<IGdpComplianceService, GdpComplianceService>();
+
+        // Register GDP operational service (T262)
+        services.AddScoped<IGdpOperationalService, GdpOperationalService>();
 
         return services;
     }
@@ -232,11 +247,15 @@ public static class InfrastructureExtensions
         var gdpInspectionRepo = new InMemoryGdpInspectionRepository();
         var capaRepo = new InMemoryCapaRepository();
         var gdpDocumentRepo = new InMemoryGdpDocumentRepository();
+        var gdpEquipmentRepo = new InMemoryGdpEquipmentRepository();
+        var gdpSopRepo = new InMemoryGdpSopRepository();
+        var trainingRepo = new InMemoryTrainingRepository();
+        var gdpChangeRepo = new InMemoryGdpChangeRepository();
 
         // Seed test data if requested
         if (seedData)
         {
-            InMemorySeedData.SeedAll(licenceTypeRepo, substanceRepo, licenceRepo, customerRepo, thresholdRepo, gdpSiteRepo, productRepo, gdpCredentialRepo, gdpInspectionRepo, capaRepo, gdpDocumentRepo);
+            InMemorySeedData.SeedAll(licenceTypeRepo, substanceRepo, licenceRepo, customerRepo, thresholdRepo, gdpSiteRepo, productRepo, gdpCredentialRepo, gdpInspectionRepo, capaRepo, gdpDocumentRepo, gdpEquipmentRepo, gdpSopRepo, trainingRepo, gdpChangeRepo);
         }
 
         // Register as singletons
@@ -264,6 +283,18 @@ public static class InfrastructureExtensions
 
         // Register in-memory GDP document repository (T234)
         services.AddSingleton<IGdpDocumentRepository>(gdpDocumentRepo);
+
+        // Register in-memory GDP equipment repository (T257)
+        services.AddSingleton<IGdpEquipmentRepository>(gdpEquipmentRepo);
+
+        // Register in-memory GDP SOP repository (T277)
+        services.AddSingleton<IGdpSopRepository>(gdpSopRepo);
+
+        // Register in-memory training repository (T280)
+        services.AddSingleton<ITrainingRepository>(trainingRepo);
+
+        // Register in-memory GDP change repository (T283)
+        services.AddSingleton<IGdpChangeRepository>(gdpChangeRepo);
 
         // Register in-memory product repository for D365 product browsing
         services.AddSingleton<IProductRepository>(productRepo);
@@ -320,6 +351,9 @@ public static class InfrastructureExtensions
 
         // Register GDP compliance service (T190)
         services.AddScoped<IGdpComplianceService, GdpComplianceService>();
+
+        // Register GDP operational service (T262)
+        services.AddScoped<IGdpOperationalService, GdpOperationalService>();
 
         return services;
     }

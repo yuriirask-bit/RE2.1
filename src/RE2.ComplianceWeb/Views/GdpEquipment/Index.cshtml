@@ -1,0 +1,152 @@
+@model RE2.ComplianceWeb.Controllers.GdpEquipmentIndexViewModel
+@{
+    ViewData["Title"] = "GDP Equipment Qualifications";
+}
+
+<div class="container">
+    <h1><i class="bi bi-gear-wide-connected"></i> GDP Equipment Qualifications</h1>
+    <p>Track qualification status of temperature-controlled vehicles, monitoring systems, and storage equipment</p>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <h3 class="card-title">@Model.TotalCount</h3>
+                    <p class="card-text text-muted">Total Equipment</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <h3 class="card-title text-success">@Model.QualifiedCount</h3>
+                    <p class="card-text text-muted">Qualified</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-warning">
+                <div class="card-body">
+                    <h3 class="card-title text-warning">@Model.DueCount</h3>
+                    <p class="card-text text-muted">Due for Requalification</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-danger">
+                <div class="card-body">
+                    <h3 class="card-title text-danger">@Model.ExpiredCount</h3>
+                    <p class="card-text text-muted">Expired</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col">
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add Equipment
+            </a>
+        </div>
+    </div>
+
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Equipment Name</th>
+                <th>Type</th>
+                <th>Qualification Date</th>
+                <th>Requalification Due</th>
+                <th>Status</th>
+                <th>Qualified By</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Equipment.Any())
+            {
+                <tr>
+                    <td colspan="7" class="text-center">
+                        <em>No equipment qualifications recorded yet. Click "Add Equipment" to create one.</em>
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var eq in Model.Equipment.OrderBy(e => e.QualificationStatus).ThenBy(e => e.RequalificationDueDate))
+                {
+                    <tr>
+                        <td><strong>@eq.EquipmentName</strong></td>
+                        <td>
+                            @switch (eq.EquipmentType)
+                            {
+                                case RE2.ComplianceCore.Models.GdpEquipmentType.TemperatureControlledVehicle:
+                                    <span class="badge bg-info"><i class="bi bi-truck"></i> Temp Vehicle</span>
+                                    break;
+                                case RE2.ComplianceCore.Models.GdpEquipmentType.MonitoringSystem:
+                                    <span class="badge bg-secondary"><i class="bi bi-thermometer-half"></i> Monitor</span>
+                                    break;
+                                case RE2.ComplianceCore.Models.GdpEquipmentType.StorageEquipment:
+                                    <span class="badge bg-dark"><i class="bi bi-box-seam"></i> Storage</span>
+                                    break;
+                                default:
+                                    <span class="badge bg-light text-dark">Other</span>
+                                    break;
+                            }
+                        </td>
+                        <td>@eq.QualificationDate.ToString("yyyy-MM-dd")</td>
+                        <td>@(eq.RequalificationDueDate?.ToString("yyyy-MM-dd") ?? "—")</td>
+                        <td>
+                            @switch (eq.QualificationStatus)
+                            {
+                                case RE2.ComplianceCore.Models.GdpQualificationStatusType.Qualified:
+                                    <span class="badge bg-success">Qualified</span>
+                                    break;
+                                case RE2.ComplianceCore.Models.GdpQualificationStatusType.DueForRequalification:
+                                    <span class="badge bg-warning text-dark">Due for Requalification</span>
+                                    break;
+                                case RE2.ComplianceCore.Models.GdpQualificationStatusType.Expired:
+                                    <span class="badge bg-danger">Expired</span>
+                                    break;
+                                case RE2.ComplianceCore.Models.GdpQualificationStatusType.NotQualified:
+                                    <span class="badge bg-secondary">Not Qualified</span>
+                                    break;
+                            }
+                        </td>
+                        <td>@eq.QualifiedBy</td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@eq.EquipmentQualificationId"
+                               class="btn btn-sm btn-outline-primary" title="View Details">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a asp-action="Edit" asp-route-id="@eq.EquipmentQualificationId"
+                               class="btn btn-sm btn-outline-secondary" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+
+    <div class="text-muted">
+        Showing @Model.TotalCount equipment qualification(s)
+    </div>
+</div>
