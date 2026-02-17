@@ -602,6 +602,9 @@ The same in-memory mode is used by the CLI tool and test projects.
 
 ## Documentation
 
+- **API Reference**: `docs/api/README.md` -- endpoint tables, error codes, authentication
+- **User Guide**: `docs/user-guide/README.md` -- compliance web UI walkthrough
+- **Integration Guide**: `docs/integration/README.md` -- ERP/WMS integration patterns, webhooks, examples
 - **Specification**: `specs/001-licence-management/spec.md`
 - **Technical Plan**: `specs/001-licence-management/plan.md`
 - **Data Model**: `specs/001-licence-management/data-model.md`
