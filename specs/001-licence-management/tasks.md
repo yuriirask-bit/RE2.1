@@ -506,25 +506,25 @@ Project uses multi-project .NET solution structure per plan.md:
 
 ### Tests for User Story 8 (TDD - Write First)
 
-- [ ] T196 [P] [US8] Unit tests for GdpCredential model in tests/RE2.ComplianceCore.Tests/Models/GdpCredentialTests.cs
-- [ ] T197 [P] [US8] Unit tests for GdpServiceProvider model in tests/RE2.ComplianceCore.Tests/Models/GdpServiceProviderTests.cs
-- [ ] T198 [US8] Integration tests for GDP qualification API in tests/RE2.ComplianceApi.Tests/Controllers/V1/GdpProvidersControllerTests.cs
+- [X] T196 [P] [US8] Unit tests for GdpCredential model in tests/RE2.ComplianceCore.Tests/Models/GdpCredentialTests.cs
+- [X] T197 [P] [US8] Unit tests for GdpServiceProvider model in tests/RE2.ComplianceCore.Tests/Models/GdpServiceProviderTests.cs
+- [X] T198 [US8] Integration tests for GDP qualification API in tests/RE2.ComplianceApi.Tests/Controllers/V1/GdpProvidersControllerTests.cs
 
 ### Implementation for User Story 8
 
-- [ ] T199 [P] [US8] Create GdpCredential domain model in src/RE2.ComplianceCore/Models/GdpCredential.cs per data-model.md entity 18
-- [ ] T200 [P] [US8] Create GdpServiceProvider domain model in src/RE2.ComplianceCore/Models/GdpServiceProvider.cs per data-model.md entity 19
-- [ ] T201 [P] [US8] Create GdpCredentialVerification domain model in src/RE2.ComplianceCore/Models/GdpCredentialVerification.cs per data-model.md entity 30
-- [ ] T202 [P] [US8] Create GdpCredential DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/GdpCredentialDto.cs
-- [ ] T203 [US8] Create IGdpCredentialRepository interface in src/RE2.ComplianceCore/Interfaces/IGdpCredentialRepository.cs
-- [ ] T204 [US8] Implement DataverseGdpCredentialRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseGdpCredentialRepository.cs
-- [ ] T205 [US8] Extend GdpComplianceService with partner qualification methods (FR-037, FR-038)
-- [ ] T206 [US8] Create GdpProvidersController v1 in src/RE2.ComplianceApi/Controllers/V1/GdpProvidersController.cs
-- [ ] T207 [US8] Create GDP providers management UI in src/RE2.ComplianceWeb/Views/GdpProviders/ (Index, Create, Edit, QualificationReview views)
-- [ ] T208 [US8] Create GdpProvidersController for web UI in src/RE2.ComplianceWeb/Controllers/GdpProvidersController.cs
-- [ ] T209 [US8] Extend CustomersController web UI to include GDP credentials tab
-- [ ] T210 [US8] Implement EudraGMDP verification recording UI per FR-045
-- [ ] T211 [US8] Implement re-qualification reminder logic per FR-039
+- [X] T199 [P] [US8] Create GdpCredential domain model in src/RE2.ComplianceCore/Models/GdpCredential.cs per data-model.md entity 18
+- [X] T200 [P] [US8] Create GdpServiceProvider domain model in src/RE2.ComplianceCore/Models/GdpServiceProvider.cs per data-model.md entity 19
+- [X] T201 [P] [US8] Create GdpCredentialVerification domain model in src/RE2.ComplianceCore/Models/GdpCredentialVerification.cs per data-model.md entity 30
+- [X] T202 [P] [US8] Create GdpCredential DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/GdpCredentialDto.cs
+- [X] T203 [US8] Create IGdpCredentialRepository interface in src/RE2.ComplianceCore/Interfaces/IGdpCredentialRepository.cs
+- [X] T204 [US8] Implement DataverseGdpCredentialRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseGdpCredentialRepository.cs
+- [X] T205 [US8] Extend GdpComplianceService with partner qualification methods (FR-037, FR-038)
+- [X] T206 [US8] Create GdpProvidersController v1 in src/RE2.ComplianceApi/Controllers/V1/GdpProvidersController.cs
+- [X] T207 [US8] Create GDP providers management UI in src/RE2.ComplianceWeb/Views/GdpProviders/ (Index, Create, Edit, QualificationReview views)
+- [X] T208 [US8] Create GdpProvidersController for web UI in src/RE2.ComplianceWeb/Controllers/GdpProvidersController.cs
+- [X] T209 [US8] Extend CustomersController web UI to include GDP credentials tab
+- [X] T210 [US8] Implement EudraGMDP verification recording UI per FR-045
+- [X] T211 [US8] Implement re-qualification reminder logic per FR-039
 
 **Checkpoint**: At this point, User Stories 7-8 are complete - full GDP partner qualification operational
 
@@ -538,27 +538,27 @@ Project uses multi-project .NET solution structure per plan.md:
 
 ### Tests for User Story 9 (TDD - Write First)
 
-- [ ] T213 [P] [US9] Unit tests for GdpInspection model in tests/RE2.ComplianceCore.Tests/Models/GdpInspectionTests.cs
-- [ ] T214 [P] [US9] Unit tests for Capa model in tests/RE2.ComplianceCore.Tests/Models/CapaTests.cs
-- [ ] T215 [US9] Integration tests for CAPA management API in tests/RE2.ComplianceApi.Tests/Controllers/V1/InspectionsControllerTests.cs
+- [X] T213 [P] [US9] Unit tests for GdpInspection model in tests/RE2.ComplianceCore.Tests/Models/GdpInspectionTests.cs
+- [X] T214 [P] [US9] Unit tests for Capa model in tests/RE2.ComplianceCore.Tests/Models/CapaTests.cs
+- [X] T215 [US9] Integration tests for CAPA management API in tests/RE2.ComplianceApi.Tests/Controllers/V1/GdpInspectionsControllerTests.cs
 
 ### Implementation for User Story 9
 
-- [ ] T216 [P] [US9] Create GdpInspection domain model in src/RE2.ComplianceCore/Models/GdpInspection.cs per data-model.md entity 20
-- [ ] T217 [P] [US9] Create GdpInspectionFinding domain model in src/RE2.ComplianceCore/Models/GdpInspectionFinding.cs per data-model.md entity 21
-- [ ] T218 [P] [US9] Create Capa domain model in src/RE2.ComplianceCore/Models/Capa.cs per data-model.md entity 22
-- [ ] T219 [P] [US9] Create GdpInspection DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/GdpInspectionDto.cs
-- [ ] T220 [US9] Create IGdpInspectionRepository interface in src/RE2.ComplianceCore/Interfaces/IGdpInspectionRepository.cs
-- [ ] T221 [US9] Implement DataverseGdpInspectionRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseGdpInspectionRepository.cs
-- [ ] T222 [US9] Create ICapaRepository interface in src/RE2.ComplianceCore/Interfaces/ICapaRepository.cs
-- [ ] T223 [US9] Implement DataverseCapaRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseCapaRepository.cs
-- [ ] T224 [US9] Extend GdpComplianceService with inspection and CAPA management methods
-- [ ] T225 [US9] Create InspectionsController v1 in src/RE2.ComplianceApi/Controllers/V1/InspectionsController.cs
-- [ ] T226 [US9] Create GDP inspections management UI in src/RE2.ComplianceWeb/Views/Inspections/ (Index, Create, Details, CreateCapa views)
-- [ ] T227 [US9] Create InspectionsController for web UI in src/RE2.ComplianceWeb/Controllers/InspectionsController.cs
-- [ ] T228 [US9] Create CAPA dashboard UI in src/RE2.ComplianceWeb/Views/Dashboard/Capas.cshtml per FR-042
-- [ ] T229 [US9] Implement CAPA status tracking (Open, Overdue, Completed) per data-model.md validation rules
-- [ ] T230 [US9] Configure authorization: QAUser role can manage inspections and CAPAs
+- [X] T216 [P] [US9] Create GdpInspection domain model in src/RE2.ComplianceCore/Models/GdpInspection.cs per data-model.md entity 20
+- [X] T217 [P] [US9] Create GdpInspectionFinding domain model in src/RE2.ComplianceCore/Models/GdpInspectionFinding.cs per data-model.md entity 21
+- [X] T218 [P] [US9] Create Capa domain model in src/RE2.ComplianceCore/Models/Capa.cs per data-model.md entity 22
+- [X] T219 [P] [US9] Create GdpInspection DTO for Dataverse in src/RE2.DataAccess/Dataverse/Models/GdpInspectionDto.cs
+- [X] T220 [US9] Create IGdpInspectionRepository interface in src/RE2.ComplianceCore/Interfaces/IGdpInspectionRepository.cs
+- [X] T221 [US9] Implement DataverseGdpInspectionRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseGdpInspectionRepository.cs
+- [X] T222 [US9] Create ICapaRepository interface in src/RE2.ComplianceCore/Interfaces/ICapaRepository.cs
+- [X] T223 [US9] Implement DataverseCapaRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseCapaRepository.cs
+- [X] T224 [US9] Extend GdpComplianceService with inspection and CAPA management methods
+- [X] T225 [US9] Create GdpInspectionsController v1 in src/RE2.ComplianceApi/Controllers/V1/GdpInspectionsController.cs
+- [X] T226 [US9] Create GDP inspections management UI in src/RE2.ComplianceWeb/Views/GdpInspections/ (Index, Create, Details, CreateCapa views)
+- [X] T227 [US9] Create GdpInspectionsController for web UI in src/RE2.ComplianceWeb/Controllers/GdpInspectionsController.cs
+- [X] T228 [US9] Create CAPA dashboard UI in src/RE2.ComplianceWeb/Views/GdpInspections/Capas.cshtml per FR-042
+- [X] T229 [US9] Implement CAPA status tracking (Open, Overdue, Completed) per data-model.md validation rules
+- [X] T230 [US9] Configure authorization: QAUser role can manage inspections and CAPAs
 
 **Checkpoint**: At this point, User Stories 7-9 are complete - full GDP inspection and CAPA management operational
 
@@ -566,24 +566,48 @@ Project uses multi-project .NET solution structure per plan.md:
 
 ## Phase 12: User Story 10 - GDP Certificates, Validity & Monitoring (Priority: P2)
 
-**Goal**: Record validity periods of GDP certificates and WDAs for company and key partners with automated expiry alerts, attach GDP certificates/WDA copies/inspection reports to entity records, log verification of partner GDP status via EudraGMDP or national databases (date, verifier, outcome).
+> **DETAILED TASK BREAKDOWN**: See [specs/main/tasks.md](../main/tasks.md) for the complete 23-task breakdown (T231-T253) generated from detailed gap analysis. Key insight: FR-043 (validity) and FR-045 (verification) core logic already exists from US8 — US10 focuses on GdpDocument model (FR-044), GdpCertificateMonitor Azure Function, and web UI.
 
-**Independent Test**: Record GDP certificate validity periods for internal and external entities, set up expiry alerts, attach various document types to records, log verification activities via EudraGMDP or databases.
+**Goal**: Attach GDP certificates/WDA copies/inspection reports to entity records, automate GDP credential expiry monitoring via Azure Function, and provide web UI for credential validity management and verification logging.
 
-### Tests for User Story 10 (TDD - Write First)
+**Independent Test**: Upload documents to GDP credentials/sites/inspections, verify GdpCertificateMonitor generates expiry alerts, manage credentials through web UI, record EudraGMDP verifications through web form.
 
-- [ ] T231 [P] [US10] Unit tests for GDP certificate expiry logic in tests/RE2.ComplianceCore.Tests/Services/GdpComplianceServiceTests.cs
-- [ ] T232 [US10] Integration tests for GDP certificate expiry alerts in tests/RE2.ComplianceFunctions.Tests/GdpCertificateMonitorTests.cs
+### Phase A: Domain Model
+- [X] T231 [US10] Write GdpDocument validation tests in tests/RE2.ComplianceCore.Tests/Models/GdpDocumentTests.cs
+- [X] T232 [US10] Create GdpDocument domain model + GdpDocumentEntityType enum in src/RE2.ComplianceCore/Models/GdpDocument.cs
 
-### Implementation for User Story 10
+### Phase B: Data Access
+- [X] T233 [US10] Create IGdpDocumentRepository interface in src/RE2.ComplianceCore/Interfaces/IGdpDocumentRepository.cs
+- [X] T234 [P] [US10] Create InMemoryGdpDocumentRepository in src/RE2.DataAccess/InMemory/InMemoryGdpDocumentRepository.cs
+- [X] T235 [P] [US10] Create DataverseGdpDocumentRepository in src/RE2.DataAccess/Dataverse/Repositories/DataverseGdpDocumentRepository.cs
+- [X] T236 [US10] Update InMemorySeedData.cs with sample GDP documents and new SeedAll overload
+- [X] T237 [US10] Update InfrastructureExtensions.cs with IGdpDocumentRepository DI registrations
 
-- [ ] T233 [US10] Extend GdpCredential model with validity period tracking per data-model.md entity 18
-- [ ] T234 [US10] Extend GdpComplianceService with certificate expiry monitoring methods (FR-043)
-- [ ] T235 [US10] Extend GdpProvidersController API with document attachment endpoints
-- [ ] T236 [US10] Add document attachment UI in src/RE2.ComplianceWeb/Views/GdpProviders/Documents.cshtml per FR-044
-- [ ] T237 [US10] Extend LicenceExpiryMonitor Azure Function to monitor GDP certificate expiry using shared AlertGenerationService per FR-043, or create separate GdpCertificateMonitor if scheduling requirements differ
-- [ ] T238 [US10] Implement EudraGMDP verification logging per FR-045
-- [ ] T239 [US10] Add verification log display in GDP provider details view
+### Phase C: Business Logic
+- [X] T238 [US10] Extend IGdpComplianceService with document CRUD methods (GetDocuments, Upload, Download, Delete)
+- [X] T239 [US10] Extend GdpComplianceService with document methods using IDocumentStorage (container: "gdp-documents")
+
+### Phase D: Azure Function
+- [X] T240 [US10] Write GdpCertificateMonitor tests in tests/RE2.ComplianceFunctions.Tests/GdpCertificateMonitorTests.cs
+- [X] T241 [US10] Create GdpCertificateMonitor Azure Function in src/RE2.ComplianceFunctions/GdpCertificateMonitor.cs (3 AM UTC daily)
+
+### Phase E: API Layer
+- [X] T242 [US10] Write document API endpoint tests in tests/RE2.ComplianceApi.Tests/Controllers/V1/GdpProvidersControllerDocumentTests.cs
+- [X] T243 [US10] Extend GdpProvidersController with document endpoints (upload/download/list/delete) + DTOs
+
+### Phase F: Web UI
+- [X] T244 [US10] Create GdpCredentialsController MVC in src/RE2.ComplianceWeb/Controllers/GdpCredentialsController.cs
+- [X] T245 [P] [US10] Create GdpCredentials/Index.cshtml — credential listing with validity status badges
+- [X] T246 [P] [US10] Create GdpCredentials/Details.cshtml — credential details with documents + verifications tabs
+- [X] T247 [P] [US10] Create GdpCredentials/Expiring.cshtml — expiring credentials dashboard
+- [X] T248 [P] [US10] Create GdpCredentials/RecordVerification.cshtml — EudraGMDP verification form (FR-045)
+- [X] T249 [P] [US10] Create GdpCredentials/UploadDocument.cshtml — document upload form (FR-044)
+- [X] T250 [US10] Update _Layout.cshtml with GDP Credentials navigation links
+- [X] T251 [US10] Update GdpProviders/Details.cshtml with documents section
+
+### Phase G: Polish
+- [X] T252 [US10] Verify all tests pass — full regression test (`dotnet test RE2.sln`)
+- [X] T253 [US10] Final validation — build clean, all US10 features functional
 
 **Checkpoint**: At this point, User Stories 7-10 are complete - full GDP certificate lifecycle management with monitoring
 

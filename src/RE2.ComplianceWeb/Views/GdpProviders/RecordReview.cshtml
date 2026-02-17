@@ -1,0 +1,71 @@
+@model RE2.ComplianceWeb.Controllers.QualificationReviewViewModel
+@{
+    ViewData["Title"] = "Record Qualification Review";
+}
+
+<div class="container">
+    <h1><i class="bi bi-journal-check"></i> Record Qualification Review</h1>
+    <p>Recording review for provider: <strong>@Model.ProviderName</strong></p>
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Review Details</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="RecordReview" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="ProviderId" />
+                <input type="hidden" asp-for="ProviderName" />
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label asp-for="ReviewDate" class="form-label">Review Date *</label>
+                            <input asp-for="ReviewDate" class="form-control" type="date" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ReviewMethod" class="form-label">Review Method *</label>
+                            <select asp-for="ReviewMethod" class="form-select" asp-items="@ViewBag.ReviewMethods">
+                                <option value="">Select method...</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ReviewOutcome" class="form-label">Review Outcome *</label>
+                            <select asp-for="ReviewOutcome" class="form-select" asp-items="@ViewBag.ReviewOutcomes">
+                                <option value="">Select outcome...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label asp-for="ReviewerName" class="form-label">Reviewer Name *</label>
+                            <input asp-for="ReviewerName" class="form-control" placeholder="e.g., Jan de Vries" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="NextReviewMonths" class="form-label">Schedule Next Review (months)</label>
+                            <input asp-for="NextReviewMonths" class="form-control" type="number" min="0" max="60" />
+                            <small class="text-muted">Set to 0 to skip scheduling the next review.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Notes" class="form-label">Notes</label>
+                            <textarea asp-for="Notes" class="form-control" rows="3" placeholder="Additional review notes..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Record Review
+                    </button>
+                    <a asp-action="Details" asp-route-id="@Model.ProviderId" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

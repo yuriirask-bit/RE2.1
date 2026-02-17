@@ -1,0 +1,196 @@
+@model RE2.ComplianceCore.Models.GdpInspection
+@{
+    ViewData["Title"] = $"Inspection - {Model.InspectorName}";
+    var findings = ViewBag.Findings as List<RE2.ComplianceCore.Models.GdpInspectionFinding> ?? new();
+    var capasByFinding = ViewBag.CapasByFinding as Dictionary<Guid, List<RE2.ComplianceCore.Models.Capa>> ?? new();
+}
+
+<div class="container">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">GDP Inspections</a></li>
+            <li class="breadcrumb-item active">Details</li>
+        </ol>
+    </nav>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <h1><i class="bi bi-clipboard-check"></i> Inspection Details</h1>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">Inspection Information</h5></div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Date</dt>
+                        <dd class="col-sm-7">@Model.InspectionDate.ToString("yyyy-MM-dd")</dd>
+
+                        <dt class="col-sm-5">Inspector</dt>
+                        <dd class="col-sm-7">@Model.InspectorName</dd>
+
+                        <dt class="col-sm-5">Type</dt>
+                        <dd class="col-sm-7">
+                            @switch (Model.InspectionType)
+                            {
+                                case RE2.ComplianceCore.Models.GdpInspectionType.RegulatoryAuthority:
+                                    <span class="badge bg-danger">Regulatory Authority</span>
+                                    break;
+                                case RE2.ComplianceCore.Models.GdpInspectionType.Internal:
+                                    <span class="badge bg-primary">Internal</span>
+                                    break;
+                                case RE2.ComplianceCore.Models.GdpInspectionType.SelfInspection:
+                                    <span class="badge bg-info">Self-Inspection</span>
+                                    break;
+                            }
+                        </dd>
+
+                        <dt class="col-sm-5">Site ID</dt>
+                        <dd class="col-sm-7"><code>@Model.SiteId</code></dd>
+
+                        @if (Model.WdaLicenceId.HasValue)
+                        {
+                            <dt class="col-sm-5">WDA Licence</dt>
+                            <dd class="col-sm-7"><code>@Model.WdaLicenceId</code></dd>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.ReportReferenceUrl))
+                        {
+                            <dt class="col-sm-5">Report</dt>
+                            <dd class="col-sm-7"><a href="@Model.ReportReferenceUrl" target="_blank">View Report <i class="bi bi-box-arrow-up-right"></i></a></dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">Findings Summary</h5></div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(Model.FindingsSummary))
+                    {
+                        <p>@Model.FindingsSummary</p>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No summary recorded.</p>
+                    }
+                    <div class="mt-2">
+                        <span class="badge bg-secondary">@findings.Count finding(s)</span>
+                        @{
+                            var criticalCount = findings.Count(f => f.Classification == RE2.ComplianceCore.Models.FindingClassification.Critical);
+                            var majorCount = findings.Count(f => f.Classification == RE2.ComplianceCore.Models.FindingClassification.Major);
+                        }
+                        @if (criticalCount > 0)
+                        {
+                            <span class="badge bg-danger">@criticalCount critical</span>
+                        }
+                        @if (majorCount > 0)
+                        {
+                            <span class="badge bg-warning text-dark">@majorCount major</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3>Findings</h3>
+            <a asp-action="CreateFinding" asp-route-inspectionId="@Model.InspectionId" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle"></i> Add Finding
+            </a>
+        </div>
+
+        @if (!findings.Any())
+        {
+            <div class="alert alert-info">No findings recorded for this inspection.</div>
+        }
+        else
+        {
+            @foreach (var finding in findings)
+            {
+                <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>
+                            @switch (finding.Classification)
+                            {
+                                case RE2.ComplianceCore.Models.FindingClassification.Critical:
+                                    <span class="badge bg-danger">Critical</span>
+                                    break;
+                                case RE2.ComplianceCore.Models.FindingClassification.Major:
+                                    <span class="badge bg-warning text-dark">Major</span>
+                                    break;
+                                case RE2.ComplianceCore.Models.FindingClassification.Other:
+                                    <span class="badge bg-info">Other</span>
+                                    break;
+                            }
+                            @if (!string.IsNullOrEmpty(finding.FindingNumber))
+                            {
+                                <code class="ms-2">@finding.FindingNumber</code>
+                            }
+                        </span>
+                        <a asp-action="CreateCapa" asp-route-findingId="@finding.FindingId" class="btn btn-sm btn-outline-warning">
+                            <i class="bi bi-plus-circle"></i> Create CAPA
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <p>@finding.FindingDescription</p>
+
+                        @if (capasByFinding.TryGetValue(finding.FindingId, out var capas) && capas.Any())
+                        {
+                            <h6 class="mt-3">Linked CAPAs:</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>CAPA #</th>
+                                        <th>Owner</th>
+                                        <th>Due Date</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var capa in capas)
+                                    {
+                                        <tr>
+                                            <td><strong>@capa.CapaNumber</strong></td>
+                                            <td>@capa.OwnerName</td>
+                                            <td>@capa.DueDate.ToString("yyyy-MM-dd")</td>
+                                            <td>
+                                                @if (capa.Status == RE2.ComplianceCore.Models.CapaStatus.Completed)
+                                                {
+                                                    <span class="badge bg-success">Completed</span>
+                                                }
+                                                else if (capa.IsOverdue())
+                                                {
+                                                    <span class="badge bg-danger">Overdue</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-primary">Open</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </div>
+
+    <div class="mt-3">
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Inspections
+        </a>
+    </div>
+</div>

@@ -14,6 +14,8 @@ public class AlertGenerationService
     private readonly IAlertRepository _alertRepository;
     private readonly ILicenceRepository _licenceRepository;
     private readonly ICustomerRepository _customerRepository;
+    private readonly IGdpCredentialRepository _gdpCredentialRepository;
+    private readonly ICapaRepository _capaRepository;
     private readonly ILogger<AlertGenerationService> _logger;
 
     /// <summary>
@@ -25,11 +27,15 @@ public class AlertGenerationService
         IAlertRepository alertRepository,
         ILicenceRepository licenceRepository,
         ICustomerRepository customerRepository,
+        IGdpCredentialRepository gdpCredentialRepository,
+        ICapaRepository capaRepository,
         ILogger<AlertGenerationService> logger)
     {
         _alertRepository = alertRepository ?? throw new ArgumentNullException(nameof(alertRepository));
         _licenceRepository = licenceRepository ?? throw new ArgumentNullException(nameof(licenceRepository));
         _customerRepository = customerRepository ?? throw new ArgumentNullException(nameof(customerRepository));
+        _gdpCredentialRepository = gdpCredentialRepository ?? throw new ArgumentNullException(nameof(gdpCredentialRepository));
+        _capaRepository = capaRepository ?? throw new ArgumentNullException(nameof(capaRepository));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -195,6 +201,182 @@ public class AlertGenerationService
 
     #endregion
 
+    #region GDP Credential Alerts (T211)
+
+    /// <summary>
+    /// Generates alerts for GDP credentials expiring within the specified period.
+    /// T211: Per FR-039 re-qualification reminder logic.
+    /// </summary>
+    public async Task<int> GenerateGdpCredentialExpiryAlertsAsync(
+        int daysAhead = 90,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Generating GDP credential expiry alerts for credentials expiring within {Days} days", daysAhead);
+
+        var beforeDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(daysAhead);
+        var expiringCredentials = await _gdpCredentialRepository.GetCredentialsExpiringBeforeAsync(beforeDate, cancellationToken);
+        var alerts = new List<Alert>();
+
+        foreach (var credential in expiringCredentials)
+        {
+            if (!credential.ValidityEndDate.HasValue) continue;
+
+            var daysUntilExpiry = (credential.ValidityEndDate.Value.ToDateTime(TimeOnly.MinValue) - DateTime.UtcNow).Days;
+
+            // Check if alert already exists
+            var alertExists = await _alertRepository.ExistsAsync(
+                daysUntilExpiry <= 0 ? AlertType.GdpCertificateExpired : AlertType.GdpCertificateExpiring,
+                TargetEntityType.GdpCredential,
+                credential.CredentialId,
+                cancellationToken);
+
+            if (alertExists) continue;
+
+            // Resolve entity name for the alert message
+            var entityName = await ResolveCredentialEntityNameAsync(credential, cancellationToken);
+
+            var alert = Alert.CreateGdpCredentialExpiryAlert(
+                credential.CredentialId,
+                entityName,
+                daysUntilExpiry,
+                credential.ValidityEndDate.Value);
+
+            alerts.Add(alert);
+        }
+
+        if (alerts.Any())
+        {
+            await _alertRepository.CreateBatchAsync(alerts, cancellationToken);
+            _logger.LogInformation("Generated {Count} GDP credential expiry alerts", alerts.Count);
+        }
+        else
+        {
+            _logger.LogInformation("No new GDP credential expiry alerts to generate");
+        }
+
+        return alerts.Count;
+    }
+
+    /// <summary>
+    /// Generates alerts for GDP service providers needing re-qualification review.
+    /// T211: Per FR-039.
+    /// </summary>
+    public async Task<int> GenerateProviderRequalificationAlertsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Generating GDP provider re-qualification alerts");
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var providersNeedingReview = await _gdpCredentialRepository.GetProvidersRequiringReviewAsync(today, cancellationToken);
+        var alerts = new List<Alert>();
+
+        foreach (var provider in providersNeedingReview)
+        {
+            if (!provider.NextReviewDate.HasValue) continue;
+
+            // Check if alert already exists
+            var alertExists = await _alertRepository.ExistsAsync(
+                AlertType.VerificationOverdue,
+                TargetEntityType.GdpCredential,
+                provider.ProviderId,
+                cancellationToken);
+
+            if (alertExists) continue;
+
+            var daysOverdue = (DateTime.UtcNow - provider.NextReviewDate.Value.ToDateTime(TimeOnly.MinValue)).Days;
+            var severity = daysOverdue switch
+            {
+                > 30 => AlertSeverity.Critical,
+                > 0 => AlertSeverity.Warning,
+                _ => AlertSeverity.Info
+            };
+
+            var alert = new Alert
+            {
+                AlertId = Guid.NewGuid(),
+                AlertType = AlertType.VerificationOverdue,
+                Severity = severity,
+                TargetEntityType = TargetEntityType.GdpCredential,
+                TargetEntityId = provider.ProviderId,
+                GeneratedDate = DateTime.UtcNow,
+                Message = $"GDP service provider {provider.ProviderName} requires re-qualification review (due {provider.NextReviewDate.Value:yyyy-MM-dd})",
+                DueDate = provider.NextReviewDate
+            };
+
+            alerts.Add(alert);
+        }
+
+        if (alerts.Any())
+        {
+            await _alertRepository.CreateBatchAsync(alerts, cancellationToken);
+            _logger.LogInformation("Generated {Count} provider re-qualification alerts", alerts.Count);
+        }
+
+        return alerts.Count;
+    }
+
+    private async Task<string> ResolveCredentialEntityNameAsync(GdpCredential credential, CancellationToken cancellationToken)
+    {
+        if (credential.EntityType == GdpCredentialEntityType.ServiceProvider)
+        {
+            var provider = await _gdpCredentialRepository.GetProviderAsync(credential.EntityId, cancellationToken);
+            return provider?.ProviderName ?? $"Provider {credential.EntityId}";
+        }
+
+        // For customers, use the certificate/WDA number as identifier
+        return credential.GdpCertificateNumber ?? credential.WdaNumber ?? $"Entity {credential.EntityId}";
+    }
+
+    #endregion
+
+    #region CAPA Overdue Alerts (T229)
+
+    /// <summary>
+    /// Generates alerts for overdue CAPAs.
+    /// T229: Per FR-042 dashboard highlights overdue CAPAs.
+    /// </summary>
+    public async Task<int> GenerateCapaOverdueAlertsAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Generating CAPA overdue alerts");
+
+        var overdueCapas = await _capaRepository.GetOverdueAsync(cancellationToken);
+        var alerts = new List<Alert>();
+
+        foreach (var capa in overdueCapas)
+        {
+            // Check if alert already exists
+            var alertExists = await _alertRepository.ExistsAsync(
+                AlertType.CapaOverdue,
+                TargetEntityType.Capa,
+                capa.CapaId,
+                cancellationToken);
+
+            if (alertExists) continue;
+
+            var alert = Alert.CreateCapaOverdueAlert(
+                capa.CapaId,
+                capa.CapaNumber,
+                capa.OwnerName,
+                capa.DueDate);
+
+            alerts.Add(alert);
+        }
+
+        if (alerts.Any())
+        {
+            await _alertRepository.CreateBatchAsync(alerts, cancellationToken);
+            _logger.LogInformation("Generated {Count} CAPA overdue alerts", alerts.Count);
+        }
+        else
+        {
+            _logger.LogInformation("No new CAPA overdue alerts to generate");
+        }
+
+        return alerts.Count;
+    }
+
+    #endregion
+
     #region Alert Management
 
     /// <summary>
@@ -263,6 +445,9 @@ public class AlertGenerationService
             LicenceExpiredCount = unacknowledged.Count(a => a.AlertType == AlertType.LicenceExpired),
             ReVerificationCount = unacknowledged.Count(a => a.AlertType == AlertType.ReVerificationDue),
             MissingDocumentationCount = unacknowledged.Count(a => a.AlertType == AlertType.MissingDocumentation),
+            GdpCredentialExpiringCount = unacknowledged.Count(a => a.AlertType == AlertType.GdpCertificateExpiring),
+            GdpCredentialExpiredCount = unacknowledged.Count(a => a.AlertType == AlertType.GdpCertificateExpired),
+            ProviderRequalificationCount = unacknowledged.Count(a => a.AlertType == AlertType.VerificationOverdue),
             RecentAlerts = unacknowledged.Take(10).ToList()
         };
     }
@@ -305,5 +490,8 @@ public class AlertDashboardSummary
     public int LicenceExpiredCount { get; set; }
     public int ReVerificationCount { get; set; }
     public int MissingDocumentationCount { get; set; }
+    public int GdpCredentialExpiringCount { get; set; }
+    public int GdpCredentialExpiredCount { get; set; }
+    public int ProviderRequalificationCount { get; set; }
     public List<Alert> RecentAlerts { get; set; } = new();
 }

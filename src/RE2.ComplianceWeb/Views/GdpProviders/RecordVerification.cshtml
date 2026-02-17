@@ -1,0 +1,72 @@
+@model RE2.ComplianceWeb.Controllers.VerificationRecordViewModel
+@{
+    ViewData["Title"] = "Record EudraGMDP Verification";
+}
+
+<div class="container">
+    <h1><i class="bi bi-patch-check"></i> Record EudraGMDP Verification</h1>
+    <p>Recording verification for credential: <code>@Model.CredentialId</code></p>
+
+    @if (!string.IsNullOrEmpty(Model.EudraGmdpEntryUrl))
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-link-45deg"></i> EudraGMDP Entry:
+            <a href="@Model.EudraGmdpEntryUrl" target="_blank" rel="noopener noreferrer">@Model.EudraGmdpEntryUrl</a>
+        </div>
+    }
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Verification Details</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="RecordVerification" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="CredentialId" />
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label asp-for="VerificationDate" class="form-label">Verification Date *</label>
+                            <input asp-for="VerificationDate" class="form-control" type="date" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="VerificationMethod" class="form-label">Verification Method *</label>
+                            <select asp-for="VerificationMethod" class="form-select" asp-items="@ViewBag.VerificationMethods">
+                                <option value="">Select method...</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Outcome" class="form-label">Verification Outcome *</label>
+                            <select asp-for="Outcome" class="form-select" asp-items="@ViewBag.VerificationOutcomes">
+                                <option value="">Select outcome...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label asp-for="VerifiedBy" class="form-label">Verified By *</label>
+                            <input asp-for="VerifiedBy" class="form-control" placeholder="e.g., Jan de Vries" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Notes" class="form-label">Notes</label>
+                            <textarea asp-for="Notes" class="form-control" rows="3" placeholder="Verification notes..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Record Verification
+                    </button>
+                    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -10,18 +10,22 @@ namespace RE2.ComplianceWeb.Controllers;
 /// MVC controller for customer management web UI.
 /// T093: Web UI controller for customer compliance operations.
 /// Composite key: CustomerAccount (string) + DataAreaId (string) per D365FO + Dataverse pattern.
+/// T209: Extended with GDP credential display.
 /// </summary>
 [Authorize]
 public class CustomersController : Controller
 {
     private readonly ICustomerService _customerService;
+    private readonly IGdpComplianceService _gdpService;
     private readonly ILogger<CustomersController> _logger;
 
     public CustomersController(
         ICustomerService customerService,
+        IGdpComplianceService gdpService,
         ILogger<CustomersController> logger)
     {
         _customerService = customerService;
+        _gdpService = gdpService;
         _logger = logger;
     }
 
@@ -91,6 +95,18 @@ public class CustomersController : Controller
         // Get compliance status for additional details
         var complianceStatus = await _customerService.GetComplianceStatusAsync(customerAccount, dataAreaId, cancellationToken);
         ViewBag.ComplianceStatus = complianceStatus;
+
+        // T209: Load GDP credentials for the customer
+        if (customer.ComplianceExtensionId != Guid.Empty)
+        {
+            var gdpCredentials = await _gdpService.GetCredentialsByEntityAsync(
+                GdpCredentialEntityType.Supplier, customer.ComplianceExtensionId, cancellationToken);
+            ViewBag.GdpCredentials = gdpCredentials.ToList();
+        }
+        else
+        {
+            ViewBag.GdpCredentials = new List<GdpCredential>();
+        }
 
         return View(customer);
     }

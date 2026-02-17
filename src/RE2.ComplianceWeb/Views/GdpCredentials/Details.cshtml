@@ -1,0 +1,310 @@
+@model RE2.ComplianceWeb.Controllers.CredentialDetailsViewModel
+@{
+    ViewData["Title"] = "Credential Details";
+    var cred = Model.Credential;
+    var today = DateOnly.FromDateTime(DateTime.UtcNow);
+    var isExpired = cred.ValidityEndDate.HasValue && cred.ValidityEndDate.Value < today;
+    var isExpiring = !isExpired && cred.ValidityEndDate.HasValue && cred.ValidityEndDate.Value <= today.AddDays(90);
+}
+
+<div class="container">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">GDP Credentials</a></li>
+            <li class="breadcrumb-item active">Details</li>
+        </ol>
+    </nav>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <h1><i class="bi bi-award"></i> Credential Details</h1>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        Credential Information
+                        @if (isExpired)
+                        {
+                            <span class="badge bg-danger float-end">Expired</span>
+                        }
+                        else if (isExpiring)
+                        {
+                            <span class="badge bg-warning text-dark float-end">Expiring</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success float-end">Valid</span>
+                        }
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Entity</dt>
+                        <dd class="col-sm-7">@Model.EntityName</dd>
+
+                        @if (!string.IsNullOrEmpty(cred.WdaNumber))
+                        {
+                            <dt class="col-sm-5">WDA Number</dt>
+                            <dd class="col-sm-7"><code>@cred.WdaNumber</code></dd>
+                        }
+
+                        @if (!string.IsNullOrEmpty(cred.GdpCertificateNumber))
+                        {
+                            <dt class="col-sm-5">GDP Certificate</dt>
+                            <dd class="col-sm-7"><code>@cred.GdpCertificateNumber</code></dd>
+                        }
+
+                        @if (!string.IsNullOrEmpty(cred.EudraGmdpEntryUrl))
+                        {
+                            <dt class="col-sm-5">EudraGMDP</dt>
+                            <dd class="col-sm-7">
+                                <a href="@cred.EudraGmdpEntryUrl" target="_blank">
+                                    View Entry <i class="bi bi-box-arrow-up-right"></i>
+                                </a>
+                            </dd>
+                        }
+
+                        <dt class="col-sm-5">Valid From</dt>
+                        <dd class="col-sm-7">@(cred.ValidityStartDate?.ToString("yyyy-MM-dd") ?? "Not set")</dd>
+
+                        <dt class="col-sm-5">Valid To</dt>
+                        <dd class="col-sm-7">
+                            @if (cred.ValidityEndDate.HasValue)
+                            {
+                                <span class="@(isExpired ? "text-danger fw-bold" : isExpiring ? "text-warning fw-bold" : "")">
+                                    @cred.ValidityEndDate.Value.ToString("yyyy-MM-dd")
+                                    @if (isExpired)
+                                    {
+                                        <span class="badge bg-danger ms-1">EXPIRED</span>
+                                    }
+                                    else if (isExpiring)
+                                    {
+                                        var daysLeft = cred.ValidityEndDate.Value.DayNumber - today.DayNumber;
+                                        <span class="badge bg-warning text-dark ms-1">@daysLeft days left</span>
+                                    }
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">No expiry</span>
+                            }
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0"><i class="bi bi-clipboard-check"></i> Qualification Status</h5></div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Status</dt>
+                        <dd class="col-sm-7">
+                            @{
+                                var statusClass = cred.QualificationStatus switch
+                                {
+                                    RE2.ComplianceCore.Models.GdpQualificationStatus.Approved => "bg-success",
+                                    RE2.ComplianceCore.Models.GdpQualificationStatus.ConditionallyApproved => "bg-info",
+                                    RE2.ComplianceCore.Models.GdpQualificationStatus.Pending => "bg-warning text-dark",
+                                    RE2.ComplianceCore.Models.GdpQualificationStatus.Rejected => "bg-danger",
+                                    RE2.ComplianceCore.Models.GdpQualificationStatus.UnderReview => "bg-primary",
+                                    _ => "bg-light text-dark"
+                                };
+                            }
+                            <span class="badge @statusClass">@FormatEnumName(cred.QualificationStatus.ToString())</span>
+                        </dd>
+
+                        <dt class="col-sm-5">Last Verified</dt>
+                        <dd class="col-sm-7">@(cred.LastVerificationDate?.ToString("yyyy-MM-dd") ?? "Never")</dd>
+
+                        <dt class="col-sm-5">Next Review</dt>
+                        <dd class="col-sm-7">@(cred.NextReviewDate?.ToString("yyyy-MM-dd") ?? "Not scheduled")</dd>
+                    </dl>
+                </div>
+                <div class="card-footer">
+                    <a asp-action="RecordVerification" asp-route-credentialId="@cred.CredentialId"
+                       class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-patch-check"></i> Record Verification
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documents Tab -->
+    <div class="card mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Documents</h5>
+            <a asp-action="UploadDocument" asp-route-credentialId="@cred.CredentialId"
+               class="btn btn-primary btn-sm">
+                <i class="bi bi-upload"></i> Upload Document
+            </a>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>File Name</th>
+                        <th>Type</th>
+                        <th>Size</th>
+                        <th>Uploaded</th>
+                        <th>Uploaded By</th>
+                        <th>Description</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Documents.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center">
+                                <em>No documents attached. Click "Upload Document" to add one.</em>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var doc in Model.Documents.OrderByDescending(d => d.UploadedDate))
+                        {
+                            <tr>
+                                <td>
+                                    @if (doc.IsPdf())
+                                    {
+                                        <i class="bi bi-file-earmark-pdf text-danger"></i>
+                                    }
+                                    else if (doc.IsImage())
+                                    {
+                                        <i class="bi bi-file-earmark-image text-primary"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-file-earmark text-secondary"></i>
+                                    }
+                                    @doc.FileName
+                                </td>
+                                <td><span class="badge bg-secondary">@FormatEnumName(doc.DocumentType.ToString())</span></td>
+                                <td>
+                                    @if (doc.FileSizeBytes.HasValue)
+                                    {
+                                        @FormatFileSize(doc.FileSizeBytes.Value)
+                                    }
+                                </td>
+                                <td>@doc.UploadedDate.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>@doc.UploadedBy</td>
+                                <td>@(doc.Description ?? "-")</td>
+                                <td>
+                                    <form asp-action="DeleteDocument" method="post" class="d-inline"
+                                          onsubmit="return confirm('Are you sure you want to delete this document?');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="documentId" value="@doc.DocumentId" />
+                                        <input type="hidden" name="credentialId" value="@cred.CredentialId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Verifications Tab -->
+    <div class="card mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-patch-check"></i> Verification History</h5>
+            <a asp-action="RecordVerification" asp-route-credentialId="@cred.CredentialId"
+               class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-plus-circle"></i> Record Verification
+            </a>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Method</th>
+                        <th>Verified By</th>
+                        <th>Outcome</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Verifications.Any())
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center">
+                                <em>No verifications recorded. Click "Record Verification" to add one.</em>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var v in Model.Verifications)
+                        {
+                            <tr>
+                                <td>@v.VerificationDate.ToString("yyyy-MM-dd")</td>
+                                <td>@FormatEnumName(v.VerificationMethod.ToString())</td>
+                                <td>@v.VerifiedBy</td>
+                                <td>
+                                    @{
+                                        var outcomeClass = v.Outcome switch
+                                        {
+                                            RE2.ComplianceCore.Models.GdpVerificationOutcome.Valid => "bg-success",
+                                            RE2.ComplianceCore.Models.GdpVerificationOutcome.Invalid => "bg-danger",
+                                            RE2.ComplianceCore.Models.GdpVerificationOutcome.NotFound => "bg-warning text-dark",
+                                            _ => "bg-secondary"
+                                        };
+                                    }
+                                    <span class="badge @outcomeClass">@v.Outcome</span>
+                                </td>
+                                <td>@(v.Notes ?? "-")</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Credentials
+        </a>
+    </div>
+</div>
+
+@functions {
+    string FormatEnumName(string enumName)
+    {
+        return string.Concat(enumName.Select((c, i) =>
+            i > 0 && char.IsUpper(c) ? " " + c : c.ToString()));
+    }
+
+    string FormatFileSize(long bytes)
+    {
+        if (bytes >= 1_048_576)
+            return $"{bytes / 1_048_576.0:F1} MB";
+        if (bytes >= 1024)
+            return $"{bytes / 1024.0:F0} KB";
+        return $"{bytes} B";
+    }
+}

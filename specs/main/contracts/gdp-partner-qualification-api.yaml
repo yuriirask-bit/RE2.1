@@ -1,0 +1,680 @@
+openapi: 3.0.3
+info:
+  title: GDP Partner Qualification API
+  description: |
+    REST API for managing GDP service provider qualification, GDP credentials,
+    qualification reviews, and credential verifications.
+    Part of User Story 8: Supplier, Customer & Service-Provider GDP Qualification.
+  version: 1.0.0
+
+servers:
+  - url: /api/v1
+
+tags:
+  - name: GDP Providers
+    description: Service provider management (3PLs, transporters, external warehouses)
+  - name: GDP Credentials
+    description: GDP credentials for providers and customers
+  - name: Qualification Reviews
+    description: Qualification and re-qualification review records
+  - name: Credential Verifications
+    description: EudraGMDP and national database verification records
+
+paths:
+  /gdpproviders:
+    get:
+      tags: [GDP Providers]
+      summary: List all GDP service providers
+      operationId: listGdpProviders
+      parameters:
+        - name: serviceType
+          in: query
+          schema:
+            type: string
+            enum: [ThirdPartyLogistics, Transporter, ExternalWarehouse]
+        - name: qualificationStatus
+          in: query
+          schema:
+            type: string
+            enum: [Approved, ConditionallyApproved, Rejected, UnderReview]
+        - name: activeOnly
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: List of service providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GdpServiceProviderResponse'
+    post:
+      tags: [GDP Providers]
+      summary: Create a new GDP service provider
+      operationId: createGdpProvider
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGdpProviderRequest'
+      responses:
+        '201':
+          description: Provider created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GdpServiceProviderResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /gdpproviders/{providerId}:
+    parameters:
+      - $ref: '#/components/parameters/ProviderId'
+    get:
+      tags: [GDP Providers]
+      summary: Get service provider details
+      operationId: getGdpProvider
+      responses:
+        '200':
+          description: Provider details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GdpServiceProviderResponse'
+        '404':
+          description: Provider not found
+    put:
+      tags: [GDP Providers]
+      summary: Update service provider
+      operationId: updateGdpProvider
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGdpProviderRequest'
+      responses:
+        '200':
+          description: Provider updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GdpServiceProviderResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Provider not found
+        '409':
+          description: Conflict (optimistic concurrency)
+    delete:
+      tags: [GDP Providers]
+      summary: Delete service provider
+      operationId: deleteGdpProvider
+      responses:
+        '204':
+          description: Provider deleted
+        '404':
+          description: Provider not found
+
+  /gdpproviders/{providerId}/credentials:
+    parameters:
+      - $ref: '#/components/parameters/ProviderId'
+    get:
+      tags: [GDP Credentials]
+      summary: List credentials for a provider
+      operationId: listProviderCredentials
+      responses:
+        '200':
+          description: List of credentials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GdpCredentialResponse'
+        '404':
+          description: Provider not found
+    post:
+      tags: [GDP Credentials]
+      summary: Add GDP credential to provider
+      operationId: createProviderCredential
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGdpCredentialRequest'
+      responses:
+        '201':
+          description: Credential created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GdpCredentialResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Provider not found
+
+  /gdpproviders/{providerId}/credentials/{credentialId}:
+    parameters:
+      - $ref: '#/components/parameters/ProviderId'
+      - $ref: '#/components/parameters/CredentialId'
+    get:
+      tags: [GDP Credentials]
+      summary: Get credential details
+      operationId: getProviderCredential
+      responses:
+        '200':
+          description: Credential details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GdpCredentialResponse'
+        '404':
+          description: Credential or provider not found
+    put:
+      tags: [GDP Credentials]
+      summary: Update credential
+      operationId: updateProviderCredential
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGdpCredentialRequest'
+      responses:
+        '200':
+          description: Credential updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GdpCredentialResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Credential or provider not found
+        '409':
+          description: Conflict (optimistic concurrency)
+    delete:
+      tags: [GDP Credentials]
+      summary: Remove credential
+      operationId: deleteProviderCredential
+      responses:
+        '204':
+          description: Credential removed
+        '404':
+          description: Credential or provider not found
+
+  /gdpproviders/{providerId}/reviews:
+    parameters:
+      - $ref: '#/components/parameters/ProviderId'
+    get:
+      tags: [Qualification Reviews]
+      summary: List qualification reviews for a provider
+      operationId: listProviderReviews
+      responses:
+        '200':
+          description: List of reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QualificationReviewResponse'
+        '404':
+          description: Provider not found
+    post:
+      tags: [Qualification Reviews]
+      summary: Record a qualification review
+      description: |
+        Records a new qualification review. The review outcome automatically updates
+        the provider's QualificationStatus. If NextReviewDate is provided, it also
+        updates the provider's NextReviewDate.
+      operationId: createProviderReview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateQualificationReviewRequest'
+      responses:
+        '201':
+          description: Review recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QualificationReviewResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Provider not found
+
+  /gdpproviders/{providerId}/credentials/{credentialId}/verifications:
+    parameters:
+      - $ref: '#/components/parameters/ProviderId'
+      - $ref: '#/components/parameters/CredentialId'
+    get:
+      tags: [Credential Verifications]
+      summary: List verifications for a credential
+      operationId: listCredentialVerifications
+      responses:
+        '200':
+          description: List of verifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GdpCredentialVerificationResponse'
+        '404':
+          description: Credential or provider not found
+    post:
+      tags: [Credential Verifications]
+      summary: Record a credential verification
+      description: |
+        Records a verification of a GDP credential via EudraGMDP, national database,
+        or other method. Updates the credential's LastVerificationDate.
+      operationId: createCredentialVerification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGdpCredentialVerificationRequest'
+      responses:
+        '201':
+          description: Verification recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GdpCredentialVerificationResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Credential or provider not found
+
+  /customers/{customerAccount}/gdp-credentials:
+    parameters:
+      - name: customerAccount
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: dataAreaId
+        in: query
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [GDP Credentials]
+      summary: List GDP credentials for a customer
+      operationId: listCustomerGdpCredentials
+      responses:
+        '200':
+          description: List of customer GDP credentials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GdpCredentialResponse'
+        '404':
+          description: Customer not found
+    post:
+      tags: [GDP Credentials]
+      summary: Add GDP credential to customer
+      operationId: createCustomerGdpCredential
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGdpCredentialRequest'
+      responses:
+        '201':
+          description: Credential created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GdpCredentialResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Customer not found
+
+components:
+  parameters:
+    ProviderId:
+      name: providerId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CredentialId:
+      name: credentialId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    # --- Service Provider ---
+    CreateGdpProviderRequest:
+      type: object
+      required: [providerName, serviceType, temperatureControlledCapability, reviewFrequencyMonths]
+      properties:
+        providerName:
+          type: string
+          minLength: 1
+        serviceType:
+          type: string
+          enum: [ThirdPartyLogistics, Transporter, ExternalWarehouse]
+        temperatureControlledCapability:
+          type: boolean
+        approvedRoutes:
+          type: string
+          nullable: true
+        reviewFrequencyMonths:
+          type: integer
+          minimum: 1
+          description: How often re-qualification needed (e.g., 24 or 36 months)
+
+    UpdateGdpProviderRequest:
+      type: object
+      required: [providerName, serviceType, temperatureControlledCapability, reviewFrequencyMonths, isActive]
+      properties:
+        providerName:
+          type: string
+          minLength: 1
+        serviceType:
+          type: string
+          enum: [ThirdPartyLogistics, Transporter, ExternalWarehouse]
+        temperatureControlledCapability:
+          type: boolean
+        approvedRoutes:
+          type: string
+          nullable: true
+        reviewFrequencyMonths:
+          type: integer
+          minimum: 1
+        isActive:
+          type: boolean
+
+    GdpServiceProviderResponse:
+      type: object
+      properties:
+        providerId:
+          type: string
+          format: uuid
+        providerName:
+          type: string
+        serviceType:
+          type: string
+          enum: [ThirdPartyLogistics, Transporter, ExternalWarehouse]
+        temperatureControlledCapability:
+          type: boolean
+        approvedRoutes:
+          type: string
+          nullable: true
+        qualificationStatus:
+          type: string
+          enum: [Approved, ConditionallyApproved, Rejected, UnderReview]
+        reviewFrequencyMonths:
+          type: integer
+        lastReviewDate:
+          type: string
+          format: date
+          nullable: true
+        nextReviewDate:
+          type: string
+          format: date
+          nullable: true
+        isActive:
+          type: boolean
+        createdDate:
+          type: string
+          format: date-time
+        modifiedDate:
+          type: string
+          format: date-time
+
+    # --- GDP Credential ---
+    CreateGdpCredentialRequest:
+      type: object
+      properties:
+        wdaNumber:
+          type: string
+          nullable: true
+        gdpCertificateNumber:
+          type: string
+          nullable: true
+        eudraGmdpEntryUrl:
+          type: string
+          format: uri
+          nullable: true
+        validityStartDate:
+          type: string
+          format: date
+          nullable: true
+        validityEndDate:
+          type: string
+          format: date
+          nullable: true
+
+    UpdateGdpCredentialRequest:
+      type: object
+      properties:
+        wdaNumber:
+          type: string
+          nullable: true
+        gdpCertificateNumber:
+          type: string
+          nullable: true
+        eudraGmdpEntryUrl:
+          type: string
+          format: uri
+          nullable: true
+        validityStartDate:
+          type: string
+          format: date
+          nullable: true
+        validityEndDate:
+          type: string
+          format: date
+          nullable: true
+        nextReviewDate:
+          type: string
+          format: date
+          nullable: true
+
+    GdpCredentialResponse:
+      type: object
+      properties:
+        credentialId:
+          type: string
+          format: uuid
+        entityType:
+          type: string
+          enum: [Supplier, ServiceProvider]
+        entityId:
+          type: string
+          format: uuid
+        wdaNumber:
+          type: string
+          nullable: true
+        gdpCertificateNumber:
+          type: string
+          nullable: true
+        eudraGmdpEntryUrl:
+          type: string
+          nullable: true
+        validityStartDate:
+          type: string
+          format: date
+          nullable: true
+        validityEndDate:
+          type: string
+          format: date
+          nullable: true
+        qualificationStatus:
+          type: string
+          enum: [Approved, ConditionallyApproved, Rejected, UnderReview]
+        lastVerificationDate:
+          type: string
+          format: date
+          nullable: true
+        nextReviewDate:
+          type: string
+          format: date
+          nullable: true
+        createdDate:
+          type: string
+          format: date-time
+        modifiedDate:
+          type: string
+          format: date-time
+
+    # --- Qualification Review ---
+    CreateQualificationReviewRequest:
+      type: object
+      required: [reviewDate, reviewMethod, reviewOutcome, reviewerName]
+      properties:
+        reviewDate:
+          type: string
+          format: date
+        reviewMethod:
+          type: string
+          enum: [OnSiteAudit, Questionnaire, DocumentReview]
+        reviewOutcome:
+          type: string
+          enum: [Approved, ConditionallyApproved, Rejected]
+        reviewerName:
+          type: string
+          minLength: 1
+        notes:
+          type: string
+          nullable: true
+        nextReviewDate:
+          type: string
+          format: date
+          nullable: true
+
+    QualificationReviewResponse:
+      type: object
+      properties:
+        reviewId:
+          type: string
+          format: uuid
+        entityType:
+          type: string
+          enum: [Customer, ServiceProvider]
+        entityId:
+          type: string
+          format: uuid
+        reviewDate:
+          type: string
+          format: date
+        reviewMethod:
+          type: string
+          enum: [OnSiteAudit, Questionnaire, DocumentReview]
+        reviewOutcome:
+          type: string
+          enum: [Approved, ConditionallyApproved, Rejected]
+        reviewerName:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        nextReviewDate:
+          type: string
+          format: date
+          nullable: true
+
+    # --- Credential Verification ---
+    CreateGdpCredentialVerificationRequest:
+      type: object
+      required: [verificationDate, verificationMethod, verifiedBy, outcome]
+      properties:
+        verificationDate:
+          type: string
+          format: date
+        verificationMethod:
+          type: string
+          enum: [EudraGMDP, NationalDatabase, Other]
+        verifiedBy:
+          type: string
+          minLength: 1
+        outcome:
+          type: string
+          enum: [Valid, Invalid, NotFound]
+        notes:
+          type: string
+          nullable: true
+
+    GdpCredentialVerificationResponse:
+      type: object
+      properties:
+        verificationId:
+          type: string
+          format: uuid
+        credentialId:
+          type: string
+          format: uuid
+        verificationDate:
+          type: string
+          format: date
+        verificationMethod:
+          type: string
+          enum: [EudraGMDP, NationalDatabase, Other]
+        verifiedBy:
+          type: string
+        outcome:
+          type: string
+          enum: [Valid, Invalid, NotFound]
+        notes:
+          type: string
+          nullable: true
+
+    # --- Error ---
+    ErrorResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: string

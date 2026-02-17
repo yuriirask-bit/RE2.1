@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Customer Details";
     var complianceStatus = ViewBag.ComplianceStatus as CustomerComplianceStatus;
+    var gdpCredentials = ViewBag.GdpCredentials as List<RE2.ComplianceCore.Models.GdpCredential> ?? new List<RE2.ComplianceCore.Models.GdpCredential>();
 }
 
 <div class="container">
@@ -214,6 +215,82 @@
         </div>
     </div>
 </div>
+
+    @* T209: GDP Credentials Section *@
+    @if (Model.GdpQualificationStatus != RE2.ComplianceCore.Models.GdpQualificationStatus.NotRequired)
+    {
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-award"></i> GDP Credentials
+                    <span class="badge bg-secondary float-end">@gdpCredentials.Count credential(s)</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Certificate / WDA Number</th>
+                            <th>Valid From</th>
+                            <th>Valid To</th>
+                            <th>Status</th>
+                            <th>Last Verified</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!gdpCredentials.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center">
+                                    <em>No GDP credentials recorded for this customer.</em>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var cred in gdpCredentials)
+                            {
+                                <tr>
+                                    <td><code>@(cred.GdpCertificateNumber ?? cred.WdaNumber ?? "-")</code></td>
+                                    <td>@(cred.ValidityStartDate?.ToString("yyyy-MM-dd") ?? "-")</td>
+                                    <td>
+                                        @if (cred.ValidityEndDate.HasValue)
+                                        {
+                                            var isExpired = !cred.IsValid();
+                                            <span class="@(isExpired ? "text-danger fw-bold" : "")">
+                                                @cred.ValidityEndDate.Value.ToString("yyyy-MM-dd")
+                                                @if (isExpired)
+                                                {
+                                                    <span class="badge bg-danger ms-1">EXPIRED</span>
+                                                }
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">No expiry</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @{
+                                            var credStatusClass = cred.QualificationStatus switch
+                                            {
+                                                RE2.ComplianceCore.Models.GdpQualificationStatus.Approved => "bg-success",
+                                                RE2.ComplianceCore.Models.GdpQualificationStatus.ConditionallyApproved => "bg-info",
+                                                RE2.ComplianceCore.Models.GdpQualificationStatus.Rejected => "bg-danger",
+                                                _ => "bg-secondary"
+                                            };
+                                        }
+                                        <span class="badge @credStatusClass">@FormatEnumName(cred.QualificationStatus.ToString())</span>
+                                    </td>
+                                    <td>@(cred.LastVerificationDate?.ToString("yyyy-MM-dd") ?? "Never")</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
 
 @* Suspend Modal *@
 <div class="modal fade" id="suspendModal" tabindex="-1" aria-labelledby="suspendModalLabel" aria-hidden="true">
