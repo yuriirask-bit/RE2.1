@@ -306,6 +306,14 @@ builder.Services.AddSwaggerGen(options =>
     {
         options.IncludeXmlComments(xmlPath);
     }
+
+    // Also include ComplianceCore XML for model descriptions
+    var coreXmlFile = "RE2.ComplianceCore.xml";
+    var coreXmlPath = Path.Combine(AppContext.BaseDirectory, coreXmlFile);
+    if (File.Exists(coreXmlPath))
+    {
+        options.IncludeXmlComments(coreXmlPath);
+    }
 });
 
 var app = builder.Build();
