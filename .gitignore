@@ -116,6 +116,8 @@ Desktop.ini
 
 # Azure Bicep
 .bicep/
+*.main.json
+infra/bicep/main.json
 
 # Documentation builds
 docs/_build/
@@ -133,3 +135,6 @@ Backup/
 
 # Consolidated into specs/001-licence-management/
 specs/main/
+
+# Deployment logs (local only)
+dev-deployment-log.md
