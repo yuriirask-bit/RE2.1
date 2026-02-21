@@ -11,7 +11,7 @@ trigger: none
 resources:
   pipelines:
   - pipeline: build
-    source: 'RE2-Build'
+    source: 'RE2.1-Build'
     trigger:
       branches:
         include:
