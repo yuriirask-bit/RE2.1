@@ -62,4 +62,3 @@ resource logicApp 'Microsoft.Logic/workflows@2019-05-01' = {
 output logicAppName string = logicApp.name
 output logicAppId string = logicApp.id
 output managedIdentityPrincipalId string = managedIdentity.properties.principalId
-output logicAppCallbackUrl string = logicApp.listCallbackUrl().value
