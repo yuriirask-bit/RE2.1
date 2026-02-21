@@ -50,6 +50,7 @@ output hostName string = redisCache.properties.hostName
 output sslPort int = redisCache.properties.sslPort
 
 @description('Redis cache connection string (primary key)')
+#disable-next-line outputs-should-not-contain-secrets
 output connectionString string = '${redisCache.properties.hostName}:${redisCache.properties.sslPort},password=${redisCache.listKeys().primaryKey},ssl=True,abortConnect=False'
 
 @description('Redis cache resource ID')

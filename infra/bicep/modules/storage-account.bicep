@@ -1,8 +1,5 @@
 // Storage Account module: Functions runtime storage + Blob document storage
 
-@description('Name prefix for all resources')
-param namePrefix string
-
 @description('Environment name (dev, uat, prod)')
 param environment string
 
@@ -17,7 +14,7 @@ param skuName string = 'Standard_LRS'
 param tags object
 
 // Storage account names must be 3-24 chars, lowercase alphanumeric only
-var storageAccountName = 'st${namePrefix}${environment}'
+var storageAccountName = 'stre2${environment}'
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   name: storageAccountName
@@ -61,4 +58,5 @@ output storageAccountId string = storageAccount.id
 output blobEndpoint string = storageAccount.properties.primaryEndpoints.blob
 
 @description('Storage account primary connection string for Functions runtime')
+#disable-next-line outputs-should-not-contain-secrets
 output connectionString string = 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${az.environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'

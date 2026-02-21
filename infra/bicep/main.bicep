@@ -108,7 +108,6 @@ module monitoring 'modules/monitoring.bicep' = {
 module storage 'modules/storage-account.bicep' = {
   name: 'storage-${environment}'
   params: {
-    namePrefix: namePrefix
     environment: environment
     location: location
     skuName: storageSkuName
@@ -169,7 +168,6 @@ module apiApp 'modules/app-service.bicep' = {
     location: location
     appServicePlanId: appServicePlan.outputs.id
     appInsightsConnectionString: monitoring.outputs.appInsightsConnectionString
-    keyVaultName: keyVault.outputs.name
     redisKeyVaultReference: keyVault.outputs.redisKeyVaultReference
     dataverseUrl: dataverseUrl
     d365foODataEndpoint: d365foODataEndpoint
@@ -198,7 +196,6 @@ module webApp 'modules/app-service.bicep' = {
     location: location
     appServicePlanId: appServicePlan.outputs.id
     appInsightsConnectionString: monitoring.outputs.appInsightsConnectionString
-    keyVaultName: keyVault.outputs.name
     redisKeyVaultReference: keyVault.outputs.redisKeyVaultReference
     dataverseUrl: dataverseUrl
     d365foODataEndpoint: d365foODataEndpoint

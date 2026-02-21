@@ -18,9 +18,6 @@ param appServicePlanId string
 @description('Application Insights connection string')
 param appInsightsConnectionString string
 
-@description('Key Vault name for secret references')
-param keyVaultName string
-
 @description('Redis connection string Key Vault reference')
 param redisKeyVaultReference string
 
@@ -64,6 +61,83 @@ param enableStagingSlot bool = false
 param tags object
 
 var appName = 'app-${namePrefix}-${component}-${environment}'
+var azureAdInstance = '${az.environment().authentication.loginEndpoint}${azureAdTenantId}'
+
+var commonAppSettings = [
+  {
+    name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+    value: appInsightsConnectionString
+  }
+  {
+    name: 'Dataverse__Url'
+    value: dataverseUrl
+  }
+  {
+    name: 'D365FO__ODataEndpoint'
+    value: d365foODataEndpoint
+  }
+  {
+    name: 'D365FO__Resource'
+    value: d365foResource
+  }
+  {
+    name: 'BlobStorage__AccountUrl'
+    value: storageBlobEndpoint
+  }
+  {
+    name: 'Caching__Enabled'
+    value: 'true'
+  }
+  {
+    name: 'Caching__RedisConnectionString'
+    value: redisKeyVaultReference
+  }
+  {
+    name: 'Caching__KeyPrefix'
+    value: 're2:'
+  }
+  {
+    name: 'AzureAd__Instance'
+    value: azureAdInstance
+  }
+  {
+    name: 'AzureAd__TenantId'
+    value: azureAdTenantId
+  }
+  {
+    name: 'AzureAd__ClientId'
+    value: azureAdClientId
+  }
+]
+
+var apiAppSettings = [
+  {
+    name: 'AzureAd__Audience'
+    value: 'api://${azureAdClientId}'
+  }
+  {
+    name: 'AzureAdB2C__Instance'
+    value: azureAdB2CInstance
+  }
+  {
+    name: 'AzureAdB2C__Domain'
+    value: azureAdB2CDomain
+  }
+  {
+    name: 'AzureAdB2C__TenantId'
+    value: azureAdB2CTenantId
+  }
+  {
+    name: 'AzureAdB2C__ClientId'
+    value: azureAdB2CClientId
+  }
+  {
+    name: 'AzureAdB2C__SignUpSignInPolicyId'
+    value: azureAdB2CSignUpSignInPolicyId
+  }
+]
+
+var appSettings = component == 'api' ? concat(commonAppSettings, apiAppSettings) : commonAppSettings
 
 resource appService 'Microsoft.Web/sites@2023-12-01' = {
   name: appName
@@ -81,26 +155,7 @@ resource appService 'Microsoft.Web/sites@2023-12-01' = {
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       healthCheckPath: '/health'
-      appSettings: concat([
-        { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'; value: appInsightsConnectionString }
-        { name: 'Dataverse__Url'; value: dataverseUrl }
-        { name: 'D365FO__ODataEndpoint'; value: d365foODataEndpoint }
-        { name: 'D365FO__Resource'; value: d365foResource }
-        { name: 'BlobStorage__AccountUrl'; value: storageBlobEndpoint }
-        { name: 'Caching__Enabled'; value: 'true' }
-        { name: 'Caching__RedisConnectionString'; value: redisKeyVaultReference }
-        { name: 'Caching__KeyPrefix'; value: 're2:' }
-        { name: 'AzureAd__Instance'; value: 'https://login.microsoftonline.com/' }
-        { name: 'AzureAd__TenantId'; value: azureAdTenantId }
-        { name: 'AzureAd__ClientId'; value: azureAdClientId }
-      ], component == 'api' ? [
-        { name: 'AzureAd__Audience'; value: 'api://${azureAdClientId}' }
-        { name: 'AzureAdB2C__Instance'; value: azureAdB2CInstance }
-        { name: 'AzureAdB2C__Domain'; value: azureAdB2CDomain }
-        { name: 'AzureAdB2C__TenantId'; value: azureAdB2CTenantId }
-        { name: 'AzureAdB2C__ClientId'; value: azureAdB2CClientId }
-        { name: 'AzureAdB2C__SignUpSignInPolicyId'; value: azureAdB2CSignUpSignInPolicyId }
-      ] : [])
+      appSettings: appSettings
     }
   }
 }
@@ -117,7 +172,14 @@ resource stagingSlot 'Microsoft.Web/sites/slots@2023-12-01' = if (enableStagingS
   properties: {
     serverFarmId: appServicePlanId
     httpsOnly: true
-    siteConfig: appService.properties.siteConfig
+    siteConfig: {
+      netFrameworkVersion: 'v8.0'
+      alwaysOn: true
+      ftpsState: 'Disabled'
+      minTlsVersion: '1.2'
+      healthCheckPath: '/health'
+      appSettings: appSettings
+    }
   }
 }
 
@@ -134,4 +196,4 @@ output id string = appService.id
 output principalId string = appService.identity.principalId
 
 @description('Staging slot principal ID (empty string if slot not enabled)')
-output stagingPrincipalId string = enableStagingSlot ? stagingSlot.identity.principalId : ''
+output stagingPrincipalId string = enableStagingSlot ? stagingSlot!.identity.principalId : ''
