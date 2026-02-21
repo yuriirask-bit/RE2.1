@@ -48,7 +48,7 @@ stages:
       inputs:
         command: 'test'
         projects: 'tests/**/*.csproj'
-        arguments: '--configuration $(buildConfiguration) --no-restore --logger trx --results-directory $(Agent.TempDirectory)/TestResults -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura'
+        arguments: '--configuration $(buildConfiguration) --no-restore --logger trx --results-directory $(Agent.TempDirectory)/TestResults'
         publishTestResults: false
 
     - task: PublishTestResults@2
