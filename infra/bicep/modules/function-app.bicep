@@ -69,16 +69,46 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       appSettings: [
-        { name: 'AzureWebJobsStorage'; value: storageConnectionString }
-        { name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'; value: storageConnectionString }
-        { name: 'WEBSITE_CONTENTSHARE'; value: functionAppName }
-        { name: 'FUNCTIONS_EXTENSION_VERSION'; value: '~4' }
-        { name: 'FUNCTIONS_WORKER_RUNTIME'; value: 'dotnet-isolated' }
-        { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'; value: appInsightsConnectionString }
-        { name: 'Dataverse__Url'; value: dataverseUrl }
-        { name: 'D365FO__ODataEndpoint'; value: d365foODataEndpoint }
-        { name: 'D365FO__Resource'; value: d365foResource }
-        { name: 'BlobStorage__AccountUrl'; value: storageBlobEndpoint }
+        {
+          name: 'AzureWebJobsStorage'
+          value: storageConnectionString
+        }
+        {
+          name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
+          value: storageConnectionString
+        }
+        {
+          name: 'WEBSITE_CONTENTSHARE'
+          value: functionAppName
+        }
+        {
+          name: 'FUNCTIONS_EXTENSION_VERSION'
+          value: '~4'
+        }
+        {
+          name: 'FUNCTIONS_WORKER_RUNTIME'
+          value: 'dotnet-isolated'
+        }
+        {
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: appInsightsConnectionString
+        }
+        {
+          name: 'Dataverse__Url'
+          value: dataverseUrl
+        }
+        {
+          name: 'D365FO__ODataEndpoint'
+          value: d365foODataEndpoint
+        }
+        {
+          name: 'D365FO__Resource'
+          value: d365foResource
+        }
+        {
+          name: 'BlobStorage__AccountUrl'
+          value: storageBlobEndpoint
+        }
       ]
     }
   }
