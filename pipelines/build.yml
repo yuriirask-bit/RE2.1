@@ -48,7 +48,8 @@ stages:
       inputs:
         command: 'test'
         projects: 'tests/**/*.csproj'
-        arguments: '--configuration $(buildConfiguration) --no-build --collect:"XPlat Code Coverage" --logger trx --results-directory $(Agent.TempDirectory)/TestResults'
+        arguments: '--configuration $(buildConfiguration) --no-restore --logger trx --results-directory $(Agent.TempDirectory)/TestResults -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura'
+        publishTestResults: false
 
     - task: PublishTestResults@2
       displayName: 'Publish test results'
@@ -71,7 +72,7 @@ stages:
         command: 'publish'
         publishWebProjects: false
         projects: '$(apiProject)'
-        arguments: '--configuration $(buildConfiguration) --no-build --output $(Build.ArtifactStagingDirectory)/api'
+        arguments: '--configuration $(buildConfiguration) --no-restore --output $(Build.ArtifactStagingDirectory)/api'
         zipAfterPublish: true
 
     # Publish Web artifact
@@ -81,7 +82,7 @@ stages:
         command: 'publish'
         publishWebProjects: false
         projects: '$(webProject)'
-        arguments: '--configuration $(buildConfiguration) --no-build --output $(Build.ArtifactStagingDirectory)/web'
+        arguments: '--configuration $(buildConfiguration) --no-restore --output $(Build.ArtifactStagingDirectory)/web'
         zipAfterPublish: true
 
     # Publish Functions artifact
@@ -91,7 +92,7 @@ stages:
         command: 'publish'
         publishWebProjects: false
         projects: '$(functionsProject)'
-        arguments: '--configuration $(buildConfiguration) --no-build --output $(Build.ArtifactStagingDirectory)/functions'
+        arguments: '--configuration $(buildConfiguration) --no-restore --output $(Build.ArtifactStagingDirectory)/functions'
         zipAfterPublish: true
 
     # Copy Bicep templates as artifact
