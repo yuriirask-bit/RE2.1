@@ -67,6 +67,9 @@ else
     });
 }
 
+// Application Insights telemetry
+builder.Services.AddApplicationInsightsTelemetry();
+
 // T039: Register data services (uses in-memory for local dev, Dataverse for production)
 // Set "UseInMemoryRepositories": true in appsettings.Development.json to test locally
 builder.Services.AddComplianceDataServices(builder.Configuration);
@@ -97,6 +100,19 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
+// Health checks — liveness (/health) and readiness (/ready)
+var healthChecksBuilder = builder.Services.AddHealthChecks();
+if (!builder.Configuration.GetValue<bool>("UseInMemoryRepositories"))
+{
+    healthChecksBuilder
+        .AddCheck<RE2.ComplianceWeb.HealthChecks.DataverseHealthCheck>(
+            "dataverse", tags: new[] { "ready" })
+        .AddCheck<RE2.ComplianceWeb.HealthChecks.D365FoHealthCheck>(
+            "d365fo", tags: new[] { "ready" })
+        .AddCheck<RE2.ComplianceWeb.HealthChecks.BlobStorageHealthCheck>(
+            "blobstorage", tags: new[] { "ready" });
+}
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -121,5 +137,15 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+// Health check endpoints
+app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false // Liveness: always 200, no dependency checks
+});
+app.MapHealthChecks("/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+});
 
 app.Run();

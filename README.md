@@ -1,8 +1,8 @@
 # RE2 - Controlled Drug Licence & GDP Compliance Management System
 
-**Status**: **Implemented** - User Stories 1-12 complete, 1,205 tests passing
-**Build**: 0 errors, 0 warnings
-**Last Updated**: 2026-02-17
+**Status**: **Implemented** - User Stories 1-12 complete, 1,432 tests passing
+**Build**: 0 errors | **Infrastructure**: Bicep IaC + Azure DevOps CI/CD
+**Last Updated**: 2026-02-21
 
 ---
 
@@ -29,7 +29,8 @@ A comprehensive licence management and GDP compliance system for Dutch pharmaceu
 - CLI tool for debugging, scripting, and automation
 - Automated expiry monitoring and alerts
 - In-memory repositories for local development without external dependencies
-- TDD approach with comprehensive test coverage (1,205 tests across 6 projects)
+- Full Infrastructure as Code (Bicep) with CI/CD via Azure DevOps Pipelines
+- TDD approach with comprehensive test coverage (1,432 tests across 6 projects)
 
 ---
 
@@ -74,11 +75,13 @@ RE2/
 │   │
 │   ├── RE2.ComplianceApi/           # REST API (Azure App Service)
 │   │   ├── Controllers/V1/          # Versioned endpoints (19 controllers)
-│   │   ├── Middleware/              # Error handling, logging
+│   │   ├── HealthChecks/            # Liveness + readiness probes
+│   │   ├── Middleware/              # Error handling, logging, graceful degradation
 │   │   └── Authorization/           # Custom policies
 │   │
 │   ├── RE2.ComplianceWeb/           # Web UI (ASP.NET MVC)
 │   │   ├── Controllers/             # MVC controllers (23 controllers)
+│   │   ├── HealthChecks/            # Liveness + readiness probes
 │   │   └── Views/                   # Razor views
 │   │
 │   ├── RE2.ComplianceCli/           # CLI tool (console application)
@@ -90,13 +93,41 @@ RE2/
 │   └── RE2.Shared/                  # Constants and utilities
 │       └── Constants/               # ErrorCodes, LicenceTypes, etc.
 │
-└── tests/
-    ├── RE2.ComplianceCore.Tests/    # Unit tests (732)
-    ├── RE2.ComplianceApi.Tests/     # Integration tests (295)
-    ├── RE2.Contract.Tests/          # Contract tests (125)
-    ├── RE2.DataAccess.Tests/        # Data access tests (32)
-    ├── RE2.ComplianceCli.Tests/     # CLI tests (14)
-    └── RE2.ComplianceFunctions.Tests/ # Functions tests (7)
+├── infra/bicep/                     # Infrastructure as Code
+│   ├── main.bicep                   # Orchestrator (wires all modules)
+│   ├── dev.bicepparam               # Dev environment parameters
+│   ├── uat.bicepparam               # UAT environment parameters
+│   ├── prod.bicepparam              # Prod environment parameters
+│   └── modules/                     # Reusable Bicep modules
+│       ├── monitoring.bicep         # Log Analytics + Application Insights
+│       ├── storage-account.bicep    # Blob Storage (documents + Functions runtime)
+│       ├── redis-cache.bicep        # Azure Cache for Redis
+│       ├── key-vault.bicep          # Key Vault + secrets
+│       ├── app-service-plan.bicep   # Shared plan for API + Web
+│       ├── app-service.bicep        # Reusable App Service (API / Web)
+│       ├── function-app.bicep       # Azure Functions + dedicated plan
+│       ├── logic-app.bicep          # Approval workflow Logic App
+│       └── role-assignments.bicep   # RBAC (Managed Identity → Storage, Key Vault)
+│
+├── pipelines/
+│   └── azure-pipelines.yml          # CI/CD: Build → Dev → UAT → Prod
+│
+├── tests/
+│   ├── RE2.ComplianceCore.Tests/    # Unit tests (890)
+│   ├── RE2.ComplianceApi.Tests/     # Integration tests (364)
+│   ├── RE2.Contract.Tests/          # Contract tests (125)
+│   ├── RE2.DataAccess.Tests/        # Data access tests (32)
+│   ├── RE2.ComplianceCli.Tests/     # CLI tests (14)
+│   └── RE2.ComplianceFunctions.Tests/ # Functions tests (7)
+│
+├── docs/                            # Documentation
+│   ├── api/                         # API reference
+│   ├── user-guide/                  # Web UI walkthrough
+│   ├── integration/                 # ERP/WMS integration guide
+│   └── deployment/                  # Deployment & operations guide
+│
+└── specs/                           # Feature specifications
+    └── 001-licence-management/      # US1-US12 specs, data model, contracts
 ```
 
 ---
@@ -484,6 +515,57 @@ All commands output structured JSON to stdout and support `--verbose` for debug 
 
 ---
 
+## Infrastructure & Deployment
+
+### Azure Resources (managed by Bicep)
+
+All infrastructure is defined in `infra/bicep/` and deployed via the Azure DevOps pipeline.
+
+| Resource | Naming Pattern | Purpose |
+|----------|---------------|---------|
+| Log Analytics + App Insights | `log-re2-{env}`, `appi-re2-{env}` | Monitoring, diagnostics, alerting |
+| Storage Account | `stre2{env}` | Blob Storage (compliance documents) + Functions runtime |
+| Azure Cache for Redis | `redis-re2-{env}` | Distributed caching (licence/customer lookups) |
+| Key Vault | `kv-re2-{env}` | Secrets management (Redis connection string) |
+| App Service Plan | `plan-re2-{env}` | Shared plan for API + Web |
+| App Service (API) | `app-re2-api-{env}` | REST API hosting |
+| App Service (Web) | `app-re2-web-{env}` | MVC Web UI hosting |
+| Functions App | `func-re2-compliance-{env}` | Background jobs (timer-triggered) |
+| Logic App | `re2-approval-workflow-{env}` | Approval workflow orchestration |
+
+### Environment Sizing
+
+| Resource | Dev | UAT | Prod |
+|----------|-----|-----|------|
+| App Service Plan | B1 | S1 | P1v3 |
+| Functions Plan | Y1 (Consumption) | Y1 | EP1 (Elastic Premium) |
+| Redis | Basic C0 | Standard C1 | Premium P1 |
+| Storage | LRS | GRS | GRS |
+| Log retention | 30 days | 60 days | 90 days |
+| Deployment slots | No | Yes (staging) | Yes (staging) |
+
+### CI/CD Pipeline (`pipelines/azure-pipelines.yml`)
+
+```
+[Build & Test] → [Deploy Dev (auto)] → [Deploy UAT (manual gate)] → [Deploy Prod (manual gate)]
+```
+
+- **Build**: Restore → Build → Test (1,432 tests) → Publish artifacts (API, Web, Functions, Bicep)
+- **Dev**: Auto-deploy on main merge, direct zip deploy, smoke test `/health`
+- **UAT**: Manual approval, deploy to staging slot, smoke test, slot swap (zero-downtime)
+- **Prod**: 2-approver gate, same slot swap pattern as UAT
+
+### Security Model
+
+- All App Services and Functions use **system-assigned Managed Identity**
+- Managed Identities are granted **Storage Blob Data Contributor** and **Key Vault Secrets User** via RBAC
+- Redis connection string stored in Key Vault; referenced via `@Microsoft.KeyVault(...)` in App Settings
+- Auth to Dataverse/D365 F&O uses `DefaultAzureCredential` (no secrets needed)
+
+See `docs/deployment/README.md` for the full deployment guide.
+
+---
+
 ## Quick Start
 
 ### Prerequisites
@@ -507,9 +589,9 @@ dotnet build
 dotnet test
 ```
 
-1,205 tests across 6 test projects:
-- `RE2.ComplianceCore.Tests` - Domain model and service unit tests (732)
-- `RE2.ComplianceApi.Tests` - API controller integration tests (295)
+1,432 tests across 6 test projects:
+- `RE2.ComplianceCore.Tests` - Domain model and service unit tests (890)
+- `RE2.ComplianceApi.Tests` - API controller integration tests (364)
 - `RE2.Contract.Tests` - API contract tests (125)
 - `RE2.DataAccess.Tests` - Repository and data access tests (32)
 - `RE2.ComplianceCli.Tests` - CLI command tests (14)
@@ -605,13 +687,14 @@ The same in-memory mode is used by the CLI tool and test projects.
 - **API Reference**: `docs/api/README.md` -- endpoint tables, error codes, authentication
 - **User Guide**: `docs/user-guide/README.md` -- compliance web UI walkthrough
 - **Integration Guide**: `docs/integration/README.md` -- ERP/WMS integration patterns, webhooks, examples
+- **Deployment Guide**: `docs/deployment/README.md` -- Azure deployment, CI/CD, operations
 - **Specification**: `specs/001-licence-management/spec.md`
 - **Technical Plan**: `specs/001-licence-management/plan.md`
 - **Data Model**: `specs/001-licence-management/data-model.md`
 - **API Contracts**: `specs/001-licence-management/contracts/`
-- **Quickstart Guide**: `specs/001-licence-management/quickstart.md`
+- **Developer Quickstart**: `specs/001-licence-management/quickstart.md`
 - **Research**: `specs/001-licence-management/research.md`
-- **Tasks**: `specs/001-licence-management/tasks.md` and `specs/main/tasks.md`
+- **Tasks**: `specs/001-licence-management/tasks.md`
 
 ---
 
@@ -636,4 +719,4 @@ The same in-memory mode is used by the CLI tool and test projects.
 
 **Status**: Implemented (User Stories 1-12)
 **Version**: MVP Complete
-**Last Updated**: 2026-02-17
+**Last Updated**: 2026-02-21

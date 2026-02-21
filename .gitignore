@@ -120,6 +120,14 @@ Desktop.ini
 docs/_build/
 docs/.doctrees/
 
-# SpecKit temporary files
+# SpecKit / Claude tooling
+.claude/
+.specify/
 tmpclaude-*
 nul
+
+# Backup files
+Backup/
+
+# Consolidated into specs/001-licence-management/
+specs/main/

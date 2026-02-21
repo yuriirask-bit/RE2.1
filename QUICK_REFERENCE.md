@@ -1,7 +1,7 @@
 # RE2 MVP - Quick Reference Guide
 
 **Purpose**: Fast reference for common tasks and commands
-**Last Updated**: 2026-02-17
+**Last Updated**: 2026-02-21
 
 ---
 
@@ -22,7 +22,8 @@
 | **US11** | GDP Operational Checks | Implemented |
 | **US12** | GDP Documentation, Training & Change Control | Implemented |
 
-**Tests**: 1,205 passing across 6 test projects. Build: 0 errors.
+**Tests**: 1,432 passing across 6 test projects. Build: 0 errors.
+**Infrastructure**: Bicep IaC (8 modules) + Azure DevOps CI/CD pipeline.
 
 ---
 
@@ -62,6 +63,24 @@ dotnet dev-certs https --trust
 dotnet clean
 ```
 
+### Infrastructure (Bicep)
+```bash
+# Validate Bicep templates
+az bicep build --file infra/bicep/main.bicep
+
+# Preview what would be deployed (what-if)
+az deployment group what-if \
+  --resource-group rg-re2-dev \
+  --template-file infra/bicep/main.bicep \
+  --parameters infra/bicep/dev.bicepparam
+
+# Deploy to Dev manually
+az deployment group create \
+  --resource-group rg-re2-dev \
+  --template-file infra/bicep/main.bicep \
+  --parameters infra/bicep/dev.bicepparam
+```
+
 ---
 
 ## Project Structure
@@ -71,14 +90,16 @@ RE2/
 ├── src/
 │   ├── RE2.ComplianceCore/      Core business logic (35 models, 15 services, 36 interfaces)
 │   ├── RE2.DataAccess/          External API clients (Dataverse, D365 F&O, Blob Storage, 23 InMemory repos)
-│   ├── RE2.ComplianceApi/       REST API (19 controllers, Swagger)
-│   ├── RE2.ComplianceWeb/       Web UI (MVC, 23 controllers)
+│   ├── RE2.ComplianceApi/       REST API (19 controllers, Swagger, health checks)
+│   ├── RE2.ComplianceWeb/       Web UI (MVC, 23 controllers, health checks, App Insights)
 │   ├── RE2.ComplianceCli/       CLI tool (4 commands)
-│   ├── RE2.ComplianceFunctions/ Azure Functions (background jobs)
+│   ├── RE2.ComplianceFunctions/ Azure Functions (background jobs, host.json)
 │   └── RE2.Shared/              Constants & DTOs
+├── infra/bicep/                 IaC (main.bicep + 8 modules + 3 env param files)
+├── pipelines/                   Azure DevOps CI/CD (Build → Dev → UAT → Prod)
 └── tests/
-    ├── RE2.ComplianceCore.Tests/       732 tests
-    ├── RE2.ComplianceApi.Tests/        295 tests
+    ├── RE2.ComplianceCore.Tests/       890 tests
+    ├── RE2.ComplianceApi.Tests/        364 tests
     ├── RE2.Contract.Tests/             125 tests
     ├── RE2.DataAccess.Tests/            32 tests
     ├── RE2.ComplianceCli.Tests/         14 tests
@@ -379,11 +400,11 @@ All commands output JSON to stdout. Use `-v` for verbose logging to stderr.
 
 ## Testing
 
-### Test Counts (1,205 total)
+### Test Counts (1,432 total)
 | Project | Tests |
 |---------|-------|
-| RE2.ComplianceCore.Tests | 732 |
-| RE2.ComplianceApi.Tests | 295 |
+| RE2.ComplianceCore.Tests | 890 |
+| RE2.ComplianceApi.Tests | 364 |
 | RE2.Contract.Tests | 125 |
 | RE2.DataAccess.Tests | 32 |
 | RE2.ComplianceCli.Tests | 14 |
@@ -447,7 +468,10 @@ Not needed for development. All repositories have InMemory implementations that 
 
 ## Documentation
 
+- Deployment Guide: `docs/deployment/README.md`
+- API Reference: `docs/api/README.md`
+- User Guide: `docs/user-guide/README.md`
+- Integration Guide: `docs/integration/README.md`
 - Specification: `specs/001-licence-management/spec.md`
-- Technical Plan: `specs/001-licence-management/plan.md`
 - Data Model: `specs/001-licence-management/data-model.md`
 - API Contracts: `specs/001-licence-management/contracts/`
