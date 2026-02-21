@@ -123,12 +123,6 @@ stages:
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
   variables:
   - group: re2-dev-secrets
-  - name: environmentName
-    value: 'dev'
-  - name: resourceGroup
-    value: 'rg-re2-dev'
-  - name: azureSubscription
-    value: 'RE2-Dev-ServiceConnection'
   jobs:
   - deployment: DeployDevInfra
     displayName: 'Deploy infrastructure'
@@ -140,24 +134,24 @@ stages:
           - task: AzureCLI@2
             displayName: 'Create resource group'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-Dev-ServiceConnection'
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: |
                 az group create \
-                  --name $(resourceGroup) \
+                  --name rg-re2-dev \
                   --location westeurope \
                   --tags environment=dev application=re2-compliance
 
           - task: AzureCLI@2
             displayName: 'Deploy Bicep templates'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-Dev-ServiceConnection'
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: |
                 az deployment group create \
-                  --resource-group $(resourceGroup) \
+                  --resource-group rg-re2-dev \
                   --template-file $(Pipeline.Workspace)/drop/infra/main.bicep \
                   --parameters $(Pipeline.Workspace)/drop/infra/dev.bicepparam \
                   --parameters azureAdTenantId=$(AzureAdTenantId) \
@@ -175,36 +169,36 @@ stages:
           - task: AzureWebApp@1
             displayName: 'Deploy API'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-Dev-ServiceConnection'
               appType: 'webApp'
-              appName: 'app-re2-api-$(environmentName)'
+              appName: 'app-re2-api-dev'
               package: '$(Pipeline.Workspace)/drop/api/**/*.zip'
 
           - task: AzureWebApp@1
             displayName: 'Deploy Web'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-Dev-ServiceConnection'
               appType: 'webApp'
-              appName: 'app-re2-web-$(environmentName)'
+              appName: 'app-re2-web-dev'
               package: '$(Pipeline.Workspace)/drop/web/**/*.zip'
 
           - task: AzureFunctionApp@2
             displayName: 'Deploy Functions'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-Dev-ServiceConnection'
               appType: 'functionApp'
-              appName: 'func-re2-compliance-$(environmentName)'
+              appName: 'func-re2-compliance-dev'
               package: '$(Pipeline.Workspace)/drop/functions/**/*.zip'
 
           # Smoke test: verify API is responding
           - task: AzureCLI@2
             displayName: 'Smoke test — API health'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-Dev-ServiceConnection'
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: |
-                API_URL="https://app-re2-api-$(environmentName).azurewebsites.net/health"
+                API_URL="https://app-re2-api-dev.azurewebsites.net/health"
                 echo "Testing $API_URL"
                 for i in {1..6}; do
                   STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL" --max-time 10)
@@ -221,11 +215,11 @@ stages:
           - task: AzureCLI@2
             displayName: 'Smoke test — Web health'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-Dev-ServiceConnection'
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: |
-                WEB_URL="https://app-re2-web-$(environmentName).azurewebsites.net/health"
+                WEB_URL="https://app-re2-web-dev.azurewebsites.net/health"
                 echo "Testing $WEB_URL"
                 for i in {1..6}; do
                   STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$WEB_URL" --max-time 10)
@@ -248,12 +242,6 @@ stages:
   condition: succeeded()
   variables:
   - group: re2-uat-secrets
-  - name: environmentName
-    value: 'uat'
-  - name: resourceGroup
-    value: 'rg-re2-uat'
-  - name: azureSubscription
-    value: 'RE2-UAT-ServiceConnection'
   jobs:
   - deployment: DeployUATInfra
     displayName: 'Deploy infrastructure'
@@ -265,24 +253,24 @@ stages:
           - task: AzureCLI@2
             displayName: 'Create resource group'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-UAT-ServiceConnection'
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: |
                 az group create \
-                  --name $(resourceGroup) \
+                  --name rg-re2-uat \
                   --location westeurope \
                   --tags environment=uat application=re2-compliance
 
           - task: AzureCLI@2
             displayName: 'Deploy Bicep templates'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-UAT-ServiceConnection'
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: |
                 az deployment group create \
-                  --resource-group $(resourceGroup) \
+                  --resource-group rg-re2-uat \
                   --template-file $(Pipeline.Workspace)/drop/infra/main.bicep \
                   --parameters $(Pipeline.Workspace)/drop/infra/uat.bicepparam \
                   --parameters azureAdTenantId=$(AzureAdTenantId) \
@@ -301,9 +289,9 @@ stages:
           - task: AzureWebApp@1
             displayName: 'Deploy API to staging slot'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-UAT-ServiceConnection'
               appType: 'webApp'
-              appName: 'app-re2-api-$(environmentName)'
+              appName: 'app-re2-api-uat'
               deployToSlotOrASE: true
               slotName: 'staging'
               package: '$(Pipeline.Workspace)/drop/api/**/*.zip'
@@ -312,9 +300,9 @@ stages:
           - task: AzureWebApp@1
             displayName: 'Deploy Web to staging slot'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-UAT-ServiceConnection'
               appType: 'webApp'
-              appName: 'app-re2-web-$(environmentName)'
+              appName: 'app-re2-web-uat'
               deployToSlotOrASE: true
               slotName: 'staging'
               package: '$(Pipeline.Workspace)/drop/web/**/*.zip'
@@ -323,20 +311,20 @@ stages:
           - task: AzureFunctionApp@2
             displayName: 'Deploy Functions'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-UAT-ServiceConnection'
               appType: 'functionApp'
-              appName: 'func-re2-compliance-$(environmentName)'
+              appName: 'func-re2-compliance-uat'
               package: '$(Pipeline.Workspace)/drop/functions/**/*.zip'
 
           # Smoke test staging slots
           - task: AzureCLI@2
             displayName: 'Smoke test — API staging slot'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-UAT-ServiceConnection'
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: |
-                API_URL="https://app-re2-api-$(environmentName)-staging.azurewebsites.net/health"
+                API_URL="https://app-re2-api-uat-staging.azurewebsites.net/health"
                 echo "Testing $API_URL"
                 for i in {1..6}; do
                   STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL" --max-time 10)
@@ -353,11 +341,11 @@ stages:
           - task: AzureCLI@2
             displayName: 'Smoke test — Web staging slot'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-UAT-ServiceConnection'
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: |
-                WEB_URL="https://app-re2-web-$(environmentName)-staging.azurewebsites.net/health"
+                WEB_URL="https://app-re2-web-uat-staging.azurewebsites.net/health"
                 echo "Testing $WEB_URL"
                 for i in {1..6}; do
                   STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$WEB_URL" --max-time 10)
@@ -375,19 +363,19 @@ stages:
           - task: AzureAppServiceManage@0
             displayName: 'Swap API: staging → production'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-UAT-ServiceConnection'
               action: 'Swap Slots'
-              webAppName: 'app-re2-api-$(environmentName)'
-              resourceGroupName: '$(resourceGroup)'
+              webAppName: 'app-re2-api-uat'
+              resourceGroupName: 'rg-re2-uat'
               sourceSlot: 'staging'
 
           - task: AzureAppServiceManage@0
             displayName: 'Swap Web: staging → production'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-UAT-ServiceConnection'
               action: 'Swap Slots'
-              webAppName: 'app-re2-web-$(environmentName)'
-              resourceGroupName: '$(resourceGroup)'
+              webAppName: 'app-re2-web-uat'
+              resourceGroupName: 'rg-re2-uat'
               sourceSlot: 'staging'
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -399,12 +387,6 @@ stages:
   condition: succeeded()
   variables:
   - group: re2-prod-secrets
-  - name: environmentName
-    value: 'prod'
-  - name: resourceGroup
-    value: 'rg-re2-prod'
-  - name: azureSubscription
-    value: 'RE2-Prod-ServiceConnection'
   jobs:
   - deployment: DeployProdInfra
     displayName: 'Deploy infrastructure'
@@ -416,24 +398,24 @@ stages:
           - task: AzureCLI@2
             displayName: 'Create resource group'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-Prod-ServiceConnection'
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: |
                 az group create \
-                  --name $(resourceGroup) \
+                  --name rg-re2-prod \
                   --location westeurope \
                   --tags environment=prod application=re2-compliance
 
           - task: AzureCLI@2
             displayName: 'Deploy Bicep templates'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-Prod-ServiceConnection'
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: |
                 az deployment group create \
-                  --resource-group $(resourceGroup) \
+                  --resource-group rg-re2-prod \
                   --template-file $(Pipeline.Workspace)/drop/infra/main.bicep \
                   --parameters $(Pipeline.Workspace)/drop/infra/prod.bicepparam \
                   --parameters azureAdTenantId=$(AzureAdTenantId) \
@@ -452,9 +434,9 @@ stages:
           - task: AzureWebApp@1
             displayName: 'Deploy API to staging slot'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-Prod-ServiceConnection'
               appType: 'webApp'
-              appName: 'app-re2-api-$(environmentName)'
+              appName: 'app-re2-api-prod'
               deployToSlotOrASE: true
               slotName: 'staging'
               package: '$(Pipeline.Workspace)/drop/api/**/*.zip'
@@ -463,9 +445,9 @@ stages:
           - task: AzureWebApp@1
             displayName: 'Deploy Web to staging slot'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-Prod-ServiceConnection'
               appType: 'webApp'
-              appName: 'app-re2-web-$(environmentName)'
+              appName: 'app-re2-web-prod'
               deployToSlotOrASE: true
               slotName: 'staging'
               package: '$(Pipeline.Workspace)/drop/web/**/*.zip'
@@ -474,20 +456,20 @@ stages:
           - task: AzureFunctionApp@2
             displayName: 'Deploy Functions'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-Prod-ServiceConnection'
               appType: 'functionApp'
-              appName: 'func-re2-compliance-$(environmentName)'
+              appName: 'func-re2-compliance-prod'
               package: '$(Pipeline.Workspace)/drop/functions/**/*.zip'
 
           # Smoke test staging slots
           - task: AzureCLI@2
             displayName: 'Smoke test — API staging slot'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-Prod-ServiceConnection'
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: |
-                API_URL="https://app-re2-api-$(environmentName)-staging.azurewebsites.net/health"
+                API_URL="https://app-re2-api-prod-staging.azurewebsites.net/health"
                 echo "Testing $API_URL"
                 for i in {1..6}; do
                   STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL" --max-time 10)
@@ -504,11 +486,11 @@ stages:
           - task: AzureCLI@2
             displayName: 'Smoke test — Web staging slot'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-Prod-ServiceConnection'
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: |
-                WEB_URL="https://app-re2-web-$(environmentName)-staging.azurewebsites.net/health"
+                WEB_URL="https://app-re2-web-prod-staging.azurewebsites.net/health"
                 echo "Testing $WEB_URL"
                 for i in {1..6}; do
                   STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$WEB_URL" --max-time 10)
@@ -526,31 +508,31 @@ stages:
           - task: AzureAppServiceManage@0
             displayName: 'Swap API: staging → production'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-Prod-ServiceConnection'
               action: 'Swap Slots'
-              webAppName: 'app-re2-api-$(environmentName)'
-              resourceGroupName: '$(resourceGroup)'
+              webAppName: 'app-re2-api-prod'
+              resourceGroupName: 'rg-re2-prod'
               sourceSlot: 'staging'
 
           - task: AzureAppServiceManage@0
             displayName: 'Swap Web: staging → production'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-Prod-ServiceConnection'
               action: 'Swap Slots'
-              webAppName: 'app-re2-web-$(environmentName)'
-              resourceGroupName: '$(resourceGroup)'
+              webAppName: 'app-re2-web-prod'
+              resourceGroupName: 'rg-re2-prod'
               sourceSlot: 'staging'
 
           # Post-deployment verification
           - task: AzureCLI@2
             displayName: 'Post-swap — verify production health'
             inputs:
-              azureSubscription: '$(azureSubscription)'
+              azureSubscription: 'RE2-Prod-ServiceConnection'
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: |
                 echo "=== Verifying production endpoints ==="
-                for APP in "app-re2-api-$(environmentName)" "app-re2-web-$(environmentName)"; do
+                for APP in "app-re2-api-prod" "app-re2-web-prod"; do
                   URL="https://${APP}.azurewebsites.net/health"
                   echo "Testing $URL"
                   STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL" --max-time 10)
