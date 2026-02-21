@@ -29,6 +29,7 @@ bld/
 
 # Visual Studio files
 .vs/
+UpgradeLog.htm
 *.rsuser
 *.suo
 *.user
