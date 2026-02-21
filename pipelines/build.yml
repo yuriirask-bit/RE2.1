@@ -43,13 +43,8 @@ stages:
         projects: '$(solution)'
         arguments: '--configuration $(buildConfiguration) --no-restore'
 
-    - task: DotNetCoreCLI@2
+    - script: dotnet test $(solution) --configuration $(buildConfiguration) --no-build --logger "trx;LogFileName=testresults.trx" --results-directory $(Agent.TempDirectory)/TestResults
       displayName: 'Run tests'
-      inputs:
-        command: 'test'
-        projects: 'tests/**/*.csproj'
-        arguments: '--configuration $(buildConfiguration) --no-restore --logger trx --results-directory $(Agent.TempDirectory)/TestResults'
-        publishTestResults: false
 
     - task: PublishTestResults@2
       displayName: 'Publish test results'
