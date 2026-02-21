@@ -37,109 +37,16 @@ resource logicApp 'Microsoft.Logic/workflows@2019-05-01' = {
   }
   properties: {
     state: 'Enabled'
-    definition: {
-      '$schema': 'https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#'
-      contentVersion: '1.0.0.0'
-      parameters: {
-        complianceApiBaseUrl: {
-          type: 'String'
-          defaultValue: complianceApiBaseUrl
-        }
-        approverEmailGroup: {
-          type: 'String'
-          defaultValue: approverEmailGroup
-        }
+    definition: loadJsonContent('logic-app-definition.json')
+    parameters: {
+      complianceApiBaseUrl: {
+        value: complianceApiBaseUrl
       }
-      triggers: {
-        'When_a_HTTP_request_is_received': {
-          type: 'Request'
-          kind: 'Http'
-          inputs: {
-            method: 'POST'
-            schema: {
-              type: 'object'
-              properties: {
-                workflowId: { type: 'string' }
-                eventType: { type: 'string' }
-                initiatedBy: { type: 'string' }
-                entityType: { type: 'string' }
-                entityId: { type: 'string' }
-                details: { type: 'string' }
-                riskLevel: { type: 'string' }
-                callbackUrl: { type: 'string' }
-              }
-              required: [
-                'workflowId'
-                'eventType'
-                'initiatedBy'
-                'entityType'
-                'entityId'
-                'details'
-                'riskLevel'
-                'callbackUrl'
-              ]
-            }
-          }
-        }
+      approverEmailGroup: {
+        value: approverEmailGroup
       }
-      actions: {
-        'Initialize_WorkflowStatus': {
-          type: 'InitializeVariable'
-          runAfter: {}
-          inputs: {
-            variables: [
-              {
-                name: 'workflowStatus'
-                type: 'string'
-                value: 'Pending'
-              }
-            ]
-          }
-        }
-        'Callback_To_ComplianceApi': {
-          type: 'Http'
-          runAfter: {
-            'Initialize_WorkflowStatus': [ 'Succeeded' ]
-          }
-          inputs: {
-            method: 'POST'
-            uri: "@{triggerBody()?['callbackUrl']}"
-            headers: {
-              'Content-Type': 'application/json'
-            }
-            body: {
-              workflowId: "@{triggerBody()?['workflowId']}"
-              status: "@{variables('workflowStatus')}"
-              approvedBy: 'auto-approved'
-              approvalDate: "@{utcNow()}"
-              comments: 'Auto-processed workflow'
-            }
-            authentication: {
-              type: 'ManagedServiceIdentity'
-              identity: managedIdentity.id
-            }
-            retryPolicy: {
-              type: 'exponential'
-              count: 3
-              interval: 'PT10S'
-              maximumInterval: 'PT5M'
-            }
-          }
-        }
-        Response: {
-          type: 'Response'
-          runAfter: {
-            'Callback_To_ComplianceApi': [ 'Succeeded', 'Failed' ]
-          }
-          inputs: {
-            statusCode: 200
-            body: {
-              workflowId: "@{triggerBody()?['workflowId']}"
-              status: "@{variables('workflowStatus')}"
-              message: 'Workflow processing complete'
-            }
-          }
-        }
+      managedIdentityId: {
+        value: managedIdentity.id
       }
     }
   }
