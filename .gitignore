@@ -120,7 +120,8 @@ Desktop.ini
 docs/_build/
 docs/.doctrees/
 
-# SpecKit / Claude tooling
+# Claude Code / SpecKit tooling
+CLAUDE.md
 .claude/
 .specify/
 tmpclaude-*
