@@ -1,0 +1,154 @@
+# RE2 Compliance Platform — Deploy to UAT
+# Manually triggered. Uses staging slot swap for zero-downtime deployment.
+#
+# Prerequisites:
+#   Service Connection: RE2-UAT-ServiceConnection
+#   Variable Group:     re2-uat-secrets (AzureAdTenantId, AzureAdClientId)
+#   Environment:        re2-uat (1 approver gate)
+
+trigger: none
+
+resources:
+  pipelines:
+  - pipeline: build
+    source: 'RE2-Build'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+- group: re2-uat-secrets
+
+stages:
+- stage: DeployUAT
+  displayName: 'Deploy to UAT'
+  jobs:
+  - deployment: DeployInfra
+    displayName: 'Deploy infrastructure'
+    environment: 're2-uat'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureCLI@2
+            displayName: 'Create resource group'
+            inputs:
+              azureSubscription: 'RE2-UAT-ServiceConnection'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az group create \
+                  --name rg-re2-uat \
+                  --location westeurope \
+                  --tags environment=uat application=re2-compliance
+
+          - task: AzureCLI@2
+            displayName: 'Deploy Bicep templates'
+            inputs:
+              azureSubscription: 'RE2-UAT-ServiceConnection'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az deployment group create \
+                  --resource-group rg-re2-uat \
+                  --template-file $(Pipeline.Workspace)/build/drop/infra/main.bicep \
+                  --parameters $(Pipeline.Workspace)/build/drop/infra/uat.bicepparam \
+                  --parameters azureAdTenantId=$(AzureAdTenantId) \
+                               azureAdClientId=$(AzureAdClientId) \
+                  --verbose
+
+  - deployment: DeployApps
+    displayName: 'Deploy applications (slot swap)'
+    dependsOn: DeployInfra
+    environment: 're2-uat'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebApp@1
+            displayName: 'Deploy API to staging slot'
+            inputs:
+              azureSubscription: 'RE2-UAT-ServiceConnection'
+              appType: 'webApp'
+              appName: 'app-re2-api-uat'
+              deployToSlotOrASE: true
+              slotName: 'staging'
+              package: '$(Pipeline.Workspace)/build/drop/api/**/*.zip'
+
+          - task: AzureWebApp@1
+            displayName: 'Deploy Web to staging slot'
+            inputs:
+              azureSubscription: 'RE2-UAT-ServiceConnection'
+              appType: 'webApp'
+              appName: 'app-re2-web-uat'
+              deployToSlotOrASE: true
+              slotName: 'staging'
+              package: '$(Pipeline.Workspace)/build/drop/web/**/*.zip'
+
+          - task: AzureFunctionApp@2
+            displayName: 'Deploy Functions'
+            inputs:
+              azureSubscription: 'RE2-UAT-ServiceConnection'
+              appType: 'functionApp'
+              appName: 'func-re2-compliance-uat'
+              package: '$(Pipeline.Workspace)/build/drop/functions/**/*.zip'
+
+          - task: AzureCLI@2
+            displayName: 'Smoke test — API staging slot'
+            inputs:
+              azureSubscription: 'RE2-UAT-ServiceConnection'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                API_URL="https://app-re2-api-uat-staging.azurewebsites.net/health"
+                echo "Testing $API_URL"
+                for i in {1..6}; do
+                  STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL" --max-time 10)
+                  if [ "$STATUS" = "200" ]; then
+                    echo "Staging health check passed (HTTP 200)"
+                    exit 0
+                  fi
+                  echo "Attempt $i: HTTP $STATUS — retrying in 10s..."
+                  sleep 10
+                done
+                echo "Staging health check FAILED"
+                exit 1
+
+          - task: AzureCLI@2
+            displayName: 'Smoke test — Web staging slot'
+            inputs:
+              azureSubscription: 'RE2-UAT-ServiceConnection'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                WEB_URL="https://app-re2-web-uat-staging.azurewebsites.net/health"
+                echo "Testing $WEB_URL"
+                for i in {1..6}; do
+                  STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$WEB_URL" --max-time 10)
+                  if [ "$STATUS" = "200" ]; then
+                    echo "Staging health check passed (HTTP 200)"
+                    exit 0
+                  fi
+                  echo "Attempt $i: HTTP $STATUS — retrying in 10s..."
+                  sleep 10
+                done
+                echo "Staging health check FAILED"
+                exit 1
+
+          - task: AzureAppServiceManage@0
+            displayName: 'Swap API: staging → production'
+            inputs:
+              azureSubscription: 'RE2-UAT-ServiceConnection'
+              action: 'Swap Slots'
+              webAppName: 'app-re2-api-uat'
+              resourceGroupName: 'rg-re2-uat'
+              sourceSlot: 'staging'
+
+          - task: AzureAppServiceManage@0
+            displayName: 'Swap Web: staging → production'
+            inputs:
+              azureSubscription: 'RE2-UAT-ServiceConnection'
+              action: 'Swap Slots'
+              webAppName: 'app-re2-web-uat'
+              resourceGroupName: 'rg-re2-uat'
+              sourceSlot: 'staging'
