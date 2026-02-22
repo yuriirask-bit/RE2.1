@@ -85,9 +85,10 @@ param approverEmailGroup string = 'compliance-approvers@company.com'
 // ─── Standard Tags ───────────────────────────────────────────────────────────
 
 var tags = {
-  environment: environment
-  application: 're2-compliance'
-  managedBy: 'bicep'
+  Environment: environment
+  Project: 'RE2'
+  CostCenter: 'RE2-${toUpper(environment)}'
+  ManagedBy: 'bicep'
 }
 
 // ─── 1. Monitoring ───────────────────────────────────────────────────────────
