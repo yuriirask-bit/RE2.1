@@ -91,11 +91,27 @@ public static class InfrastructureExtensions
         // Register GDP change repository (T284)
         services.AddScoped<IGdpChangeRepository, DataverseGdpChangeRepository>();
 
+        // Register webhook subscription repository
+        services.AddScoped<IWebhookSubscriptionRepository, DataverseWebhookSubscriptionRepository>();
+
+        // Register integration system repository
+        services.AddScoped<IIntegrationSystemRepository, DataverseIntegrationSystemRepository>();
+
         // Register business services
         services.AddScoped<ILicenceService, LicenceService>();
         services.AddScoped<ISubstanceReclassificationService, SubstanceReclassificationService>();
         services.AddScoped<IControlledSubstanceService, ControlledSubstanceService>();
         services.AddScoped<ILicenceSubstanceMappingService, LicenceSubstanceMappingService>();
+
+        // Register customer service for customer qualification management
+        services.AddScoped<ICustomerService, CustomerService>();
+
+        // Register alert generation service for compliance monitoring
+        services.AddScoped<AlertGenerationService>();
+
+        // Register webhook dispatch service
+        services.AddHttpClient("WebhookClient");
+        services.AddScoped<IWebhookDispatchService, WebhookDispatchService>();
 
         // Register GDP compliance service (T190)
         services.AddScoped<IGdpComplianceService, GdpComplianceService>();
@@ -165,6 +181,9 @@ public static class InfrastructureExtensions
 
         // Register D365 F&O audit repository (T155)
         services.AddScoped<IAuditRepository, D365FoAuditRepository>();
+
+        // Register D365 F&O alert repository
+        services.AddScoped<IAlertRepository, D365FoAlertRepository>();
 
         // Register audit logging service (T156)
         services.AddScoped<IAuditLoggingService, AuditLoggingService>();

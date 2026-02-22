@@ -63,7 +63,13 @@ param tags object
 var appName = 'app-${namePrefix}-${component}-${environment}'
 var azureAdInstance = '${az.environment().authentication.loginEndpoint}${azureAdTenantId}'
 
+var aspnetEnvironment = environment == 'prod' ? 'Production' : 'Development'
+
 var commonAppSettings = [
+  {
+    name: 'ASPNETCORE_ENVIRONMENT'
+    value: aspnetEnvironment
+  }
   {
     name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
     value: appInsightsConnectionString
