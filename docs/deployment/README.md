@@ -218,6 +218,38 @@ After the first successful deployment, manual steps are required to connect exte
 3. Click **+ New app user**
 4. Search for the App Service Managed Identity (find the Object ID in Azure Portal under the App Service > Identity > System assigned)
 5. Assign the **System Administrator** security role (or a custom role with Dataverse virtual table access)
+
+Note about Security role for Dataverse
+
+  Your app reads/writes to these Dataverse tables:
+
+  ┌─────────────────────────────────┬──────────────┐
+  │              Table              │  Operations  │
+  ├─────────────────────────────────┼──────────────┤
+  │ phr_customercomplianceextension │ Read + Write │
+  ├─────────────────────────────────┼──────────────┤
+  │ phr_gdpwarehouseextension       │ Read + Write │
+  ├─────────────────────────────────┼──────────────┤
+  │ phr_gdpcredential               │ Read + Write │
+  ├─────────────────────────────────┼──────────────┤
+  │ phr_gdpserviceprovider          │ Read + Write │
+  ├─────────────────────────────────┼──────────────┤
+  │ phr_qualificationreview         │ Read + Write │
+  ├─────────────────────────────────┼──────────────┤
+  │ phr_gdpcredentialverification   │ Read + Write │
+  ├─────────────────────────────────┼──────────────┤
+  │ phr_gdpinspection               │ Read + Write │
+  ├─────────────────────────────────┼──────────────┤
+  │ phr_gdpinspectionfinding        │ Read + Write │
+  ├─────────────────────────────────┼──────────────┤
+  │ phr_capa                        │ Read + Write │
+  ├─────────────────────────────────┼──────────────┤
+  │ phr_gdpdocument                 │ Read + Write │
+  ├─────────────────────────────────┼──────────────┤
+  │ Licence/substance config tables │ Read         │
+  └─────────────────────────────────┴──────────────┘
+
+
 6. Repeat for the Functions App Managed Identity
 
 ### 5.2 Register Managed Identity in D365 F&O
@@ -225,7 +257,46 @@ After the first successful deployment, manual steps are required to connect exte
 1. Open **Lifecycle Services (LCS)** > Dev sandbox
 2. Go to **System administration** > **Azure Active Directory applications**
 3. Add a new record with the Managed Identity client ID
+
+Field: Client ID
+  Value: (find the Object ID in Azure Portal under the App Service > Identity > System assigned)
+  ────────────────────────────────────────
+  Field: Name
+  Value: RE2 Compliance API - Dev (Managed Identity)
+  ────────────────────────────────────────
+  Field: User ID
+  Value: Map to a D365 user account that has the security roles 
+    needed to read master data (e.g. a service account or admin 
+    user for dev)
+
+  Then add a second entry:
+
+  Field: Client ID
+  Value: (find the Object ID in Azure Portal under the App Service > Identity > System assigned)
+  ────────────────────────────────────────
+  Field: Name
+  Value: RE2 Compliance Functions - Dev (Managed Identity)      
+  ────────────────────────────────────────
+  Field: User ID
+  Value: Same user or another service account with appropriate 
+    roles
+
 4. Assign appropriate D365 F&O security roles
+
+Note on security roles in F&O: 
+Here's what your apps need access to in D365FO:                             
+  What the apps do:
+  Read-only from standard entities (master data):  
+   - CustomersV3 — customer account, name, country 
+   - ReleasedProductsV2 — product items, substance classification
+   - ProductAttributeValuesV2 — controlled substance attributes
+   - Warehouses — warehouse locations, addresses
+   - OperationalSitesV2 — operational sites
+
+  Read + Write to custom virtual entities:
+  - PharmaComplianceAuditEventEntity — audit trail (app writes events)        
+  - PharmaComplianceAlertEntity — compliance alerts (app writes/updates)      
+
 
 ### 5.3 Verify End-to-End Connectivity
 

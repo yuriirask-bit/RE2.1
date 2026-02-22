@@ -14,9 +14,9 @@ param logRetentionDays = 30
 param enableStagingSlots = false
 
 // ── External Configuration (placeholders — override via pipeline variables) ──
-param dataverseUrl = 'https://re2-dev.crm4.dynamics.com'
-param d365foODataEndpoint = 'https://re2-dev.sandbox.operations.dynamics.com/data'
-param d365foResource = 'https://re2-dev.sandbox.operations.dynamics.com'
+param dataverseUrl = 'https://org0c0b0f9a.crm11.dynamics.com'
+param d365foODataEndpoint = 'https://icu-dev160a316e3d30f4c94devaos.axcloud.dynamics.com/data'
+param d365foResource = 'https://icu-dev160a316e3d30f4c94devaos.axcloud.dynamics.com'
 
 // ── Azure AD (TenantId overridden via pipeline variable `azureAdTenantId`) ───
 param azureAdTenantId = '00000000-0000-0000-0000-000000000000'

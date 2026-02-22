@@ -38,14 +38,18 @@ public class DataverseClient : IDataverseClient, IDisposable
         // Per research.md: Use DefaultAzureCredential for Managed Identity
         var credential = new DefaultAzureCredential();
 
+        // Use the base Dataverse URL for token scope — the SDK's tokenProviderFunction
+        // receives the full XRM endpoint URI which Entra ID rejects as an invalid resource.
+        var dataverseScope = dataverseUrl.TrimEnd('/') + "/.default";
+
         _serviceClient = new ServiceClient(
             instanceUrl: new Uri(dataverseUrl),
-            tokenProviderFunction: async (uri) =>
+            tokenProviderFunction: async (_) =>
             {
                 try
                 {
                     var token = await credential.GetTokenAsync(
-                        new TokenRequestContext(new[] { $"{uri}/.default" }),
+                        new TokenRequestContext(new[] { dataverseScope }),
                         default);
                     return token.Token;
                 }
