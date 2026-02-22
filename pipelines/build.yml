@@ -43,8 +43,20 @@ stages:
         projects: '$(solution)'
         arguments: '--configuration $(buildConfiguration) --no-restore'
 
-    - script: dotnet test $(solution) --configuration $(buildConfiguration) --no-build --logger "trx;LogFileName=testresults.trx" --results-directory $(Agent.TempDirectory)/TestResults --filter "FullyQualifiedName!~ComplianceCli"
+    - script: |
+        set -e
+        for proj in \
+          tests/RE2.ComplianceApi.Tests/RE2.ComplianceApi.Tests.csproj \
+          tests/RE2.ComplianceCore.Tests/RE2.ComplianceCore.Tests.csproj \
+          tests/RE2.ComplianceFunctions.Tests/RE2.ComplianceFunctions.Tests.csproj \
+          tests/RE2.Contract.Tests/RE2.Contract.Tests.csproj \
+          tests/RE2.DataAccess.Tests/RE2.DataAccess.Tests.csproj; do
+          echo "========== Testing: $proj =========="
+          dotnet test "$proj" --configuration $(buildConfiguration) --no-build --logger "trx" --results-directory $(Agent.TempDirectory)/TestResults --verbosity normal
+          echo "========== Done: $proj =========="
+        done
       displayName: 'Run tests'
+      timeoutInMinutes: 10
 
     - task: PublishTestResults@2
       displayName: 'Publish test results'
