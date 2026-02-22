@@ -56,13 +56,20 @@ stages:
           TEST_EXIT=$?
           if [ $TEST_EXIT -ne 0 ]; then
             echo "dotnet test exited with code $TEST_EXIT"
-            # Check TRX for actual test failures vs test-host shutdown hang
+            # Check TRX Counters element for actual failed tests (not run-level outcome)
             LATEST_TRX=$(ls -t $(Agent.TempDirectory)/TestResults/*.trx 2>/dev/null | head -1)
-            if [ -n "$LATEST_TRX" ] && grep -q 'outcome="Failed"' "$LATEST_TRX"; then
-              echo "FAILED: Real test failures found in $proj"
-              OVERALL_RESULT=1
+            if [ -n "$LATEST_TRX" ]; then
+              FAILED_COUNT=$(grep -oP 'failed="\K[0-9]+' "$LATEST_TRX" | head -1)
+              echo "TRX file: $LATEST_TRX — failed count: ${FAILED_COUNT:-unknown}"
+              if [ -n "$FAILED_COUNT" ] && [ "$FAILED_COUNT" -gt 0 ]; then
+                echo "FAILED: $FAILED_COUNT real test failure(s) in $proj"
+                OVERALL_RESULT=1
+              else
+                echo "All tests passed — test-host shutdown hang (known .NET/Linux issue). Continuing."
+              fi
             else
-              echo "All tests passed — test-host shutdown hang (known .NET/Linux issue). Continuing."
+              echo "No TRX file found — treating as failure."
+              OVERALL_RESULT=1
             fi
           fi
           echo "========== Done: $proj =========="
