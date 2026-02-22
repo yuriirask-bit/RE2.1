@@ -14,12 +14,13 @@ namespace RE2.ComplianceCore.Tests.Services;
 /// Unit tests for WebhookDispatchService.
 /// T149l: Service tests for webhook dispatch per FR-059.
 /// </summary>
-public class WebhookDispatchServiceTests
+public class WebhookDispatchServiceTests : IDisposable
 {
     private readonly Mock<IWebhookSubscriptionRepository> _subscriptionRepoMock;
     private readonly Mock<IHttpClientFactory> _httpClientFactoryMock;
     private readonly Mock<ILogger<WebhookDispatchService>> _loggerMock;
     private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock;
+    private readonly HttpClient _httpClient;
     private readonly WebhookDispatchService _service;
 
     public WebhookDispatchServiceTests()
@@ -30,13 +31,18 @@ public class WebhookDispatchServiceTests
         _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
 
         // Setup HttpClient mock
-        var httpClient = new HttpClient(_httpMessageHandlerMock.Object);
-        _httpClientFactoryMock.Setup(f => f.CreateClient("WebhookClient")).Returns(httpClient);
+        _httpClient = new HttpClient(_httpMessageHandlerMock.Object);
+        _httpClientFactoryMock.Setup(f => f.CreateClient("WebhookClient")).Returns(_httpClient);
 
         _service = new WebhookDispatchService(
             _subscriptionRepoMock.Object,
             _httpClientFactoryMock.Object,
             _loggerMock.Object);
+    }
+
+    public void Dispose()
+    {
+        _httpClient.Dispose();
     }
 
     #region ComputeSignature Tests
