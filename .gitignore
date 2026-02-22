@@ -123,18 +123,3 @@ infra/bicep/main.json
 docs/_build/
 docs/.doctrees/
 
-# Claude Code / SpecKit tooling
-CLAUDE.md
-.claude/
-.specify/
-tmpclaude-*
-nul
-
-# Backup files
-Backup/
-
-# Consolidated into specs/001-licence-management/
-specs/main/
-
-# Deployment logs (local only)
-dev-deployment-log.md
