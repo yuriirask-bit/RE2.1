@@ -63,7 +63,8 @@ else
     // Per research.md section 6: Stateless JWT authentication with Azure AD + Azure AD B2C
 
     // Scheme 1: Azure AD for internal users (employees)
-    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    // Default scheme must match the registered handler name ("AzureAd"), not the generic "Bearer"
+    builder.Services.AddAuthentication("AzureAd")
         .AddMicrosoftIdentityWebApi(
             options =>
             {
@@ -360,7 +361,7 @@ app.UseMiddleware<RequestLoggingMiddleware>();
 // Returns 503 for non-critical endpoints when external services are unavailable
 app.UseMiddleware<GracefulDegradationMiddleware>();
 
-if (app.Environment.IsDevelopment())
+if (!app.Environment.IsProduction())
 {
     app.UseSwagger();
     app.UseSwaggerUI(options =>
