@@ -61,7 +61,7 @@ param enableStagingSlot bool = false
 param tags object
 
 var appName = 'app-${namePrefix}-${component}-${environment}'
-var azureAdInstance = '${az.environment().authentication.loginEndpoint}${azureAdTenantId}'
+var azureAdInstance = az.environment().authentication.loginEndpoint
 
 var aspnetEnvironment = environment == 'prod' ? 'Production' : 'Staging'
 
