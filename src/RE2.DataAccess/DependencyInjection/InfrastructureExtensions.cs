@@ -113,6 +113,18 @@ public static class InfrastructureExtensions
         services.AddHttpClient("WebhookClient");
         services.AddScoped<IWebhookDispatchService, WebhookDispatchService>();
 
+        // Register regulatory inspection repository (in-memory fallback until Dataverse implementation exists)
+        services.AddSingleton<IRegulatoryInspectionRepository, InMemoryRegulatoryInspectionRepository>();
+
+        // Register transaction compliance service
+        services.AddScoped<ITransactionComplianceService, TransactionComplianceService>();
+
+        // Register threshold service
+        services.AddScoped<IThresholdService, ThresholdService>();
+
+        // Register product repository (in-memory fallback until Dataverse implementation exists)
+        services.AddSingleton<IProductRepository, InMemoryProductRepository>();
+
         // Register GDP compliance service (T190)
         services.AddScoped<IGdpComplianceService, GdpComplianceService>();
 
