@@ -15,8 +15,8 @@ param enableStagingSlots = false
 
 // ── External Configuration (placeholders — override via pipeline variables) ──
 param dataverseUrl = 'https://your-org.crm.dynamics.com'
-param d365foODataEndpoint = 'https://your-d365fo-instance.operations.dynamics.com/data'
-param d365foResource = 'https://your-d365fo-instance.operations.dynamics.com'
+param d365foODataEndpoint = 'https://your-d365fo-instance.axcloud.dynamics.com/data'
+param d365foResource = 'https://your-d365fo-instance.axcloud.dynamics.com'
 
 // ── Azure AD (TenantId overridden via pipeline variable `azureAdTenantId`) ───
 param azureAdTenantId = '00000000-0000-0000-0000-000000000000'
