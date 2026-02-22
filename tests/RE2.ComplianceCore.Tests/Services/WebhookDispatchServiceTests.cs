@@ -30,9 +30,12 @@ public class WebhookDispatchServiceTests : IDisposable
         _loggerMock = new Mock<ILogger<WebhookDispatchService>>();
         _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
 
-        // Setup HttpClient mock
-        _httpClient = new HttpClient(_httpMessageHandlerMock.Object);
-        _httpClientFactoryMock.Setup(f => f.CreateClient("WebhookClient")).Returns(_httpClient);
+        // Setup HttpClient mock — disposeHandler: false prevents the service's
+        // `using var client = ...` from disposing the mock handler (which can
+        // cause test-host shutdown hangs on Linux).
+        _httpClient = new HttpClient(_httpMessageHandlerMock.Object, disposeHandler: false);
+        _httpClientFactoryMock.Setup(f => f.CreateClient("WebhookClient"))
+            .Returns(() => new HttpClient(_httpMessageHandlerMock.Object, disposeHandler: false));
 
         _service = new WebhookDispatchService(
             _subscriptionRepoMock.Object,
@@ -195,9 +198,10 @@ public class WebhookDispatchServiceTests : IDisposable
             .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK));
 
-        // Return a new HttpClient each time CreateClient is called
+        // Return a new HttpClient each time CreateClient is called.
+        // disposeHandler: false prevents test-host shutdown hang on Linux.
         httpClientFactoryMock.Setup(f => f.CreateClient("WebhookClient"))
-            .Returns(() => new HttpClient(httpMessageHandlerMock.Object));
+            .Returns(() => new HttpClient(httpMessageHandlerMock.Object, disposeHandler: false));
 
         var service = new WebhookDispatchService(
             subscriptionRepoMock.Object,
