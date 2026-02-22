@@ -52,7 +52,7 @@ stages:
           tests/RE2.Contract.Tests/RE2.Contract.Tests.csproj \
           tests/RE2.DataAccess.Tests/RE2.DataAccess.Tests.csproj; do
           echo "========== Testing: $proj =========="
-          dotnet test "$proj" --configuration $(buildConfiguration) --logger "trx" --results-directory $(Agent.TempDirectory)/TestResults --verbosity normal
+          dotnet test "$proj" --configuration $(buildConfiguration) --logger "trx" --results-directory $(Agent.TempDirectory)/TestResults --blame-hang-timeout 60s
           echo "========== Done: $proj =========="
         done
       displayName: 'Run tests'
