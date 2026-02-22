@@ -127,7 +127,11 @@ public static class InfrastructureExtensions
         // Register named HttpClient with standard resilience handler (T033-T034)
         services.AddHttpClient(nameof(D365FoClient), (sp, client) =>
         {
-            client.BaseAddress = new Uri(odataEndpoint);
+            // Ensure base address ends with '/' so relative URIs resolve correctly
+            // Without trailing slash, "https://host/data" + "CustomersV3" = "https://host/CustomersV3"
+            // With trailing slash, "https://host/data/" + "CustomersV3" = "https://host/data/CustomersV3"
+            var baseUrl = odataEndpoint.EndsWith('/') ? odataEndpoint : odataEndpoint + "/";
+            client.BaseAddress = new Uri(baseUrl);
             client.DefaultRequestHeaders.Add("Accept", "application/json");
             client.DefaultRequestHeaders.Add("OData-MaxVersion", "4.0");
             client.DefaultRequestHeaders.Add("OData-Version", "4.0");
