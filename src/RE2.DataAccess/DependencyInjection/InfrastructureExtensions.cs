@@ -124,8 +124,8 @@ public static class InfrastructureExtensions
         var resource = configuration["D365FO:Resource"]
             ?? throw new InvalidOperationException("D365FO:Resource configuration is missing");
 
-        // Register HttpClient with standard resilience handler (T033-T034)
-        services.AddHttpClient<ID365FoClient, D365FoClient>((sp, client) =>
+        // Register named HttpClient with standard resilience handler (T033-T034)
+        services.AddHttpClient(nameof(D365FoClient), (sp, client) =>
         {
             client.BaseAddress = new Uri(odataEndpoint);
             client.DefaultRequestHeaders.Add("Accept", "application/json");
@@ -151,15 +151,12 @@ public static class InfrastructureExtensions
             options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(30); // Total including retries
         });
 
-        // Register factory for D365FoClient with resource parameter
-        services.AddSingleton<Func<ID365FoClient>>(sp =>
+        // Register ID365FoClient via factory — the string resource param can't be resolved by DI directly
+        services.AddScoped<ID365FoClient>(sp =>
         {
-            return () =>
-            {
-                var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(D365FoClient));
-                var logger = sp.GetRequiredService<ILogger<D365FoClient>>();
-                return new D365FoClient(httpClient, resource, logger);
-            };
+            var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(D365FoClient));
+            var logger = sp.GetRequiredService<ILogger<D365FoClient>>();
+            return new D365FoClient(httpClient, resource, logger);
         });
 
         // Register D365 F&O audit repository (T155)
