@@ -332,12 +332,19 @@ foreach ($entity in $schema.entities) {
 
     Write-Host "  Creating entity..."
 
+    # Validate: primaryNameAttribute must not equal primaryIdAttribute
+    if ($primaryName -eq $primaryId) {
+        Write-Host "  FAILED: primaryNameAttribute '$primaryName' cannot be the same as primaryIdAttribute '$primaryId' — add a dedicated name column" -ForegroundColor Red
+        $failedEntities += $logicalName
+        continue
+    }
+
     # Build primary name attribute definition
     $primaryNameCol = $entity.columns | Where-Object { $_.logicalName -eq $primaryName }
     $primaryNameMaxLength = 200
     if ($primaryNameCol -and $primaryNameCol.maxLength) {
         $primaryNameMaxLength = $primaryNameCol.maxLength
-        if ($primaryNameMaxLength -gt 4000) { $primaryNameMaxLength = 4000 }
+        if ($primaryNameMaxLength -gt 850) { $primaryNameMaxLength = 850 }
     }
 
     $entityPayload = @{
