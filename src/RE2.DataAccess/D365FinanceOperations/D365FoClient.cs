@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using System.Linq;
+
 using Azure.Core;
 using Microsoft.Extensions.Logging;
 using RE2.ComplianceCore.Exceptions;
@@ -70,14 +70,9 @@ public class D365FoClient : ID365FoClient
 
         try
         {
-            await EnsureAuthTokenAsync(cancellationToken);
+            _logger.LogDebug("GET request to D365 F&O: {Url}", url);
 
-            var fullUri = new Uri(_httpClient.BaseAddress!, url);
-            var allHeaders = string.Join("; ", _httpClient.DefaultRequestHeaders
-                .Select(h => $"{h.Key}={string.Join(",", h.Value.Select(v => h.Key == "Authorization" ? v[..Math.Min(30, v.Length)] + "..." : v))}"));
-            _logger.LogWarning(
-                "D365 F&O GET diagnostics — FullUrl: {FullUrl}, Headers: [{AllHeaders}]",
-                fullUri, allHeaders);
+            await EnsureAuthTokenAsync(cancellationToken);
 
             var response = await _httpClient.GetAsync(url, cancellationToken);
             await EnsureSuccessOrThrowWithDetailsAsync(response, url, cancellationToken);
