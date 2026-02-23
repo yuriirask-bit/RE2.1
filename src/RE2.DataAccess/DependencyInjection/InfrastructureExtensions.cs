@@ -125,6 +125,12 @@ public static class InfrastructureExtensions
         // Register product repository (in-memory fallback until Dataverse implementation exists)
         services.AddSingleton<IProductRepository, InMemoryProductRepository>();
 
+        // Register transaction repository (in-memory fallback until Dataverse implementation exists)
+        services.AddSingleton<ITransactionRepository, InMemoryTransactionRepository>();
+
+        // Register threshold repository (in-memory fallback until Dataverse implementation exists)
+        services.AddSingleton<IThresholdRepository, InMemoryThresholdRepository>();
+
         // Register GDP compliance service (T190)
         services.AddScoped<IGdpComplianceService, GdpComplianceService>();
 
