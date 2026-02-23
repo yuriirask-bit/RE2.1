@@ -336,11 +336,22 @@ public class D365FoClient : ID365FoClient
         }
 
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
-        _logger.LogError("D365 F&O returned {StatusCode} for {Url}. Response body: {Body}",
-            (int)response.StatusCode, url, body);
+        var contentType = response.Content.Headers.ContentType?.ToString() ?? "(none)";
+        var contentLength = response.Content.Headers.ContentLength;
+        var wwwAuth = response.Headers.WwwAuthenticate.ToString();
+
+        _logger.LogError(
+            "D365 F&O returned {StatusCode} for {Url}. " +
+            "Content-Type: {ContentType}, Content-Length: {ContentLength}, " +
+            "WWW-Authenticate: {WwwAuth}, Response body: [{Body}]",
+            (int)response.StatusCode, url, contentType, contentLength, wwwAuth, body);
+
+        var detail = !string.IsNullOrEmpty(body) ? body
+            : !string.IsNullOrEmpty(wwwAuth) ? $"WWW-Authenticate: {wwwAuth}"
+            : "(empty response)";
 
         throw new HttpRequestException(
-            $"D365 F&O returned {(int)response.StatusCode} ({response.ReasonPhrase}) for {url}: {body}",
+            $"D365 F&O returned {(int)response.StatusCode} ({response.ReasonPhrase}) for {url}: {detail}",
             inner: null,
             statusCode: response.StatusCode);
     }
