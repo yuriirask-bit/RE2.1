@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
@@ -44,6 +45,11 @@ else
             options.TokenValidationParameters.NameClaimType = "name";
             options.TokenValidationParameters.RoleClaimType = "roles";
         });
+
+    // Point AccessDenied to our own view instead of the default MicrosoftIdentity path
+    builder.Services.Configure<CookieAuthenticationOptions>(
+        CookieAuthenticationDefaults.AuthenticationScheme,
+        options => options.AccessDeniedPath = "/Home/AccessDenied");
 
     // Configure authorization policies (same as API for consistency)
     builder.Services.AddAuthorization(options =>
