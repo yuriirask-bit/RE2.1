@@ -191,10 +191,10 @@ else
 // Set "UseInMemoryRepositories": true in appsettings.Development.json to test locally
 builder.Services.AddComplianceDataServices(builder.Configuration);
 
-// Only add D365 F&O and Blob Storage when not using in-memory mode
+// Only add Blob Storage when not using in-memory mode
+// (D365 F&O is already registered by AddComplianceDataServices above)
 if (!builder.Configuration.GetValue<bool>("UseInMemoryRepositories"))
 {
-    builder.Services.AddD365FOServices(builder.Configuration);
     builder.Services.AddBlobStorageServices(builder.Configuration);
 }
 
