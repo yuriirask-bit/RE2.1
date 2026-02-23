@@ -130,6 +130,16 @@ stages:
         contents: '**'
         targetFolder: '$(Build.ArtifactStagingDirectory)/infra'
 
+    # Copy Dataverse provisioning scripts as artifact
+    - task: CopyFiles@2
+      displayName: 'Copy Dataverse scripts'
+      inputs:
+        sourceFolder: 'scripts'
+        contents: |
+          dataverse-schema.json
+          provision-dataverse-schema.ps1
+        targetFolder: '$(Build.ArtifactStagingDirectory)/dataverse'
+
     - publish: $(Build.ArtifactStagingDirectory)
       artifact: 'drop'
       displayName: 'Publish pipeline artifacts'
