@@ -19,12 +19,28 @@
 .PARAMETER ClientSecret
     Azure AD app registration client secret. If not provided, uses az CLI token (for pipeline Managed Identity).
 
+.PARAMETER ResourceGroupName
+    Azure resource group containing App Services/Function Apps whose managed identities
+    should be registered as Dataverse Application Users. Optional.
+
+.PARAMETER AppNames
+    Comma-separated list of App Service and Function App names whose managed identities
+    should be registered as Dataverse Application Users (e.g., "app-re2-api-{env},app-re2-web-{env},func-re2-compliance-{env}").
+    Requires ResourceGroupName. The pipeline service connection needs Directory.Read.All
+    permission in Azure AD to resolve managed identity Application (Client) IDs.
+
+.PARAMETER DataverseRoleName
+    Security role to assign to registered Application Users. Default: "System Administrator".
+
 .EXAMPLE
     # SPN auth (CI/CD pipeline):
     ./provision-dataverse-schema.ps1 -DataverseUrl "https://org.crm4.dynamics.com" -TenantId "xxx" -ClientId "yyy" -ClientSecret "zzz"
 
     # az CLI auth (pipeline with AzureCLI@2 task):
     ./provision-dataverse-schema.ps1 -DataverseUrl "https://org.crm4.dynamics.com"
+
+    # With managed identity registration:
+    ./provision-dataverse-schema.ps1 -DataverseUrl "https://org.crm4.dynamics.com" -ResourceGroupName "rg-re2-{env}" -AppNames "app-re2-api-{env},app-re2-web-{env},func-re2-compliance-{env}"
 #>
 
 [CmdletBinding()]
@@ -39,7 +55,16 @@ param(
     [string]$ClientId,
 
     [Parameter(Mandatory = $false)]
-    [string]$ClientSecret
+    [string]$ClientSecret,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ResourceGroupName,
+
+    [Parameter(Mandatory = $false)]
+    [string]$AppNames,
+
+    [Parameter(Mandatory = $false)]
+    [string]$DataverseRoleName = "System Administrator"
 )
 
 $ErrorActionPreference = 'Stop'
@@ -563,6 +588,141 @@ foreach ($entity in $schema.entities) {
     }
 }
 
+# --- Register Application Users (Managed Identities) ---
+
+$registeredApps = @()
+$failedApps = @()
+
+if ($ResourceGroupName -and $AppNames) {
+    Write-Host ""
+    Write-Host "=== Registering Application Users (Managed Identities) ==="
+
+    # Look up root business unit
+    $buResult = Invoke-DataverseApi -Method GET -Uri "$baseUrl/businessunits?`$filter=parentbusinessunitid eq null&`$select=businessunitid,name" -Headers $headers
+    if (-not $buResult.value -or $buResult.value.Count -eq 0) {
+        Write-Host "WARNING: Could not find root business unit — skipping app user registration" -ForegroundColor Yellow
+    }
+    else {
+        $rootBuId = $buResult.value[0].businessunitid
+        Write-Host "Root business unit: $($buResult.value[0].name) ($rootBuId)"
+
+        # Look up security role
+        $roleResult = Invoke-DataverseApi -Method GET -Uri "$baseUrl/roles?`$filter=name eq '$DataverseRoleName' and _businessunitid_value eq '$rootBuId'&`$select=roleid,name" -Headers $headers
+        $roleId = $null
+        if ($roleResult.value -and $roleResult.value.Count -gt 0) {
+            $roleId = $roleResult.value[0].roleid
+            Write-Host "Security role: $DataverseRoleName ($roleId)"
+        }
+        else {
+            Write-Host "WARNING: Security role '$DataverseRoleName' not found — users will be created without role assignment" -ForegroundColor Yellow
+        }
+
+        $appNameList = $AppNames -split ","
+        foreach ($appName in $appNameList) {
+            $appName = $appName.Trim()
+            if (-not $appName) { continue }
+
+            Write-Host ""
+            Write-Host "--- [$appName] ---"
+
+            # Get managed identity principal ID (works for App Services and Function Apps)
+            $principalId = $null
+            try {
+                $principalId = az resource show --resource-group $ResourceGroupName --name $appName --resource-type "Microsoft.Web/sites" --query identity.principalId -o tsv 2>&1
+                if ($LASTEXITCODE -ne 0) { $principalId = $null }
+            }
+            catch { $principalId = $null }
+
+            if (-not $principalId) {
+                Write-Host "  WARNING: Could not find managed identity for $appName — skipping" -ForegroundColor Yellow
+                $failedApps += $appName
+                continue
+            }
+            Write-Host "  Principal ID (Object ID): $principalId"
+
+            # Look up Application (Client) ID from Azure AD service principal
+            # Requires Directory.Read.All or Application.Read.All on the pipeline service connection
+            $appId = $null
+            try {
+                $appId = az ad sp show --id $principalId --query appId -o tsv 2>&1
+                if ($LASTEXITCODE -ne 0) { $appId = $null }
+            }
+            catch { $appId = $null }
+
+            if (-not $appId) {
+                Write-Host "  WARNING: Could not resolve Application (Client) ID for $appName." -ForegroundColor Yellow
+                Write-Host "  Ensure the pipeline service connection has Directory.Read.All permission in Azure AD." -ForegroundColor Yellow
+                $failedApps += $appName
+                continue
+            }
+            Write-Host "  Application (Client) ID: $appId"
+
+            # Check if application user already exists in Dataverse
+            $existingUser = Invoke-DataverseApi -Method GET -Uri "$baseUrl/systemusers?`$filter=applicationid eq '$appId'&`$select=systemuserid,fullname" -Headers $headers
+            if ($existingUser.value -and $existingUser.value.Count -gt 0) {
+                $systemUserId = $existingUser.value[0].systemuserid
+                Write-Host "  Application user already exists: $($existingUser.value[0].fullname) ($systemUserId)"
+            }
+            else {
+                # Create application user
+                Write-Host "  Creating application user..."
+                $userPayload = @{
+                    applicationid                = $appId
+                    firstname                    = "RE2"
+                    lastname                     = $appName
+                    internalemailaddress         = "$appName@re2.local"
+                    domainname                   = "$appName@re2.local"
+                    accessmode                   = 4  # Non-interactive
+                    "businessunitid@odata.bind"  = "/businessunits($rootBuId)"
+                    isdisabled                   = $false
+                    islicensed                   = $false
+                }
+                $createResult = Invoke-DataverseApi -Method POST -Uri "$baseUrl/systemusers" -Body $userPayload -Headers $headers
+                if ($createResult -and $createResult._error) {
+                    Write-Host "  FAILED to create application user: $($createResult.Message)" -ForegroundColor Red
+                    $failedApps += $appName
+                    continue
+                }
+
+                # Re-query to get the systemuserid
+                Start-Sleep -Seconds 3
+                $existingUser = Invoke-DataverseApi -Method GET -Uri "$baseUrl/systemusers?`$filter=applicationid eq '$appId'&`$select=systemuserid,fullname" -Headers $headers
+                if ($existingUser.value -and $existingUser.value.Count -gt 0) {
+                    $systemUserId = $existingUser.value[0].systemuserid
+                    Write-Host "  Created: $($existingUser.value[0].fullname) ($systemUserId)" -ForegroundColor Green
+                }
+                else {
+                    Write-Host "  FAILED: User created but could not be retrieved" -ForegroundColor Red
+                    $failedApps += $appName
+                    continue
+                }
+            }
+
+            # Assign security role (idempotent)
+            if ($roleId) {
+                Write-Host "  Ensuring role '$DataverseRoleName' is assigned..."
+                $rolePayload = @{
+                    "@odata.id" = "$baseUrl/roles($roleId)"
+                }
+                $roleAssignResult = Invoke-DataverseApi -Method POST -Uri "$baseUrl/systemusers($systemUserId)/systemuserroles_association/`$ref" -Body $rolePayload -Headers $headers
+                if ($roleAssignResult -and $roleAssignResult._error) {
+                    if ($roleAssignResult.StatusCode -eq 409 -or ($roleAssignResult.Message -and $roleAssignResult.Message -match "Cannot insert duplicate key")) {
+                        Write-Host "  Role already assigned."
+                    }
+                    else {
+                        Write-Host "  WARNING: Failed to assign role: $($roleAssignResult.Message)" -ForegroundColor Yellow
+                    }
+                }
+                else {
+                    Write-Host "  Role assigned." -ForegroundColor Green
+                }
+            }
+
+            $registeredApps += $appName
+        }
+    }
+}
+
 # --- Summary ---
 
 Write-Host ""
@@ -578,6 +738,14 @@ if ($skippedEntities.Count -gt 0) {
 Write-Host "  Failed: $($failedEntities.Count) entities"
 if ($failedEntities.Count -gt 0) {
     $failedEntities | ForEach-Object { Write-Host "    - $_" -ForegroundColor Red }
+}
+if ($registeredApps.Count -gt 0) {
+    Write-Host "  Application users registered: $($registeredApps.Count)"
+    $registeredApps | ForEach-Object { Write-Host "    - $_" }
+}
+if ($failedApps.Count -gt 0) {
+    Write-Host "  Application users failed: $($failedApps.Count)"
+    $failedApps | ForEach-Object { Write-Host "    - $_" -ForegroundColor Yellow }
 }
 Write-Host ""
 
