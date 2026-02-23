@@ -57,9 +57,26 @@ stages:
                                azureAdClientId=$(AzureAdClientId) \
                   --verbose
 
+  - deployment: ProvisionDataverse
+    displayName: 'Provision Dataverse schema'
+    dependsOn: DeployInfra
+    environment: 're2-prod'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureCLI@2
+            displayName: 'Provision Dataverse entities'
+            inputs:
+              azureSubscription: 'RE2-Prod-ServiceConnection'
+              scriptType: 'pscore'
+              scriptLocation: 'scriptPath'
+              scriptPath: '$(Pipeline.Workspace)/build/drop/dataverse/provision-dataverse-schema.ps1'
+              arguments: '-DataverseUrl "$(DataverseUrl)"'
+
   - deployment: DeployApps
     displayName: 'Deploy applications (slot swap)'
-    dependsOn: DeployInfra
+    dependsOn: ProvisionDataverse
     environment: 're2-prod'
     strategy:
       runOnce:

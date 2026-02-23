@@ -1,5 +1,5 @@
 # RE2 Compliance Platform — Provision Dataverse Schema
-# Manual trigger only. Creates all 27 phr_* custom entities in the target
+# Manual trigger only. Creates all 29 phr_* custom entities in the target
 # Dataverse environment and wraps them in an RE2ComplianceSchema solution.
 #
 # Prerequisites:
@@ -74,9 +74,9 @@ stages:
                 $count = $result.value.Count
                 Write-Host "Found $count phr_* entities in Dataverse:"
                 $result.value | ForEach-Object { Write-Host "  - $($_.LogicalName)" }
-                if ($count -lt 27) {
-                    Write-Host "##vso[task.logissue type=warning]Expected 27 phr_* entities but found $count"
+                if ($count -lt 29) {
+                    Write-Host "##vso[task.logissue type=warning]Expected 29 phr_* entities but found $count"
                 }
                 else {
-                    Write-Host "All 27 entities verified."
+                    Write-Host "All 29 entities verified."
                 }

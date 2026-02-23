@@ -137,6 +137,21 @@ public static class InfrastructureExtensions
         // Register GDP operational service (T262)
         services.AddScoped<IGdpOperationalService, GdpOperationalService>();
 
+        // Register alert repository (migrated from D365 F&O)
+        services.AddScoped<IAlertRepository, DataverseAlertRepository>();
+
+        // Register audit repository (migrated from D365 F&O)
+        services.AddScoped<IAuditRepository, DataverseAuditRepository>();
+
+        // Register audit logging service (T156)
+        services.AddScoped<IAuditLoggingService, AuditLoggingService>();
+
+        // Register reporting service (T164)
+        services.AddScoped<IReportingService, ReportingService>();
+
+        // Register licence correction impact service (T163a-T163c)
+        services.AddScoped<ILicenceCorrectionImpactService, LicenceCorrectionImpactService>();
+
         return services;
     }
 
@@ -196,21 +211,6 @@ public static class InfrastructureExtensions
             var logger = sp.GetRequiredService<ILogger<D365FoClient>>();
             return new D365FoClient(httpClient, resource, logger);
         });
-
-        // Register D365 F&O audit repository (T155)
-        services.AddScoped<IAuditRepository, D365FoAuditRepository>();
-
-        // Register D365 F&O alert repository
-        services.AddScoped<IAlertRepository, D365FoAlertRepository>();
-
-        // Register audit logging service (T156)
-        services.AddScoped<IAuditLoggingService, AuditLoggingService>();
-
-        // Register reporting service (T164)
-        services.AddScoped<IReportingService, ReportingService>();
-
-        // Register licence correction impact service (T163a-T163c)
-        services.AddScoped<ILicenceCorrectionImpactService, LicenceCorrectionImpactService>();
 
         return services;
     }
@@ -422,6 +422,7 @@ public static class InfrastructureExtensions
         else
         {
             services.AddDataverseServices(configuration);
+            services.AddD365FOServices(configuration);
         }
 
         // T280: Register cache service
