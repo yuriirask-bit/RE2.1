@@ -206,6 +206,7 @@ public static class InfrastructureExtensions
             client.DefaultRequestHeaders.Add("Accept", "application/json");
             client.DefaultRequestHeaders.Add("OData-MaxVersion", "4.0");
             client.DefaultRequestHeaders.Add("OData-Version", "4.0");
+            client.DefaultRequestHeaders.Add("User-Agent", "RE2-ComplianceApi/1.0");
         })
         .AddStandardResilienceHandler(options =>
         {
