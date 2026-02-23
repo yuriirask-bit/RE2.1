@@ -63,8 +63,8 @@ public class D365FoClient : ID365FoClient
         CancellationToken cancellationToken = default) where T : class
     {
         var url = string.IsNullOrWhiteSpace(query)
-            ? entitySetName
-            : $"{entitySetName}?{query}";
+            ? $"{entitySetName}?cross-company=true"
+            : $"{entitySetName}?cross-company=true&{query}";
 
         try
         {
@@ -94,7 +94,7 @@ public class D365FoClient : ID365FoClient
         string key,
         CancellationToken cancellationToken = default) where T : class
     {
-        var url = $"{entitySetName}({key})";
+        var url = $"{entitySetName}({key})?cross-company=true";
 
         try
         {
