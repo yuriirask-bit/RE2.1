@@ -33,22 +33,22 @@ public class DataverseCustomerRepository : ICustomerRepository
 
     public async Task<IEnumerable<Customer>> GetAllD365CustomersAsync(CancellationToken cancellationToken = default)
     {
-        try
+        var response = await _d365FoClient.GetAsync<D365FinanceOperations.Models.CustomerODataResponse>(
+            "CustomersV3",
+            "$select=CustomerAccount,dataAreaId,OrganizationName,AddressCountryRegionId",
+            cancellationToken);
+
+        if (response?.Value == null)
         {
-            var response = await _d365FoClient.GetAsync<D365FinanceOperations.Models.CustomerODataResponse>(
-                "CustomersV3",
-                "$select=CustomerAccount,dataAreaId,OrganizationName,AddressCountryRegionId",
-                cancellationToken);
+            return Enumerable.Empty<Customer>();
+        }
 
-            if (response?.Value == null)
-            {
-                return Enumerable.Empty<Customer>();
-            }
+        var customers = response.Value.Select(dto => dto.ToDomainModel()).ToList();
 
-            var customers = response.Value.Select(dto => dto.ToDomainModel()).ToList();
-
-            // Merge compliance extensions where they exist
-            foreach (var customer in customers)
+        // Merge compliance extensions where they exist
+        foreach (var customer in customers)
+        {
+            try
             {
                 var extension = await GetComplianceExtensionAsync(customer.CustomerAccount, customer.DataAreaId, cancellationToken);
                 if (extension != null)
@@ -56,46 +56,46 @@ public class DataverseCustomerRepository : ICustomerRepository
                     extension.ApplyToDomainModel(customer);
                 }
             }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load compliance extension for {Account}/{DataArea}, returning D365FO data only",
+                    customer.CustomerAccount, customer.DataAreaId);
+            }
+        }
 
-            return customers;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving D365FO customers");
-            return Enumerable.Empty<Customer>();
-        }
+        return customers;
     }
 
     public async Task<Customer?> GetD365CustomerAsync(string customerAccount, string dataAreaId, CancellationToken cancellationToken = default)
     {
+        var response = await _d365FoClient.GetByKeyAsync<D365FinanceOperations.Models.CustomerDto>(
+            "CustomersV3",
+            $"CustomerAccount='{customerAccount}',dataAreaId='{dataAreaId}'",
+            cancellationToken);
+
+        if (response == null)
+        {
+            return null;
+        }
+
+        var customer = response.ToDomainModel();
+
+        // Merge compliance extension if exists
         try
         {
-            var response = await _d365FoClient.GetByKeyAsync<D365FinanceOperations.Models.CustomerDto>(
-                "CustomersV3",
-                $"CustomerAccount='{customerAccount}',dataAreaId='{dataAreaId}'",
-                cancellationToken);
-
-            if (response == null)
-            {
-                return null;
-            }
-
-            var customer = response.ToDomainModel();
-
-            // Merge compliance extension if exists
             var extension = await GetComplianceExtensionAsync(customerAccount, dataAreaId, cancellationToken);
             if (extension != null)
             {
                 extension.ApplyToDomainModel(customer);
             }
-
-            return customer;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving D365FO customer {Account}/{DataArea}", customerAccount, dataAreaId);
-            return null;
+            _logger.LogWarning(ex, "Failed to load compliance extension for {Account}/{DataArea}, returning D365FO data only",
+                customerAccount, dataAreaId);
         }
+
+        return customer;
     }
 
     #endregion
@@ -292,37 +292,37 @@ public class DataverseCustomerRepository : ICustomerRepository
     public async Task<IEnumerable<Customer>> SearchByNameAsync(string searchTerm, CancellationToken cancellationToken = default)
     {
         // Search D365FO customers by organization name
-        try
+        var response = await _d365FoClient.GetAsync<D365FinanceOperations.Models.CustomerODataResponse>(
+            "CustomersV3",
+            $"$filter=contains(OrganizationName,'{searchTerm}')&$select=CustomerAccount,dataAreaId,OrganizationName,AddressCountryRegionId",
+            cancellationToken);
+
+        if (response?.Value == null)
         {
-            var response = await _d365FoClient.GetAsync<D365FinanceOperations.Models.CustomerODataResponse>(
-                "CustomersV3",
-                $"$filter=contains(OrganizationName,'{searchTerm}')&$select=CustomerAccount,dataAreaId,OrganizationName,AddressCountryRegionId",
-                cancellationToken);
+            return Enumerable.Empty<Customer>();
+        }
 
-            if (response?.Value == null)
+        var customers = new List<Customer>();
+        foreach (var dto in response.Value)
+        {
+            var customer = dto.ToDomainModel();
+            try
             {
-                return Enumerable.Empty<Customer>();
-            }
-
-            var customers = new List<Customer>();
-            foreach (var dto in response.Value)
-            {
-                var customer = dto.ToDomainModel();
                 var extension = await GetComplianceExtensionAsync(customer.CustomerAccount, customer.DataAreaId, cancellationToken);
                 if (extension != null)
                 {
                     extension.ApplyToDomainModel(customer);
                 }
-                customers.Add(customer);
             }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load compliance extension for {Account}/{DataArea}, returning D365FO data only",
+                    customer.CustomerAccount, customer.DataAreaId);
+            }
+            customers.Add(customer);
+        }
 
-            return customers;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error searching customers by name '{SearchTerm}'", searchTerm);
-            return Enumerable.Empty<Customer>();
-        }
+        return customers;
     }
 
     #endregion
