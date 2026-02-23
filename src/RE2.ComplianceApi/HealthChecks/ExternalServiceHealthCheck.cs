@@ -62,10 +62,10 @@ public class D365FoHealthCheck : IHealthCheck
         try
         {
             // Attempt a lightweight OData query to verify connectivity
-            // $metadata returns 404 with service-to-service auth, so use a real entity with $top=0
+            // $metadata returns 404 with service-to-service auth, so use a real entity with $top=1
             var result = await _d365FoClient.GetAsync<object>(
                 "CustomersV3",
-                query: "$top=0&$count=true",
+                query: "$top=1&$count=true",
                 cancellationToken: cancellationToken);
 
             return HealthCheckResult.Healthy("D365 F&O OData API is reachable.");
