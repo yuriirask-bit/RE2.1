@@ -101,6 +101,16 @@ public class HomeController : Controller
         return View();
     }
 
+    /// <summary>
+    /// Shown when an authenticated user lacks the required role for a page.
+    /// </summary>
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    public IActionResult AccessDenied(string? returnUrl = null)
+    {
+        ViewData["ReturnUrl"] = returnUrl;
+        return View();
+    }
+
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {
