@@ -69,9 +69,12 @@ public class D365FoClient : ID365FoClient
 
         try
         {
-            _logger.LogDebug("GET request to D365 F&O: {Url}", url);
-
             await EnsureAuthTokenAsync(cancellationToken);
+
+            var fullUri = new Uri(_httpClient.BaseAddress!, url);
+            _logger.LogWarning(
+                "D365 F&O GET diagnostics — FullUrl: {FullUrl}, AuthHeader: {AuthPresent}, BaseAddress: {BaseAddress}",
+                fullUri, _httpClient.DefaultRequestHeaders.Authorization?.Scheme ?? "(none)", _httpClient.BaseAddress);
 
             var response = await _httpClient.GetAsync(url, cancellationToken);
             await EnsureSuccessOrThrowWithDetailsAsync(response, url, cancellationToken);
