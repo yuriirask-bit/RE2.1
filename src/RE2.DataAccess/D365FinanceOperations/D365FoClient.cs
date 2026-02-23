@@ -73,7 +73,7 @@ public class D365FoClient : ID365FoClient
             await EnsureAuthTokenAsync(cancellationToken);
 
             var response = await _httpClient.GetAsync(url, cancellationToken);
-            response.EnsureSuccessStatusCode();
+            await EnsureSuccessOrThrowWithDetailsAsync(response, url, cancellationToken);
 
             var result = await response.Content.ReadFromJsonAsync<T>(_jsonOptions, cancellationToken);
 
@@ -103,7 +103,7 @@ public class D365FoClient : ID365FoClient
             await EnsureAuthTokenAsync(cancellationToken);
 
             var response = await _httpClient.GetAsync(url, cancellationToken);
-            response.EnsureSuccessStatusCode();
+            await EnsureSuccessOrThrowWithDetailsAsync(response, url, cancellationToken);
 
             var result = await response.Content.ReadFromJsonAsync<T>(_jsonOptions, cancellationToken);
 
@@ -134,7 +134,7 @@ public class D365FoClient : ID365FoClient
                 _jsonOptions,
                 cancellationToken);
 
-            response.EnsureSuccessStatusCode();
+            await EnsureSuccessOrThrowWithDetailsAsync(response, entitySetName, cancellationToken);
 
             var result = await response.Content.ReadFromJsonAsync<T>(_jsonOptions, cancellationToken);
 
@@ -173,7 +173,7 @@ public class D365FoClient : ID365FoClient
             };
 
             var response = await _httpClient.SendAsync(request, cancellationToken);
-            response.EnsureSuccessStatusCode();
+            await EnsureSuccessOrThrowWithDetailsAsync(response, url, cancellationToken);
 
             _logger.LogInformation("Updated entity in {EntitySetName} with key {Key}", entitySetName, key);
         }
@@ -235,7 +235,7 @@ public class D365FoClient : ID365FoClient
                     $"The {entitySetName} with key {key} has been modified by another user. Please refresh and try again.");
             }
 
-            response.EnsureSuccessStatusCode();
+            await EnsureSuccessOrThrowWithDetailsAsync(response, url, cancellationToken);
 
             _logger.LogInformation("Updated entity in {EntitySetName} with key {Key} with concurrency check", entitySetName, key);
         }
@@ -265,7 +265,7 @@ public class D365FoClient : ID365FoClient
             await EnsureAuthTokenAsync(cancellationToken);
 
             var response = await _httpClient.DeleteAsync(url, cancellationToken);
-            response.EnsureSuccessStatusCode();
+            await EnsureSuccessOrThrowWithDetailsAsync(response, url, cancellationToken);
 
             _logger.LogInformation("Deleted entity from {EntitySetName} with key {Key}", entitySetName, key);
         }
@@ -308,7 +308,7 @@ public class D365FoClient : ID365FoClient
                     cancellationToken);
             }
 
-            response.EnsureSuccessStatusCode();
+            await EnsureSuccessOrThrowWithDetailsAsync(response, actionOrFunctionName, cancellationToken);
 
             var result = await response.Content.ReadFromJsonAsync<TResponse>(_jsonOptions, cancellationToken);
 
@@ -321,6 +321,28 @@ public class D365FoClient : ID365FoClient
             _logger.LogError(ex, "Error executing action/function: {ActionName}", actionOrFunctionName);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Reads the response body and throws HttpRequestException with the actual D365 F&O error
+    /// message if the response indicates failure. Unlike EnsureSuccessStatusCode(), this
+    /// preserves the server's error details instead of discarding the response body.
+    /// </summary>
+    private async Task EnsureSuccessOrThrowWithDetailsAsync(HttpResponseMessage response, string url, CancellationToken cancellationToken)
+    {
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        _logger.LogError("D365 F&O returned {StatusCode} for {Url}. Response body: {Body}",
+            (int)response.StatusCode, url, body);
+
+        throw new HttpRequestException(
+            $"D365 F&O returned {(int)response.StatusCode} ({response.ReasonPhrase}) for {url}: {body}",
+            inner: null,
+            statusCode: response.StatusCode);
     }
 
     /// <summary>
