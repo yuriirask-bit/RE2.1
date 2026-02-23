@@ -76,7 +76,7 @@ stages:
               scriptType: 'pscore'
               scriptLocation: 'scriptPath'
               scriptPath: '$(Pipeline.Workspace)/build/drop/dataverse/provision-dataverse-schema.ps1'
-              arguments: '-DataverseUrl "$(DataverseUrl)"'
+              arguments: '-DataverseUrl "$(DataverseUrl)" -ResourceGroupName "rg-re2-dev" -AppNames "app-re2-api-dev,app-re2-web-dev,func-re2-compliance-dev"'
 
   - deployment: DeployApps
     displayName: 'Deploy applications'
