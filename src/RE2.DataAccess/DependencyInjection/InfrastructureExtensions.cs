@@ -1,3 +1,5 @@
+using Azure.Core;
+using Azure.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
@@ -173,6 +175,26 @@ public static class InfrastructureExtensions
         var resource = configuration["D365FO:Resource"]
             ?? throw new InvalidOperationException("D365FO:Resource configuration is missing");
 
+        // Determine auth mode: "ClientCredentials" for CHE (Dev), "ManagedIdentity" for Tier-2+ (UAT/Prod)
+        var authMode = configuration["D365FO:AuthMode"] ?? "ManagedIdentity";
+
+        TokenCredential credential;
+        if (string.Equals(authMode, "ClientCredentials", StringComparison.OrdinalIgnoreCase))
+        {
+            var tenantId = configuration["D365FO:TenantId"]
+                ?? throw new InvalidOperationException("D365FO:TenantId is required when AuthMode is ClientCredentials");
+            var clientId = configuration["D365FO:ClientId"]
+                ?? throw new InvalidOperationException("D365FO:ClientId is required when AuthMode is ClientCredentials");
+            var clientSecret = configuration["D365FO:ClientSecret"]
+                ?? throw new InvalidOperationException("D365FO:ClientSecret is required when AuthMode is ClientCredentials");
+
+            credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
+        }
+        else
+        {
+            credential = new DefaultAzureCredential();
+        }
+
         // Register named HttpClient with standard resilience handler (T033-T034)
         services.AddHttpClient(nameof(D365FoClient), (sp, client) =>
         {
@@ -209,7 +231,7 @@ public static class InfrastructureExtensions
         {
             var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(D365FoClient));
             var logger = sp.GetRequiredService<ILogger<D365FoClient>>();
-            return new D365FoClient(httpClient, resource, logger);
+            return new D365FoClient(httpClient, resource, credential, logger);
         });
 
         return services;

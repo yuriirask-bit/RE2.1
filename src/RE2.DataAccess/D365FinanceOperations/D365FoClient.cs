@@ -4,7 +4,6 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Azure.Core;
-using Azure.Identity;
 using Microsoft.Extensions.Logging;
 using RE2.ComplianceCore.Exceptions;
 using RE2.ComplianceCore.Interfaces;
@@ -29,13 +28,16 @@ public class D365FoClient : ID365FoClient
     /// </summary>
     /// <param name="httpClient">Pre-configured HttpClient with base address and resilience handler.</param>
     /// <param name="resource">D365 F&O resource URL for token acquisition.</param>
+    /// <param name="credential">Token credential for OAuth2 authentication (managed identity or client credentials).</param>
     /// <param name="logger">Logger instance.</param>
     public D365FoClient(
         HttpClient httpClient,
         string resource,
+        TokenCredential credential,
         ILogger<D365FoClient> logger)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _credential = credential ?? throw new ArgumentNullException(nameof(credential));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         if (string.IsNullOrWhiteSpace(resource))
@@ -44,7 +46,6 @@ public class D365FoClient : ID365FoClient
         }
 
         _resource = resource;
-        _credential = new DefaultAzureCredential();
 
         // Configure JSON serialization options for OData
         _jsonOptions = new JsonSerializerOptions
