@@ -63,7 +63,8 @@ else
     // Per research.md section 6: Stateless JWT authentication with Azure AD + Azure AD B2C
 
     // Scheme 1: Azure AD for internal users (employees)
-    // Default scheme must match the registered handler name ("AzureAd"), not the generic "Bearer"
+    // Scheme 2: Azure AD B2C for external users (customers, contractors)
+    // Both schemes registered on a single AddAuthentication call to preserve DefaultScheme
     builder.Services.AddAuthentication("AzureAd")
         .AddMicrosoftIdentityWebApi(
             options =>
@@ -81,10 +82,7 @@ else
             {
                 builder.Configuration.Bind("AzureAd", options);
             },
-            jwtBearerScheme: "AzureAd");
-
-    // Scheme 2: Azure AD B2C for external users (customers, contractors)
-    builder.Services.AddAuthentication()
+            jwtBearerScheme: "AzureAd")
         .AddMicrosoftIdentityWebApi(
             options =>
             {
