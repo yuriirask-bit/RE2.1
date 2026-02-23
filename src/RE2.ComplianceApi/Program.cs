@@ -64,40 +64,44 @@ else
 
     // Scheme 1: Azure AD for internal users (employees)
     // Scheme 2: Azure AD B2C for external users (customers, contractors)
-    // Both schemes registered on a single AddAuthentication call to preserve DefaultScheme
-    builder.Services.AddAuthentication("AzureAd")
-        .AddMicrosoftIdentityWebApi(
-            options =>
+    // Both schemes registered on the same AuthenticationBuilder to preserve DefaultScheme ("AzureAd").
+    // AddMicrosoftIdentityWebApi returns MicrosoftIdentityWebApiAuthenticationBuilder (not AuthenticationBuilder),
+    // so we store the AuthenticationBuilder and call AddMicrosoftIdentityWebApi twice on it.
+    var authBuilder = builder.Services.AddAuthentication("AzureAd");
+
+    authBuilder.AddMicrosoftIdentityWebApi(
+        options =>
+        {
+            builder.Configuration.Bind("AzureAd", options);
+            options.TokenValidationParameters.ValidAudiences = new[]
             {
-                builder.Configuration.Bind("AzureAd", options);
-                options.TokenValidationParameters.ValidAudiences = new[]
-                {
-                    builder.Configuration["AzureAd:ClientId"]!,
-                    $"api://{builder.Configuration["AzureAd:ClientId"]}"
-                };
-                options.TokenValidationParameters.NameClaimType = "name";
-                options.TokenValidationParameters.RoleClaimType = "roles";
-            },
-            options =>
+                builder.Configuration["AzureAd:ClientId"]!,
+                $"api://{builder.Configuration["AzureAd:ClientId"]}"
+            };
+            options.TokenValidationParameters.NameClaimType = "name";
+            options.TokenValidationParameters.RoleClaimType = "roles";
+        },
+        options =>
+        {
+            builder.Configuration.Bind("AzureAd", options);
+        },
+        jwtBearerScheme: "AzureAd");
+
+    authBuilder.AddMicrosoftIdentityWebApi(
+        options =>
+        {
+            builder.Configuration.Bind("AzureAdB2C", options);
+            options.TokenValidationParameters.NameClaimType = "name";
+            options.TokenValidationParameters.ValidIssuers = new[]
             {
-                builder.Configuration.Bind("AzureAd", options);
-            },
-            jwtBearerScheme: "AzureAd")
-        .AddMicrosoftIdentityWebApi(
-            options =>
-            {
-                builder.Configuration.Bind("AzureAdB2C", options);
-                options.TokenValidationParameters.NameClaimType = "name";
-                options.TokenValidationParameters.ValidIssuers = new[]
-                {
-                    $"https://{builder.Configuration["AzureAdB2C:Domain"]}/{builder.Configuration["AzureAdB2C:TenantId"]}/v2.0/"
-                };
-            },
-            options =>
-            {
-                builder.Configuration.Bind("AzureAdB2C", options);
-            },
-            jwtBearerScheme: "AzureAdB2C");
+                $"https://{builder.Configuration["AzureAdB2C:Domain"]}/{builder.Configuration["AzureAdB2C:TenantId"]}/v2.0/"
+            };
+        },
+        options =>
+        {
+            builder.Configuration.Bind("AzureAdB2C", options);
+        },
+        jwtBearerScheme: "AzureAdB2C");
 
     // T174: Register ActiveEmployeeHandler for authorization
     builder.Services.AddSingleton<IAuthorizationHandler, ActiveEmployeeHandler>();
