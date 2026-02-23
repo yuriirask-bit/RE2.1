@@ -2,7 +2,7 @@
 
 **Status**: **Implemented** - User Stories 1-12 complete, 1,432 tests passing
 **Build**: 0 errors | **Infrastructure**: Bicep IaC + Azure DevOps CI/CD
-**Last Updated**: 2026-02-21
+**Last Updated**: 2026-02-23
 
 ---
 
@@ -526,7 +526,7 @@ All infrastructure is defined in `infra/bicep/` and deployed via the Azure DevOp
 | Log Analytics + App Insights | `log-re2-{env}`, `appi-re2-{env}` | Monitoring, diagnostics, alerting |
 | Storage Account | `stre2{env}` | Blob Storage (compliance documents) + Functions runtime |
 | Azure Cache for Redis | `redis-re2-{env}` | Distributed caching (licence/customer lookups) |
-| Key Vault | `kv-re2-{env}` | Secrets management (Redis connection string) |
+| Key Vault | `kv-re2-{env}` | Secrets management (Redis connection string, D365 F&O client secret for Dev) |
 | App Service Plan | `plan-re2-{env}` | Shared plan for API + Web |
 | App Service (API) | `app-re2-api-{env}` | REST API hosting |
 | App Service (Web) | `app-re2-web-{env}` | MVC Web UI hosting |
@@ -560,7 +560,10 @@ All infrastructure is defined in `infra/bicep/` and deployed via the Azure DevOp
 - All App Services and Functions use **system-assigned Managed Identity**
 - Managed Identities are granted **Storage Blob Data Contributor** and **Key Vault Secrets User** via RBAC
 - Redis connection string stored in Key Vault; referenced via `@Microsoft.KeyVault(...)` in App Settings
-- Auth to Dataverse/D365 F&O uses `DefaultAzureCredential` (no secrets needed)
+- Auth to Dataverse uses `DefaultAzureCredential` (Managed Identity)
+- Auth to D365 F&O is configurable via `D365FO:AuthMode`:
+  - `ManagedIdentity` (default) — uses `DefaultAzureCredential`, for Tier-2+ sandboxes (UAT/Prod)
+  - `ClientCredentials` — uses Azure AD app registration with client secret (stored in Key Vault), for Cloud Hosted Environments (Dev)
 
 See `docs/deployment/README.md` for the full deployment guide.
 
@@ -719,4 +722,4 @@ The same in-memory mode is used by the CLI tool and test projects.
 
 **Status**: Implemented (User Stories 1-12)
 **Version**: MVP Complete
-**Last Updated**: 2026-02-21
+**Last Updated**: 2026-02-23

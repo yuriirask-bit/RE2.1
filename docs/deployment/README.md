@@ -152,11 +152,13 @@ Create three variable groups with these variables:
 
 | Variable Group | Variables |
 |---------------|-----------|
-| `re2-dev-secrets` | `AzureAdTenantId`, `AzureAdClientId` |
+| `re2-dev-secrets` | `AzureAdTenantId`, `AzureAdClientId`, `d365foAuthMode`, `d365foClientId`, `d365foClientSecret` |
 | `re2-uat-secrets` | `AzureAdTenantId`, `AzureAdClientId` |
 | `re2-prod-secrets` | `AzureAdTenantId`, `AzureAdClientId` |
 
 Mark sensitive values as secrets (lock icon). These override the placeholder values in the `.bicepparam` files.
+
+**D365 F&O Auth Variables (Dev only):** The Dev environment uses an Azure AD app registration (client credentials) because the Dev CHE does not support Managed Identity for D365 F&O. Set `d365foAuthMode` to `ClientCredentials`, provide the app registration's `d365foClientId`, and mark `d365foClientSecret` as a secret. UAT and Prod default to `ManagedIdentity` and do not need these variables.
 
 ### 3.4 Create the Pipeline
 
@@ -252,9 +254,16 @@ Note about Security role for Dataverse
 
 6. Repeat for the Functions App Managed Identity
 
-### 5.2 Register Managed Identity in D365 F&O
+### 5.2 Register Identity in D365 F&O
 
-1. Open **Lifecycle Services (LCS)** > Dev sandbox
+D365 F&O authentication depends on the environment type:
+
+- **Tier-2+ sandboxes (UAT/Prod)**: Use the App Service's **system-assigned Managed Identity** — this is the default (`D365FO:AuthMode = ManagedIdentity`).
+- **Cloud Hosted Environments (Dev CHE)**: Use an **Azure AD app registration** with client credentials — set `D365FO:AuthMode = ClientCredentials` and provide the app registration's client ID and secret via pipeline variables (see section 3.3).
+
+#### For Tier-2+ (UAT/Prod) — Managed Identity
+
+1. Open **Lifecycle Services (LCS)** > UAT/Prod sandbox
 2. Go to **System administration** > **Azure Active Directory applications**
 3. Add a new record with the Managed Identity client ID
 
@@ -262,26 +271,35 @@ Field: Client ID
   Value: (find the Object ID in Azure Portal under the App Service > Identity > System assigned)
   ────────────────────────────────────────
   Field: Name
-  Value: RE2 Compliance API - Dev (Managed Identity)
+  Value: RE2 Compliance API - {env} (Managed Identity)
   ────────────────────────────────────────
   Field: User ID
-  Value: Map to a D365 user account that has the security roles 
-    needed to read master data (e.g. a service account or admin 
-    user for dev)
+  Value: Map to a D365 user account that has the security roles
+    needed to read master data (e.g. a service account or admin
+    user)
 
   Then add a second entry:
 
   Field: Client ID
-  Value: (find the Object ID in Azure Portal under the App Service > Identity > System assigned)
+  Value: (find the Object ID in Azure Portal under the Functions App > Identity > System assigned)
   ────────────────────────────────────────
   Field: Name
-  Value: RE2 Compliance Functions - Dev (Managed Identity)      
+  Value: RE2 Compliance Functions - {env} (Managed Identity)
   ────────────────────────────────────────
   Field: User ID
-  Value: Same user or another service account with appropriate 
+  Value: Same user or another service account with appropriate
     roles
 
 4. Assign appropriate D365 F&O security roles
+
+#### For CHE (Dev) — Client Credentials
+
+1. Create an Azure AD app registration (single tenant, no redirect URI)
+2. Generate a client secret and store it in the `re2-dev-secrets` variable group (see section 3.3)
+3. Register the app registration's **Application (client) ID** in D365 F&O:
+   - Navigate to **System administration** > **Azure Active Directory applications**
+   - Add a record with the client ID and map to a D365 service account
+4. The pipeline passes the client ID and secret to Bicep, which stores the secret in Key Vault and configures the app settings automatically
 
 Note on security roles in F&O: 
 Here's what your apps need access to in D365FO:                             
@@ -516,8 +534,9 @@ az deployment group create \
 The readiness probe checks Dataverse, D365 F&O, and Blob Storage. If any check fails:
 
 1. **Dataverse**: Verify Managed Identity is registered as an application user in Power Platform
-2. **D365 F&O**: Verify Managed Identity is registered in D365 System Administration
-3. **Blob Storage**: Verify Managed Identity has **Storage Blob Data Contributor** role (should be assigned by Bicep)
+2. **D365 F&O (Tier-2+)**: Verify Managed Identity is registered in D365 System Administration > Azure Active Directory applications
+3. **D365 F&O (Dev CHE)**: Verify `D365FO__AuthMode` is `ClientCredentials`, `D365FO__ClientId` matches the app registration, and the `D365FO__ClientSecret` Key Vault reference resolves (green checkmark in Configuration). Also verify the app registration client ID is registered in D365 F&O.
+4. **Blob Storage**: Verify Managed Identity has **Storage Blob Data Contributor** role (should be assigned by Bicep)
 
 ### Functions not triggering
 
@@ -568,7 +587,7 @@ main.bicep
   ├── 1. monitoring.bicep        ← Log Analytics + App Insights
   ├── 2. storage-account.bicep   ← Storage (blobs + Functions runtime)
   ├── 3. redis-cache.bicep       ← Redis (distributed caching)
-  ├── 4. key-vault.bicep         ← Secrets (depends on: redis)
+  ├── 4. key-vault.bicep         ← Secrets (depends on: redis, optional D365FO client secret)
   ├── 5. app-service-plan.bicep  ← Shared plan for API + Web
   ├── 6. app-service.bicep (API) ← API App Service (depends on: plan, monitoring, keyvault, storage)
   ├── 7. app-service.bicep (Web) ← Web App Service (depends on: plan, monitoring, keyvault, storage)
@@ -599,8 +618,14 @@ These are set by Bicep and override `appsettings.json` at runtime:
 | `Dataverse__Url` | Parameter file | `https://re2-dev.crm4.dynamics.com` |
 | `D365FO__ODataEndpoint` | Parameter file | `https://re2-dev.sandbox.operations.dynamics.com/data` |
 | `D365FO__Resource` | Parameter file | `https://re2-dev.sandbox.operations.dynamics.com` |
+| `D365FO__AuthMode` | Pipeline variable / Bicep default | `ManagedIdentity` or `ClientCredentials` |
+| `D365FO__TenantId` | Conditional (ClientCredentials only) | `<guid>` |
+| `D365FO__ClientId` | Conditional (ClientCredentials only) | `<guid>` |
+| `D365FO__ClientSecret` | Conditional (ClientCredentials only) | Key Vault reference |
 | `BlobStorage__AccountUrl` | Bicep output | `https://stre2dev.blob.core.windows.net/` |
 | `Caching__Enabled` | Bicep | `true` |
 | `Caching__RedisConnectionString` | Key Vault reference | `@Microsoft.KeyVault(VaultName=kv-re2-dev;SecretName=RedisConnectionString)` |
 | `AzureAd__TenantId` | Pipeline variable | `<guid>` |
 | `AzureAd__ClientId` | Pipeline variable | `<guid>` |
+
+**Note:** `D365FO__TenantId`, `D365FO__ClientId`, and `D365FO__ClientSecret` are only present in app settings when `D365FO__AuthMode` is `ClientCredentials` (Dev CHE). For Tier-2+ environments (UAT/Prod), these settings are omitted and the app uses Managed Identity.
