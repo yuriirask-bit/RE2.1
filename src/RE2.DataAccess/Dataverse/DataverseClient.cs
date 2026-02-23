@@ -1,4 +1,6 @@
+using System.Net.Http.Json;
 using System.ServiceModel;
+using System.Text.Json;
 using Azure.Core;
 using Azure.Identity;
 using Microsoft.Extensions.Logging;
@@ -35,23 +37,21 @@ public class DataverseClient : IDataverseClient, IDisposable
             throw new ArgumentException("Dataverse URL is required", nameof(dataverseUrl));
         }
 
-        // Per research.md: Use DefaultAzureCredential for Managed Identity
-        var credential = new DefaultAzureCredential();
-
-        // Use the base Dataverse URL for token scope — the SDK's tokenProviderFunction
-        // receives the full XRM endpoint URI which Entra ID rejects as an invalid resource.
-        var dataverseScope = dataverseUrl.TrimEnd('/') + "/.default";
+        // Acquire tokens by calling the App Service managed identity endpoint directly.
+        // Using DefaultAzureCredential here causes MSAL conflicts with the ServiceClient SDK's
+        // internal MSAL ConfidentialClientApplication — the SDK's MSAL flow passes the full
+        // XRM endpoint URI as the resource (e.g. .../XRMServices/2011/Organization.svc/web?...)
+        // which Azure AD rejects with AADSTS500011.
+        // Bypassing MSAL entirely by calling the identity endpoint over HTTP avoids this.
+        var dataverseResource = dataverseUrl.TrimEnd('/');
 
         _serviceClient = new ServiceClient(
             instanceUrl: new Uri(dataverseUrl),
-            tokenProviderFunction: async (_) =>
+            tokenProviderFunction: async (string instanceUri) =>
             {
                 try
                 {
-                    var token = await credential.GetTokenAsync(
-                        new TokenRequestContext(new[] { dataverseScope }),
-                        default);
-                    return token.Token;
+                    return await AcquireManagedIdentityTokenAsync(dataverseResource);
                 }
                 catch (Exception ex)
                 {
@@ -257,6 +257,38 @@ public class DataverseClient : IDataverseClient, IDisposable
                 request.RequestName);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Acquires a token from the App Service managed identity endpoint directly,
+    /// bypassing MSAL to avoid conflicts with the ServiceClient SDK's internal MSAL flow.
+    /// Falls back to DefaultAzureCredential for local development.
+    /// </summary>
+    private async Task<string> AcquireManagedIdentityTokenAsync(string resource)
+    {
+        var identityEndpoint = Environment.GetEnvironmentVariable("IDENTITY_ENDPOINT");
+        var identityHeader = Environment.GetEnvironmentVariable("IDENTITY_HEADER");
+
+        if (!string.IsNullOrEmpty(identityEndpoint) && !string.IsNullOrEmpty(identityHeader))
+        {
+            // Running on App Service — call the identity endpoint directly
+            using var request = new HttpRequestMessage(HttpMethod.Get,
+                $"{identityEndpoint}?resource={Uri.EscapeDataString(resource)}&api-version=2019-08-01");
+            request.Headers.Add("X-IDENTITY-HEADER", identityHeader);
+
+            using var httpClient = new HttpClient();
+            var response = await httpClient.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+
+            using var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+            return json.RootElement.GetProperty("access_token").GetString()!;
+        }
+
+        // Fallback for local development / non-App-Service environments
+        var credential = new DefaultAzureCredential();
+        var token = await credential.GetTokenAsync(
+            new TokenRequestContext(new[] { $"{resource}/.default" }));
+        return token.Token;
     }
 
     /// <summary>
