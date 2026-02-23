@@ -114,7 +114,7 @@ function Get-DataverseTypeMapping {
         "Decimal"          { return @{ AttributeType = "DecimalType";   "@odata.type" = "Microsoft.Dynamics.CRM.DecimalAttributeMetadata" } }
         "Boolean"          { return @{ AttributeType = "BooleanType";   "@odata.type" = "Microsoft.Dynamics.CRM.BooleanAttributeMetadata" } }
         "DateTime"         { return @{ AttributeType = "DateTimeType";  "@odata.type" = "Microsoft.Dynamics.CRM.DateTimeAttributeMetadata" } }
-        "Uniqueidentifier" { return @{ AttributeType = "UniqueidentifierType"; "@odata.type" = "Microsoft.Dynamics.CRM.UniqueIdentifierAttributeMetadata" } }
+        "Uniqueidentifier" { return @{ AttributeType = "StringType"; "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"; _isGuidString = $true } }
         "Picklist"         { return @{ AttributeType = "PicklistType";  "@odata.type" = "Microsoft.Dynamics.CRM.PicklistAttributeMetadata" } }
         "Lookup"           { return @{ AttributeType = "LookupType";    "@odata.type" = "Microsoft.Dynamics.CRM.LookupAttributeMetadata" } }
         default            { throw "Unknown schema type: $SchemaType" }
@@ -175,6 +175,19 @@ function Add-ColumnToEntity {
         RequiredLevel = @{ Value = "None" }
     }
 
+    # Uniqueidentifier columns can't be created via SDK — store as String(36) instead
+    if ($Column.type -eq "Uniqueidentifier") {
+        $attrPayload."@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+        $attrPayload.MaxLength = 36
+        $attrPayload.FormatName = @{ Value = "Text" }
+        $attrPayload.Description = @{
+            "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+            LocalizedLabels = @(@{ "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"; Label = "GUID stored as string (Dataverse SDK limitation)"; LanguageCode = 1033 })
+        }
+        Write-Host "    Adding column: $($Column.logicalName) (Uniqueidentifier → String(36))"
+        return Invoke-DataverseApi -Method POST -Uri "$BaseUrl/EntityDefinitions(LogicalName='$EntityLogicalName')/Attributes" -Body $attrPayload -Headers $Headers
+    }
+
     switch ($Column.type) {
         "String" {
             $attrPayload.MaxLength = if ($Column.maxLength) { $Column.maxLength } else { 200 }
@@ -182,7 +195,7 @@ function Add-ColumnToEntity {
         }
         "Memo" {
             $attrPayload.MaxLength = if ($Column.maxLength) { $Column.maxLength } else { 1048576 }
-            $attrPayload.Format = "Text"
+            $attrPayload.Format = "TextArea"
         }
         "Integer" {
             $attrPayload.MinValue = -2147483648
@@ -210,12 +223,27 @@ function Add-ColumnToEntity {
             $attrPayload.DateTimeBehavior = @{ Value = "UserLocal" }
         }
         "Picklist" {
+            # Build options from schema if defined, otherwise create a single placeholder
+            $options = @()
+            if ($Column.options -and $Column.options.Count -gt 0) {
+                foreach ($opt in $Column.options) {
+                    $options += @{
+                        Value = $opt.value
+                        Label = @{ "@odata.type" = "Microsoft.Dynamics.CRM.Label"; LocalizedLabels = @(@{ "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"; Label = $opt.label; LanguageCode = 1033 }) }
+                    }
+                }
+            }
+            else {
+                $options += @{
+                    Value = 100000000
+                    Label = @{ "@odata.type" = "Microsoft.Dynamics.CRM.Label"; LocalizedLabels = @(@{ "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"; Label = "Default"; LanguageCode = 1033 }) }
+                }
+            }
             $attrPayload.OptionSet = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.OptionSetMetadata"
                 IsGlobal = $false
                 OptionSetType = "Picklist"
-                Options = @(
-                    @{ Value = 100000000; Label = @{ "@odata.type" = "Microsoft.Dynamics.CRM.Label"; LocalizedLabels = @(@{ "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"; Label = "Default"; LanguageCode = 1033 }) } }
-                )
+                Options = $options
             }
         }
         "Lookup" {
