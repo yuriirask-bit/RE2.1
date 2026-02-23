@@ -1,0 +1,82 @@
+# RE2 Compliance Platform — Provision Dataverse Schema
+# Manual trigger only. Creates all 27 phr_* custom entities in the target
+# Dataverse environment and wraps them in an RE2ComplianceSchema solution.
+#
+# Prerequisites:
+#   Service Connections: RE2-Dev-ServiceConnection, RE2-UAT-ServiceConnection, RE2-Prod-ServiceConnection
+#   Variable Groups:    re2-{env}-secrets / re2-{env}-secrets / re2-{env}-secrets
+#     Required variables: DataverseUrl (e.g., https://org12345.crm4.dynamics.com)
+
+trigger: none
+pr: none
+
+parameters:
+- name: environment
+  displayName: 'Target environment'
+  type: string
+  values:
+  - dev
+  - uat
+  - prod
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+- group: re2-${{ parameters.environment }}-secrets
+- name: serviceConnection
+  ${{ if eq(parameters.environment, 'dev') }}:
+    value: 'RE2-Dev-ServiceConnection'
+  ${{ if eq(parameters.environment, 'uat') }}:
+    value: 'RE2-UAT-ServiceConnection'
+  ${{ if eq(parameters.environment, 'prod') }}:
+    value: 'RE2-Prod-ServiceConnection'
+
+stages:
+- stage: ProvisionDataverse
+  displayName: 'Provision Dataverse Schema (${{ parameters.environment }})'
+  jobs:
+  - deployment: ProvisionSchema
+    displayName: 'Create phr_* entities'
+    environment: 're2-${{ parameters.environment }}'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            displayName: 'Provision Dataverse entities'
+            inputs:
+              azureSubscription: '$(serviceConnection)'
+              scriptType: 'pscore'
+              scriptLocation: 'scriptPath'
+              scriptPath: '$(Build.SourcesDirectory)/scripts/provision-dataverse-schema.ps1'
+              arguments: '-DataverseUrl "$(DataverseUrl)"'
+
+          - task: AzureCLI@2
+            displayName: 'Verify — list phr_* entities'
+            inputs:
+              azureSubscription: '$(serviceConnection)'
+              scriptType: 'pscore'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                $dataverseUrl = "$(DataverseUrl)".TrimEnd('/')
+                $token = az account get-access-token --resource $dataverseUrl --query accessToken -o tsv
+                $headers = @{
+                    Authorization = "Bearer $token"
+                    Accept        = "application/json"
+                    "OData-MaxVersion" = "4.0"
+                    "OData-Version"    = "4.0"
+                }
+                $uri = "$dataverseUrl/api/data/v9.2/EntityDefinitions?`$filter=startswith(LogicalName,'phr_')&`$select=LogicalName,DisplayName"
+                $result = Invoke-RestMethod -Uri $uri -Headers $headers
+                $count = $result.value.Count
+                Write-Host "Found $count phr_* entities in Dataverse:"
+                $result.value | ForEach-Object { Write-Host "  - $($_.LogicalName)" }
+                if ($count -lt 27) {
+                    Write-Host "##vso[task.logissue type=warning]Expected 27 phr_* entities but found $count"
+                }
+                else {
+                    Write-Host "All 27 entities verified."
+                }

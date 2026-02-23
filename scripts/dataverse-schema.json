@@ -1,0 +1,484 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "RE2 Compliance Platform — Dataverse entity schema definitions. Source of truth: src/RE2.DataAccess/Dataverse/Repositories/",
+  "publisher": {
+    "prefix": "phr",
+    "solutionUniqueName": "RE2ComplianceSchema",
+    "solutionDisplayName": "RE2 Compliance Schema",
+    "solutionVersion": "1.0.0.0"
+  },
+  "entities": [
+    {
+      "logicalName": "phr_licence",
+      "displayName": "Licence",
+      "displayNamePlural": "Licences",
+      "primaryIdAttribute": "phr_licenceid",
+      "primaryNameAttribute": "phr_licencenumber",
+      "columns": [
+        { "logicalName": "phr_licencenumber",   "displayName": "Licence Number",       "type": "String",   "maxLength": 100 },
+        { "logicalName": "phr_licencetypeid",    "displayName": "Licence Type ID",      "type": "Uniqueidentifier" },
+        { "logicalName": "phr_holdertype",       "displayName": "Holder Type",          "type": "String",   "maxLength": 50 },
+        { "logicalName": "phr_holderid",         "displayName": "Holder ID",            "type": "Uniqueidentifier" },
+        { "logicalName": "phr_issuingauthority", "displayName": "Issuing Authority",    "type": "String",   "maxLength": 200 },
+        { "logicalName": "phr_issuedate",        "displayName": "Issue Date",           "type": "DateTime" },
+        { "logicalName": "phr_expirydate",       "displayName": "Expiry Date",          "type": "DateTime" },
+        { "logicalName": "phr_status",           "displayName": "Status",               "type": "String",   "maxLength": 50 },
+        { "logicalName": "phr_scope",            "displayName": "Scope",                "type": "String",   "maxLength": 4000 },
+        { "logicalName": "phr_permittedactivities", "displayName": "Permitted Activities", "type": "Integer" },
+        { "logicalName": "phr_createddate",      "displayName": "Created Date",         "type": "DateTime" },
+        { "logicalName": "phr_modifieddate",     "displayName": "Modified Date",        "type": "DateTime" }
+      ]
+    },
+    {
+      "logicalName": "phr_licencetype",
+      "displayName": "Licence Type",
+      "displayNamePlural": "Licence Types",
+      "primaryIdAttribute": "phr_licencetypeid",
+      "primaryNameAttribute": "phr_name",
+      "columns": [
+        { "logicalName": "phr_name",                  "displayName": "Name",                  "type": "String",   "maxLength": 200 },
+        { "logicalName": "phr_issuingauthority",       "displayName": "Issuing Authority",     "type": "String",   "maxLength": 200 },
+        { "logicalName": "phr_typicalvaliditymonths",  "displayName": "Typical Validity (Months)", "type": "Integer" },
+        { "logicalName": "phr_permittedactivities",    "displayName": "Permitted Activities",  "type": "Integer" },
+        { "logicalName": "phr_isactive",               "displayName": "Is Active",             "type": "Boolean" }
+      ]
+    },
+    {
+      "logicalName": "phr_licencedocument",
+      "displayName": "Licence Document",
+      "displayNamePlural": "Licence Documents",
+      "primaryIdAttribute": "phr_documentid",
+      "primaryNameAttribute": "phr_filename",
+      "columns": [
+        { "logicalName": "phr_licenceid",     "displayName": "Licence ID",      "type": "Uniqueidentifier" },
+        { "logicalName": "phr_documenttype",  "displayName": "Document Type",   "type": "Picklist" },
+        { "logicalName": "phr_filename",      "displayName": "File Name",       "type": "String",   "maxLength": 500 },
+        { "logicalName": "phr_blobstorageurl","displayName": "Blob Storage URL","type": "String",   "maxLength": 2000 },
+        { "logicalName": "phr_uploadeddate",  "displayName": "Uploaded Date",   "type": "DateTime" },
+        { "logicalName": "phr_uploadedby",    "displayName": "Uploaded By",     "type": "Uniqueidentifier" },
+        { "logicalName": "phr_contenttype",   "displayName": "Content Type",    "type": "String",   "maxLength": 200 },
+        { "logicalName": "phr_filesizebytes", "displayName": "File Size (Bytes)","type": "BigInt" }
+      ]
+    },
+    {
+      "logicalName": "phr_licenceverification",
+      "displayName": "Licence Verification",
+      "displayNamePlural": "Licence Verifications",
+      "primaryIdAttribute": "phr_verificationid",
+      "primaryNameAttribute": "phr_verifiername",
+      "columns": [
+        { "logicalName": "phr_licenceid",              "displayName": "Licence ID",              "type": "Uniqueidentifier" },
+        { "logicalName": "phr_verificationmethod",     "displayName": "Verification Method",     "type": "Picklist" },
+        { "logicalName": "phr_verificationdate",       "displayName": "Verification Date",       "type": "DateTime" },
+        { "logicalName": "phr_verifiedby",             "displayName": "Verified By",             "type": "Uniqueidentifier" },
+        { "logicalName": "phr_verifiername",           "displayName": "Verifier Name",           "type": "String",   "maxLength": 200 },
+        { "logicalName": "phr_outcome",                "displayName": "Outcome",                 "type": "Picklist" },
+        { "logicalName": "phr_notes",                  "displayName": "Notes",                   "type": "Memo" },
+        { "logicalName": "phr_authorityreferencenumber","displayName": "Authority Reference Number","type": "String", "maxLength": 200 },
+        { "logicalName": "phr_createddate",            "displayName": "Created Date",            "type": "DateTime" }
+      ]
+    },
+    {
+      "logicalName": "phr_licencescopechange",
+      "displayName": "Licence Scope Change",
+      "displayNamePlural": "Licence Scope Changes",
+      "primaryIdAttribute": "phr_changeid",
+      "primaryNameAttribute": "phr_changedescription",
+      "columns": [
+        { "logicalName": "phr_licenceid",            "displayName": "Licence ID",            "type": "Uniqueidentifier" },
+        { "logicalName": "phr_effectivedate",        "displayName": "Effective Date",        "type": "DateTime" },
+        { "logicalName": "phr_changedescription",    "displayName": "Change Description",    "type": "String",   "maxLength": 4000 },
+        { "logicalName": "phr_changetype",           "displayName": "Change Type",           "type": "Picklist" },
+        { "logicalName": "phr_recordedby",           "displayName": "Recorded By",           "type": "Uniqueidentifier" },
+        { "logicalName": "phr_recordername",         "displayName": "Recorder Name",         "type": "String",   "maxLength": 200 },
+        { "logicalName": "phr_recordeddate",         "displayName": "Recorded Date",         "type": "DateTime" },
+        { "logicalName": "phr_supportingdocumentid", "displayName": "Supporting Document ID","type": "Uniqueidentifier" },
+        { "logicalName": "phr_substancesadded",      "displayName": "Substances Added",      "type": "Memo" },
+        { "logicalName": "phr_substancesremoved",    "displayName": "Substances Removed",    "type": "Memo" },
+        { "logicalName": "phr_activitiesadded",      "displayName": "Activities Added",      "type": "Memo" },
+        { "logicalName": "phr_activitiesremoved",    "displayName": "Activities Removed",    "type": "Memo" }
+      ]
+    },
+    {
+      "logicalName": "phr_licencesubstancemapping",
+      "displayName": "Licence Substance Mapping",
+      "displayNamePlural": "Licence Substance Mappings",
+      "primaryIdAttribute": "phr_licencesubstancemappingid",
+      "primaryNameAttribute": "phr_substancecode",
+      "columns": [
+        { "logicalName": "phr_licenceid",                  "displayName": "Licence",                     "type": "Lookup", "lookupTarget": "phr_licence" },
+        { "logicalName": "phr_substancecode",              "displayName": "Substance Code",              "type": "String",   "maxLength": 100 },
+        { "logicalName": "phr_maxquantitypertransaction",  "displayName": "Max Qty Per Transaction",     "type": "Decimal", "precision": 4 },
+        { "logicalName": "phr_maxquantityperperiod",       "displayName": "Max Qty Per Period",          "type": "Decimal", "precision": 4 },
+        { "logicalName": "phr_periodtype",                 "displayName": "Period Type",                 "type": "String",   "maxLength": 50 },
+        { "logicalName": "phr_restrictions",               "displayName": "Restrictions",                "type": "Memo" },
+        { "logicalName": "phr_effectivedate",              "displayName": "Effective Date",              "type": "DateTime" },
+        { "logicalName": "phr_expirydate",                 "displayName": "Expiry Date",                "type": "DateTime" }
+      ]
+    },
+    {
+      "logicalName": "phr_substancecomplianceextension",
+      "displayName": "Substance Compliance Extension",
+      "displayNamePlural": "Substance Compliance Extensions",
+      "primaryIdAttribute": "phr_complianceextensionid",
+      "primaryNameAttribute": "phr_substancename",
+      "columns": [
+        { "logicalName": "phr_substancecode",              "displayName": "Substance Code",              "type": "String",   "maxLength": 100 },
+        { "logicalName": "phr_substancename",              "displayName": "Substance Name",              "type": "String",   "maxLength": 500 },
+        { "logicalName": "phr_regulatoryrestrictions",     "displayName": "Regulatory Restrictions",     "type": "Memo" },
+        { "logicalName": "phr_isactive",                   "displayName": "Is Active",                   "type": "Boolean" },
+        { "logicalName": "phr_classificationeffectivedate","displayName": "Classification Effective Date","type": "DateTime" },
+        { "logicalName": "phr_createddate",                "displayName": "Created Date",                "type": "DateTime" },
+        { "logicalName": "phr_modifieddate",               "displayName": "Modified Date",               "type": "DateTime" },
+        { "logicalName": "phr_rowversion",                 "displayName": "Row Version",                 "type": "String",   "maxLength": 100 }
+      ]
+    },
+    {
+      "logicalName": "phr_substancereclassification",
+      "displayName": "Substance Reclassification",
+      "displayNamePlural": "Substance Reclassifications",
+      "primaryIdAttribute": "phr_substancereclassificationid",
+      "primaryNameAttribute": "phr_substancecode",
+      "columns": [
+        { "logicalName": "phr_substancecode",            "displayName": "Substance Code",            "type": "String",   "maxLength": 100 },
+        { "logicalName": "phr_previousopiumactlist",     "displayName": "Previous Opium Act List",   "type": "Picklist" },
+        { "logicalName": "phr_newopiumactlist",          "displayName": "New Opium Act List",        "type": "Picklist" },
+        { "logicalName": "phr_previousprecursorcategory","displayName": "Previous Precursor Category","type": "Picklist" },
+        { "logicalName": "phr_newprecursorcategory",     "displayName": "New Precursor Category",    "type": "Picklist" },
+        { "logicalName": "phr_effectivedate",            "displayName": "Effective Date",            "type": "DateTime" },
+        { "logicalName": "phr_regulatoryreference",      "displayName": "Regulatory Reference",      "type": "String",   "maxLength": 500 },
+        { "logicalName": "phr_regulatoryauthority",      "displayName": "Regulatory Authority",      "type": "String",   "maxLength": 200 },
+        { "logicalName": "phr_reason",                   "displayName": "Reason",                    "type": "Memo" },
+        { "logicalName": "phr_status",                   "displayName": "Status",                    "type": "Picklist" },
+        { "logicalName": "phr_affectedcustomercount",    "displayName": "Affected Customer Count",   "type": "Integer" },
+        { "logicalName": "phr_flaggedcustomercount",     "displayName": "Flagged Customer Count",    "type": "Integer" },
+        { "logicalName": "phr_initiatedbyuserid",        "displayName": "Initiated By User ID",     "type": "Uniqueidentifier" },
+        { "logicalName": "phr_processeddate",            "displayName": "Processed Date",           "type": "DateTime" }
+      ]
+    },
+    {
+      "logicalName": "phr_reclassificationcustomerimpact",
+      "displayName": "Reclassification Customer Impact",
+      "displayNamePlural": "Reclassification Customer Impacts",
+      "primaryIdAttribute": "phr_impactid",
+      "primaryNameAttribute": "phr_customername",
+      "columns": [
+        { "logicalName": "phr_reclassificationid",      "displayName": "Reclassification ID",      "type": "Uniqueidentifier" },
+        { "logicalName": "phr_customerid",               "displayName": "Customer ID",              "type": "Uniqueidentifier" },
+        { "logicalName": "phr_customername",             "displayName": "Customer Name",            "type": "String",   "maxLength": 500 },
+        { "logicalName": "phr_hassufficientlicence",     "displayName": "Has Sufficient Licence",   "type": "Boolean" },
+        { "logicalName": "phr_requiresrequalification",  "displayName": "Requires Requalification", "type": "Boolean" },
+        { "logicalName": "phr_relevantlicenceids",       "displayName": "Relevant Licence IDs",     "type": "Memo" },
+        { "logicalName": "phr_licencegapsummary",        "displayName": "Licence Gap Summary",      "type": "Memo" },
+        { "logicalName": "phr_notificationsent",         "displayName": "Notification Sent",        "type": "Boolean" },
+        { "logicalName": "phr_notificationdate",         "displayName": "Notification Date",        "type": "DateTime" },
+        { "logicalName": "phr_requalificationdate",      "displayName": "Requalification Date",     "type": "DateTime" }
+      ]
+    },
+    {
+      "logicalName": "phr_customercomplianceextension",
+      "displayName": "Customer Compliance Extension",
+      "displayNamePlural": "Customer Compliance Extensions",
+      "primaryIdAttribute": "phr_complianceextensionid",
+      "primaryNameAttribute": "phr_customeraccount",
+      "columns": [
+        { "logicalName": "phr_customeraccount",        "displayName": "Customer Account",        "type": "String",   "maxLength": 100 },
+        { "logicalName": "phr_dataareaid",             "displayName": "Data Area ID",            "type": "String",   "maxLength": 10 },
+        { "logicalName": "phr_businesscategory",       "displayName": "Business Category",       "type": "Picklist" },
+        { "logicalName": "phr_approvalstatus",         "displayName": "Approval Status",         "type": "Picklist" },
+        { "logicalName": "phr_gdpqualificationstatus", "displayName": "GDP Qualification Status","type": "Picklist" },
+        { "logicalName": "phr_onboardingdate",         "displayName": "Onboarding Date",         "type": "DateTime" },
+        { "logicalName": "phr_nextreverificationdate", "displayName": "Next Reverification Date","type": "DateTime" },
+        { "logicalName": "phr_issuspended",            "displayName": "Is Suspended",            "type": "Boolean" },
+        { "logicalName": "phr_suspensionreason",       "displayName": "Suspension Reason",       "type": "Memo" },
+        { "logicalName": "phr_createddate",            "displayName": "Created Date",            "type": "DateTime" },
+        { "logicalName": "phr_modifieddate",           "displayName": "Modified Date",           "type": "DateTime" }
+      ]
+    },
+    {
+      "logicalName": "phr_gdpwarehouseextension",
+      "displayName": "GDP Warehouse Extension",
+      "displayNamePlural": "GDP Warehouse Extensions",
+      "primaryIdAttribute": "phr_gdpextensionid",
+      "primaryNameAttribute": "phr_warehouseid",
+      "columns": [
+        { "logicalName": "phr_warehouseid",        "displayName": "Warehouse ID",        "type": "String",   "maxLength": 50 },
+        { "logicalName": "phr_dataareaid",         "displayName": "Data Area ID",        "type": "String",   "maxLength": 10 },
+        { "logicalName": "phr_gdpsitetype",        "displayName": "GDP Site Type",       "type": "Picklist" },
+        { "logicalName": "phr_permittedactivities","displayName": "Permitted Activities", "type": "Integer" },
+        { "logicalName": "phr_isgdpactive",        "displayName": "Is GDP Active",       "type": "Boolean" },
+        { "logicalName": "phr_createddate",        "displayName": "Created Date",        "type": "DateTime" },
+        { "logicalName": "phr_modifieddate",       "displayName": "Modified Date",       "type": "DateTime" }
+      ]
+    },
+    {
+      "logicalName": "phr_gdpsitewdacoverage",
+      "displayName": "GDP Site WDA Coverage",
+      "displayNamePlural": "GDP Site WDA Coverages",
+      "primaryIdAttribute": "phr_coverageid",
+      "primaryNameAttribute": "phr_warehouseid",
+      "columns": [
+        { "logicalName": "phr_warehouseid",  "displayName": "Warehouse ID",  "type": "String",   "maxLength": 50 },
+        { "logicalName": "phr_dataareaid",   "displayName": "Data Area ID",  "type": "String",   "maxLength": 10 },
+        { "logicalName": "phr_licenceid",    "displayName": "Licence ID",    "type": "Uniqueidentifier" },
+        { "logicalName": "phr_effectivedate","displayName": "Effective Date", "type": "DateTime" },
+        { "logicalName": "phr_expirydate",   "displayName": "Expiry Date",   "type": "DateTime" }
+      ]
+    },
+    {
+      "logicalName": "phr_gdpserviceprovider",
+      "displayName": "GDP Service Provider",
+      "displayNamePlural": "GDP Service Providers",
+      "primaryIdAttribute": "phr_gdpserviceproviderid",
+      "primaryNameAttribute": "phr_providername",
+      "columns": [
+        { "logicalName": "phr_providername",                     "displayName": "Provider Name",                     "type": "String",   "maxLength": 500 },
+        { "logicalName": "phr_servicetype",                      "displayName": "Service Type",                      "type": "Picklist" },
+        { "logicalName": "phr_temperaturecontrolledcapability",  "displayName": "Temperature Controlled Capability", "type": "Boolean" },
+        { "logicalName": "phr_approvedroutes",                   "displayName": "Approved Routes",                   "type": "Memo" },
+        { "logicalName": "phr_qualificationstatus",              "displayName": "Qualification Status",              "type": "Picklist" },
+        { "logicalName": "phr_reviewfrequencymonths",            "displayName": "Review Frequency (Months)",         "type": "Integer" },
+        { "logicalName": "phr_lastreviewdate",                   "displayName": "Last Review Date",                  "type": "DateTime" },
+        { "logicalName": "phr_nextreviewdate",                   "displayName": "Next Review Date",                  "type": "DateTime" },
+        { "logicalName": "phr_isactive",                         "displayName": "Is Active",                         "type": "Boolean" }
+      ]
+    },
+    {
+      "logicalName": "phr_gdpcredential",
+      "displayName": "GDP Credential",
+      "displayNamePlural": "GDP Credentials",
+      "primaryIdAttribute": "phr_gdpcredentialid",
+      "primaryNameAttribute": "phr_wdanumber",
+      "columns": [
+        { "logicalName": "phr_entitytype",           "displayName": "Entity Type",           "type": "Picklist" },
+        { "logicalName": "phr_entityid",             "displayName": "Entity ID",             "type": "Uniqueidentifier" },
+        { "logicalName": "phr_wdanumber",            "displayName": "WDA Number",            "type": "String",   "maxLength": 100 },
+        { "logicalName": "phr_gdpcertificatenumber", "displayName": "GDP Certificate Number","type": "String",   "maxLength": 100 },
+        { "logicalName": "phr_eudragmdpentryurl",    "displayName": "EudraGMDP Entry URL",  "type": "String",   "maxLength": 2000 },
+        { "logicalName": "phr_validitystartdate",    "displayName": "Validity Start Date",   "type": "DateTime" },
+        { "logicalName": "phr_validityenddate",      "displayName": "Validity End Date",     "type": "DateTime" },
+        { "logicalName": "phr_qualificationstatus",  "displayName": "Qualification Status",  "type": "Picklist" },
+        { "logicalName": "phr_lastverificationdate", "displayName": "Last Verification Date","type": "DateTime" },
+        { "logicalName": "phr_nextreviewdate",       "displayName": "Next Review Date",      "type": "DateTime" }
+      ]
+    },
+    {
+      "logicalName": "phr_qualificationreview",
+      "displayName": "Qualification Review",
+      "displayNamePlural": "Qualification Reviews",
+      "primaryIdAttribute": "phr_qualificationreviewid",
+      "primaryNameAttribute": "phr_reviewername",
+      "columns": [
+        { "logicalName": "phr_entitytype",    "displayName": "Entity Type",    "type": "Picklist" },
+        { "logicalName": "phr_entityid",      "displayName": "Entity ID",      "type": "Uniqueidentifier" },
+        { "logicalName": "phr_reviewdate",    "displayName": "Review Date",    "type": "DateTime" },
+        { "logicalName": "phr_reviewmethod",  "displayName": "Review Method",  "type": "Picklist" },
+        { "logicalName": "phr_reviewoutcome", "displayName": "Review Outcome", "type": "Picklist" },
+        { "logicalName": "phr_reviewername",  "displayName": "Reviewer Name",  "type": "String",   "maxLength": 200 },
+        { "logicalName": "phr_notes",         "displayName": "Notes",          "type": "Memo" },
+        { "logicalName": "phr_nextreviewdate","displayName": "Next Review Date","type": "DateTime" }
+      ]
+    },
+    {
+      "logicalName": "phr_gdpcredentialverification",
+      "displayName": "GDP Credential Verification",
+      "displayNamePlural": "GDP Credential Verifications",
+      "primaryIdAttribute": "phr_gdpcredentialverificationid",
+      "primaryNameAttribute": "phr_verifiedby",
+      "columns": [
+        { "logicalName": "phr_credentialid",       "displayName": "Credential ID",       "type": "Uniqueidentifier" },
+        { "logicalName": "phr_verificationdate",   "displayName": "Verification Date",   "type": "DateTime" },
+        { "logicalName": "phr_verificationmethod", "displayName": "Verification Method", "type": "Picklist" },
+        { "logicalName": "phr_verifiedby",         "displayName": "Verified By",         "type": "String",   "maxLength": 200 },
+        { "logicalName": "phr_outcome",            "displayName": "Outcome",             "type": "Picklist" },
+        { "logicalName": "phr_notes",              "displayName": "Notes",               "type": "Memo" }
+      ]
+    },
+    {
+      "logicalName": "phr_gdpinspection",
+      "displayName": "GDP Inspection",
+      "displayNamePlural": "GDP Inspections",
+      "primaryIdAttribute": "phr_gdpinspectionid",
+      "primaryNameAttribute": "phr_inspectorname",
+      "columns": [
+        { "logicalName": "phr_inspectiondate",    "displayName": "Inspection Date",     "type": "DateTime" },
+        { "logicalName": "phr_inspectorname",     "displayName": "Inspector Name",      "type": "String",   "maxLength": 200 },
+        { "logicalName": "phr_inspectiontype",    "displayName": "Inspection Type",     "type": "Picklist" },
+        { "logicalName": "phr_siteid",            "displayName": "Site ID",             "type": "Uniqueidentifier" },
+        { "logicalName": "phr_wdalicenceid",      "displayName": "WDA Licence ID",      "type": "Uniqueidentifier" },
+        { "logicalName": "phr_findingssummary",   "displayName": "Findings Summary",    "type": "Memo" },
+        { "logicalName": "phr_reportreferenceurl","displayName": "Report Reference URL", "type": "String",   "maxLength": 2000 }
+      ]
+    },
+    {
+      "logicalName": "phr_gdpinspectionfinding",
+      "displayName": "GDP Inspection Finding",
+      "displayNamePlural": "GDP Inspection Findings",
+      "primaryIdAttribute": "phr_gdpinspectionfindingid",
+      "primaryNameAttribute": "phr_findingnumber",
+      "columns": [
+        { "logicalName": "phr_inspectionid",      "displayName": "Inspection ID",      "type": "Uniqueidentifier" },
+        { "logicalName": "phr_findingdescription","displayName": "Finding Description", "type": "Memo" },
+        { "logicalName": "phr_classification",    "displayName": "Classification",      "type": "Picklist" },
+        { "logicalName": "phr_findingnumber",     "displayName": "Finding Number",      "type": "String",   "maxLength": 50 }
+      ]
+    },
+    {
+      "logicalName": "phr_capa",
+      "displayName": "CAPA",
+      "displayNamePlural": "CAPAs",
+      "primaryIdAttribute": "phr_capaid",
+      "primaryNameAttribute": "phr_capanumber",
+      "columns": [
+        { "logicalName": "phr_capanumber",       "displayName": "CAPA Number",       "type": "String",   "maxLength": 100 },
+        { "logicalName": "phr_findingid",        "displayName": "Finding ID",        "type": "Uniqueidentifier" },
+        { "logicalName": "phr_description",      "displayName": "Description",       "type": "Memo" },
+        { "logicalName": "phr_ownername",        "displayName": "Owner Name",        "type": "String",   "maxLength": 200 },
+        { "logicalName": "phr_duedate",          "displayName": "Due Date",          "type": "DateTime" },
+        { "logicalName": "phr_completiondate",   "displayName": "Completion Date",   "type": "DateTime" },
+        { "logicalName": "phr_status",           "displayName": "Status",            "type": "Picklist" },
+        { "logicalName": "phr_verificationnotes","displayName": "Verification Notes", "type": "Memo" },
+        { "logicalName": "phr_rowversion",       "displayName": "Row Version",       "type": "String",   "maxLength": 100 }
+      ]
+    },
+    {
+      "logicalName": "phr_gdpdocument",
+      "displayName": "GDP Document",
+      "displayNamePlural": "GDP Documents",
+      "primaryIdAttribute": "phr_gdpdocumentid",
+      "primaryNameAttribute": "phr_filename",
+      "columns": [
+        { "logicalName": "phr_ownerentitytype", "displayName": "Owner Entity Type", "type": "Picklist" },
+        { "logicalName": "phr_ownerentityid",   "displayName": "Owner Entity ID",   "type": "Uniqueidentifier" },
+        { "logicalName": "phr_documenttype",    "displayName": "Document Type",     "type": "Picklist" },
+        { "logicalName": "phr_filename",        "displayName": "File Name",         "type": "String",   "maxLength": 500 },
+        { "logicalName": "phr_blobstorageurl",  "displayName": "Blob Storage URL",  "type": "String",   "maxLength": 2000 },
+        { "logicalName": "phr_uploadeddate",    "displayName": "Uploaded Date",     "type": "DateTime" },
+        { "logicalName": "phr_uploadedby",      "displayName": "Uploaded By",       "type": "String",   "maxLength": 200 },
+        { "logicalName": "phr_contenttype",     "displayName": "Content Type",      "type": "String",   "maxLength": 200 },
+        { "logicalName": "phr_filesizebytes",   "displayName": "File Size (Bytes)", "type": "BigInt" },
+        { "logicalName": "phr_description",     "displayName": "Description",       "type": "Memo" }
+      ]
+    },
+    {
+      "logicalName": "phr_gdpequipmentqualification",
+      "displayName": "GDP Equipment Qualification",
+      "displayNamePlural": "GDP Equipment Qualifications",
+      "primaryIdAttribute": "phr_gdpequipmentqualificationid",
+      "primaryNameAttribute": "phr_equipmentname",
+      "columns": [
+        { "logicalName": "phr_equipmentname",          "displayName": "Equipment Name",          "type": "String",   "maxLength": 500 },
+        { "logicalName": "phr_equipmenttype",          "displayName": "Equipment Type",          "type": "Picklist" },
+        { "logicalName": "phr_providerid",             "displayName": "Provider ID",             "type": "Uniqueidentifier" },
+        { "logicalName": "phr_siteid",                 "displayName": "Site ID",                 "type": "Uniqueidentifier" },
+        { "logicalName": "phr_qualificationdate",      "displayName": "Qualification Date",      "type": "DateTime" },
+        { "logicalName": "phr_requalificationduedate", "displayName": "Requalification Due Date","type": "DateTime" },
+        { "logicalName": "phr_qualificationstatus",    "displayName": "Qualification Status",    "type": "Picklist" },
+        { "logicalName": "phr_qualifiedby",            "displayName": "Qualified By",            "type": "String",   "maxLength": 200 },
+        { "logicalName": "phr_notes",                  "displayName": "Notes",                   "type": "Memo" }
+      ]
+    },
+    {
+      "logicalName": "phr_gdpsop",
+      "displayName": "GDP SOP",
+      "displayNamePlural": "GDP SOPs",
+      "primaryIdAttribute": "phr_gdpsopid",
+      "primaryNameAttribute": "phr_title",
+      "columns": [
+        { "logicalName": "phr_sopnumber",    "displayName": "SOP Number",    "type": "String",   "maxLength": 100 },
+        { "logicalName": "phr_title",        "displayName": "Title",         "type": "String",   "maxLength": 500 },
+        { "logicalName": "phr_category",     "displayName": "Category",      "type": "Picklist" },
+        { "logicalName": "phr_version",      "displayName": "Version",       "type": "String",   "maxLength": 50 },
+        { "logicalName": "phr_effectivedate","displayName": "Effective Date", "type": "DateTime" },
+        { "logicalName": "phr_documenturl",  "displayName": "Document URL",  "type": "String",   "maxLength": 2000 },
+        { "logicalName": "phr_isactive",     "displayName": "Is Active",     "type": "Boolean" }
+      ]
+    },
+    {
+      "logicalName": "phr_gdpsitesop",
+      "displayName": "GDP Site SOP",
+      "displayNamePlural": "GDP Site SOPs",
+      "primaryIdAttribute": "phr_gdpsitesopid",
+      "primaryNameAttribute": "phr_gdpsitesopid",
+      "columns": [
+        { "logicalName": "phr_siteid", "displayName": "Site ID", "type": "Uniqueidentifier" },
+        { "logicalName": "phr_sopid",  "displayName": "SOP ID",  "type": "Uniqueidentifier" }
+      ]
+    },
+    {
+      "logicalName": "phr_trainingrecord",
+      "displayName": "Training Record",
+      "displayNamePlural": "Training Records",
+      "primaryIdAttribute": "phr_trainingrecordid",
+      "primaryNameAttribute": "phr_staffmembername",
+      "columns": [
+        { "logicalName": "phr_staffmemberid",      "displayName": "Staff Member ID",      "type": "Uniqueidentifier" },
+        { "logicalName": "phr_staffmembername",     "displayName": "Staff Member Name",    "type": "String",   "maxLength": 200 },
+        { "logicalName": "phr_trainingcurriculum",  "displayName": "Training Curriculum",  "type": "String",   "maxLength": 500 },
+        { "logicalName": "phr_sopid",               "displayName": "SOP ID",               "type": "Uniqueidentifier" },
+        { "logicalName": "phr_siteid",              "displayName": "Site ID",              "type": "Uniqueidentifier" },
+        { "logicalName": "phr_completiondate",      "displayName": "Completion Date",      "type": "DateTime" },
+        { "logicalName": "phr_expirydate",          "displayName": "Expiry Date",          "type": "DateTime" },
+        { "logicalName": "phr_trainername",         "displayName": "Trainer Name",         "type": "String",   "maxLength": 200 },
+        { "logicalName": "phr_assessmentresult",    "displayName": "Assessment Result",    "type": "Picklist" }
+      ]
+    },
+    {
+      "logicalName": "phr_webhooksubscription",
+      "displayName": "Webhook Subscription",
+      "displayNamePlural": "Webhook Subscriptions",
+      "primaryIdAttribute": "phr_webhooksubscriptionid",
+      "primaryNameAttribute": "phr_callbackurl",
+      "columns": [
+        { "logicalName": "phr_integrationsystemid",    "displayName": "Integration System ID",    "type": "Uniqueidentifier" },
+        { "logicalName": "phr_eventtypes",              "displayName": "Event Types",              "type": "Integer" },
+        { "logicalName": "phr_callbackurl",             "displayName": "Callback URL",             "type": "String",   "maxLength": 2000 },
+        { "logicalName": "phr_secretkey",               "displayName": "Secret Key",               "type": "String",   "maxLength": 500 },
+        { "logicalName": "phr_isactive",                "displayName": "Is Active",                "type": "Boolean" },
+        { "logicalName": "phr_description",             "displayName": "Description",              "type": "Memo" },
+        { "logicalName": "phr_failedattempts",          "displayName": "Failed Attempts",          "type": "Integer" },
+        { "logicalName": "phr_lastsuccessfuldelivery",  "displayName": "Last Successful Delivery", "type": "DateTime" },
+        { "logicalName": "phr_lastfaileddelivery",      "displayName": "Last Failed Delivery",     "type": "DateTime" },
+        { "logicalName": "phr_createddate",             "displayName": "Created Date",             "type": "DateTime" },
+        { "logicalName": "phr_modifieddate",            "displayName": "Modified Date",            "type": "DateTime" }
+      ]
+    },
+    {
+      "logicalName": "phr_integrationsystem",
+      "displayName": "Integration System",
+      "displayNamePlural": "Integration Systems",
+      "primaryIdAttribute": "phr_integrationsystemid",
+      "primaryNameAttribute": "phr_systemname",
+      "columns": [
+        { "logicalName": "phr_systemname",           "displayName": "System Name",           "type": "String",   "maxLength": 200 },
+        { "logicalName": "phr_systemtype",           "displayName": "System Type",           "type": "Picklist" },
+        { "logicalName": "phr_apikeyhash",           "displayName": "API Key Hash",          "type": "String",   "maxLength": 500 },
+        { "logicalName": "phr_oauthclientid",        "displayName": "OAuth Client ID",       "type": "String",   "maxLength": 200 },
+        { "logicalName": "phr_authorizedendpoints",  "displayName": "Authorized Endpoints",  "type": "Memo" },
+        { "logicalName": "phr_ipwhitelist",          "displayName": "IP Whitelist",          "type": "Memo" },
+        { "logicalName": "phr_isactive",             "displayName": "Is Active",             "type": "Boolean" },
+        { "logicalName": "phr_contactperson",        "displayName": "Contact Person",        "type": "String",   "maxLength": 200 },
+        { "logicalName": "phr_createddate",          "displayName": "Created Date",          "type": "DateTime" },
+        { "logicalName": "phr_modifieddate",         "displayName": "Modified Date",         "type": "DateTime" }
+      ]
+    },
+    {
+      "logicalName": "phr_gdpchangerecord",
+      "displayName": "GDP Change Record",
+      "displayNamePlural": "GDP Change Records",
+      "primaryIdAttribute": "phr_gdpchangerecordid",
+      "primaryNameAttribute": "phr_changenumber",
+      "columns": [
+        { "logicalName": "phr_changenumber",              "displayName": "Change Number",              "type": "String",   "maxLength": 100 },
+        { "logicalName": "phr_changetype",                "displayName": "Change Type",                "type": "Picklist" },
+        { "logicalName": "phr_description",               "displayName": "Description",                "type": "Memo" },
+        { "logicalName": "phr_riskassessment",            "displayName": "Risk Assessment",            "type": "Memo" },
+        { "logicalName": "phr_approvalstatus",            "displayName": "Approval Status",            "type": "Picklist" },
+        { "logicalName": "phr_approvedby",                "displayName": "Approved By",                "type": "Uniqueidentifier" },
+        { "logicalName": "phr_approvaldate",              "displayName": "Approval Date",              "type": "DateTime" },
+        { "logicalName": "phr_implementationdate",        "displayName": "Implementation Date",        "type": "DateTime" },
+        { "logicalName": "phr_updateddocumentationrefs",  "displayName": "Updated Documentation Refs", "type": "Memo" }
+      ]
+    }
+  ]
+}
