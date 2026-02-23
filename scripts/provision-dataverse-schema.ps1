@@ -1,0 +1,518 @@
+<#
+.SYNOPSIS
+    Provisions all RE2 Compliance Platform custom entities in a Dataverse environment.
+
+.DESCRIPTION
+    Reads entity definitions from dataverse-schema.json and creates them via the
+    Dataverse Web API. Idempotent — skips entities/columns that already exist.
+    After provisioning, creates an unmanaged solution containing all entities.
+
+.PARAMETER DataverseUrl
+    The Dataverse environment URL (e.g., https://org12345.crm4.dynamics.com).
+
+.PARAMETER TenantId
+    Azure AD tenant ID for SPN authentication.
+
+.PARAMETER ClientId
+    Azure AD app registration client ID.
+
+.PARAMETER ClientSecret
+    Azure AD app registration client secret. If not provided, uses az CLI token (for pipeline Managed Identity).
+
+.EXAMPLE
+    # SPN auth (CI/CD pipeline):
+    ./provision-dataverse-schema.ps1 -DataverseUrl "https://org.crm4.dynamics.com" -TenantId "xxx" -ClientId "yyy" -ClientSecret "zzz"
+
+    # az CLI auth (pipeline with AzureCLI@2 task):
+    ./provision-dataverse-schema.ps1 -DataverseUrl "https://org.crm4.dynamics.com"
+#>
+
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$DataverseUrl,
+
+    [Parameter(Mandatory = $false)]
+    [string]$TenantId,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ClientId,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ClientSecret
+)
+
+$ErrorActionPreference = 'Stop'
+
+# --- Helpers ---
+
+function Get-DataverseToken {
+    param([string]$DataverseUrl, [string]$TenantId, [string]$ClientId, [string]$ClientSecret)
+
+    $resource = $DataverseUrl.TrimEnd('/')
+
+    if ($ClientSecret) {
+        Write-Host "Authenticating via SPN (client credentials)..."
+        $tokenUrl = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/token"
+        $body = @{
+            grant_type    = "client_credentials"
+            client_id     = $ClientId
+            client_secret = $ClientSecret
+            scope         = "$resource/.default"
+        }
+        $response = Invoke-RestMethod -Uri $tokenUrl -Method POST -Body $body -ContentType "application/x-www-form-urlencoded"
+        return $response.access_token
+    }
+    else {
+        Write-Host "Authenticating via az CLI token (Managed Identity / pipeline)..."
+        $token = az account get-access-token --resource $resource --query accessToken -o tsv
+        if ($LASTEXITCODE -ne 0) { throw "Failed to acquire token via az CLI" }
+        return $token
+    }
+}
+
+function Invoke-DataverseApi {
+    param(
+        [string]$Method,
+        [string]$Uri,
+        [object]$Body,
+        [hashtable]$Headers
+    )
+
+    $params = @{
+        Method  = $Method
+        Uri     = $Uri
+        Headers = $Headers
+    }
+    if ($Body) {
+        $params.Body = ($Body | ConvertTo-Json -Depth 10)
+        $params.ContentType = "application/json"
+    }
+
+    try {
+        $response = Invoke-RestMethod @params
+        return $response
+    }
+    catch {
+        $statusCode = $_.Exception.Response.StatusCode.value__
+        $detail = $_.ErrorDetails.Message
+        if ($detail) {
+            try { $detail = ($detail | ConvertFrom-Json).error.message } catch {}
+        }
+        return @{ _error = $true; StatusCode = $statusCode; Message = $detail }
+    }
+}
+
+function Get-DataverseTypeMapping {
+    param([string]$SchemaType)
+
+    switch ($SchemaType) {
+        "String"           { return @{ AttributeType = "StringType";    "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata" } }
+        "Memo"             { return @{ AttributeType = "MemoType";      "@odata.type" = "Microsoft.Dynamics.CRM.MemoAttributeMetadata" } }
+        "Integer"          { return @{ AttributeType = "IntegerType";   "@odata.type" = "Microsoft.Dynamics.CRM.IntegerAttributeMetadata" } }
+        "BigInt"           { return @{ AttributeType = "BigIntType";    "@odata.type" = "Microsoft.Dynamics.CRM.BigIntAttributeMetadata" } }
+        "Decimal"          { return @{ AttributeType = "DecimalType";   "@odata.type" = "Microsoft.Dynamics.CRM.DecimalAttributeMetadata" } }
+        "Boolean"          { return @{ AttributeType = "BooleanType";   "@odata.type" = "Microsoft.Dynamics.CRM.BooleanAttributeMetadata" } }
+        "DateTime"         { return @{ AttributeType = "DateTimeType";  "@odata.type" = "Microsoft.Dynamics.CRM.DateTimeAttributeMetadata" } }
+        "Uniqueidentifier" { return @{ AttributeType = "UniqueidentifierType"; "@odata.type" = "Microsoft.Dynamics.CRM.UniqueIdentifierAttributeMetadata" } }
+        "Picklist"         { return @{ AttributeType = "PicklistType";  "@odata.type" = "Microsoft.Dynamics.CRM.PicklistAttributeMetadata" } }
+        "Lookup"           { return @{ AttributeType = "LookupType";    "@odata.type" = "Microsoft.Dynamics.CRM.LookupAttributeMetadata" } }
+        default            { throw "Unknown schema type: $SchemaType" }
+    }
+}
+
+# --- Main ---
+
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$schemaFile = Join-Path $scriptDir "dataverse-schema.json"
+if (-not (Test-Path $schemaFile)) {
+    throw "Schema file not found: $schemaFile"
+}
+
+$schema = Get-Content $schemaFile -Raw | ConvertFrom-Json
+$publisherPrefix = $schema.publisher.prefix
+$solutionName = $schema.publisher.solutionUniqueName
+$solutionDisplayName = $schema.publisher.solutionDisplayName
+$solutionVersion = $schema.publisher.solutionVersion
+
+Write-Host "=== RE2 Dataverse Schema Provisioning ==="
+Write-Host "Dataverse URL: $DataverseUrl"
+Write-Host "Entities to provision: $($schema.entities.Count)"
+Write-Host ""
+
+# Authenticate
+$token = Get-DataverseToken -DataverseUrl $DataverseUrl -TenantId $TenantId -ClientId $ClientId -ClientSecret $ClientSecret
+$baseUrl = "$($DataverseUrl.TrimEnd('/'))/api/data/v9.2"
+$headers = @{
+    Authorization  = "Bearer $token"
+    "OData-MaxVersion" = "4.0"
+    "OData-Version"    = "4.0"
+    Accept             = "application/json"
+}
+
+function Add-ColumnToEntity {
+    param(
+        [string]$EntityLogicalName,
+        [object]$Column,
+        [string]$BaseUrl,
+        [hashtable]$Headers
+    )
+
+    $typeMapping = Get-DataverseTypeMapping -SchemaType $Column.type
+    $attrPayload = @{
+        "@odata.type" = $typeMapping."@odata.type"
+        SchemaName    = $Column.logicalName
+        DisplayName   = @{
+            "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+            LocalizedLabels = @(
+                @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label         = $Column.displayName
+                    LanguageCode  = 1033
+                }
+            )
+        }
+        RequiredLevel = @{ Value = "None" }
+    }
+
+    switch ($Column.type) {
+        "String" {
+            $attrPayload.MaxLength = if ($Column.maxLength) { $Column.maxLength } else { 200 }
+            $attrPayload.FormatName = @{ Value = "Text" }
+        }
+        "Memo" {
+            $attrPayload.MaxLength = if ($Column.maxLength) { $Column.maxLength } else { 1048576 }
+            $attrPayload.Format = "Text"
+        }
+        "Integer" {
+            $attrPayload.MinValue = -2147483648
+            $attrPayload.MaxValue = 2147483647
+            $attrPayload.Format = "None"
+        }
+        "BigInt" {
+            $attrPayload.MinValue = -9223372036854775808
+            $attrPayload.MaxValue = 9223372036854775807
+        }
+        "Decimal" {
+            $precision = if ($Column.precision) { $Column.precision } else { 2 }
+            $attrPayload.Precision = $precision
+            $attrPayload.MinValue = -100000000000
+            $attrPayload.MaxValue = 100000000000
+        }
+        "Boolean" {
+            $attrPayload.OptionSet = @{
+                TrueOption  = @{ Value = 1; Label = @{ "@odata.type" = "Microsoft.Dynamics.CRM.Label"; LocalizedLabels = @(@{ "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"; Label = "Yes"; LanguageCode = 1033 }) } }
+                FalseOption = @{ Value = 0; Label = @{ "@odata.type" = "Microsoft.Dynamics.CRM.Label"; LocalizedLabels = @(@{ "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"; Label = "No"; LanguageCode = 1033 }) } }
+            }
+        }
+        "DateTime" {
+            $attrPayload.Format = "DateAndTime"
+            $attrPayload.DateTimeBehavior = @{ Value = "UserLocal" }
+        }
+        "Picklist" {
+            $attrPayload.OptionSet = @{
+                IsGlobal = $false
+                OptionSetType = "Picklist"
+                Options = @(
+                    @{ Value = 100000000; Label = @{ "@odata.type" = "Microsoft.Dynamics.CRM.Label"; LocalizedLabels = @(@{ "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"; Label = "Default"; LanguageCode = 1033 }) } }
+                )
+            }
+        }
+        "Lookup" {
+            $targetEntity = $Column.lookupTarget
+            if (-not $targetEntity) {
+                Write-Host "    WARNING: Lookup column $($Column.logicalName) has no lookupTarget — creating as Uniqueidentifier instead" -ForegroundColor Yellow
+                $attrPayload."@odata.type" = "Microsoft.Dynamics.CRM.UniqueIdentifierAttributeMetadata"
+                $attrPayload.Remove("RequiredLevel")
+                break
+            }
+
+            # Lookups are created via relationship, not direct attribute creation
+            $relationshipName = "$($EntityLogicalName)_$($Column.logicalName)_$targetEntity"
+            $relationshipPayload = @{
+                "@odata.type"        = "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata"
+                SchemaName           = $relationshipName
+                ReferencedEntity     = $targetEntity
+                ReferencingEntity    = $EntityLogicalName
+                Lookup               = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LookupAttributeMetadata"
+                    SchemaName    = $Column.logicalName
+                    DisplayName   = @{
+                        "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+                        LocalizedLabels = @(
+                            @{
+                                "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                                Label         = $Column.displayName
+                                LanguageCode  = 1033
+                            }
+                        )
+                    }
+                }
+            }
+
+            Write-Host "    Creating lookup relationship: $($Column.logicalName) -> $targetEntity"
+            return Invoke-DataverseApi -Method POST -Uri "$BaseUrl/RelationshipDefinitions" -Body $relationshipPayload -Headers $Headers
+        }
+    }
+
+    Write-Host "    Adding column: $($Column.logicalName) ($($Column.type))"
+    return Invoke-DataverseApi -Method POST -Uri "$BaseUrl/EntityDefinitions(LogicalName='$EntityLogicalName')/Attributes" -Body $attrPayload -Headers $Headers
+}
+
+# --- Provision entities ---
+
+$createdEntities = @()
+$skippedEntities = @()
+$failedEntities = @()
+
+foreach ($entity in $schema.entities) {
+    $logicalName = $entity.logicalName
+    $displayName = $entity.displayName
+    $primaryId = $entity.primaryIdAttribute
+    $primaryName = $entity.primaryNameAttribute
+
+    Write-Host "--- [$logicalName] ---"
+
+    # Check if entity already exists
+    $check = Invoke-DataverseApi -Method GET -Uri "$baseUrl/EntityDefinitions(LogicalName='$logicalName')?`$select=LogicalName" -Headers $headers
+
+    if ($check -and -not $check._error) {
+        Write-Host "  Entity already exists — checking columns..."
+        $skippedEntities += $logicalName
+
+        # Get existing attributes
+        $existingAttrs = Invoke-DataverseApi -Method GET -Uri "$baseUrl/EntityDefinitions(LogicalName='$logicalName')/Attributes?`$select=LogicalName" -Headers $headers
+        $existingAttrNames = @()
+        if ($existingAttrs.value) {
+            $existingAttrNames = $existingAttrs.value | ForEach-Object { $_.LogicalName }
+        }
+
+        # Add missing columns
+        foreach ($col in $entity.columns) {
+            if ($col.logicalName -in $existingAttrNames) {
+                Write-Host "    Column $($col.logicalName) already exists — skipping"
+                continue
+            }
+            Write-Host "    Adding missing column: $($col.logicalName)..."
+            $attrResult = Add-ColumnToEntity -EntityLogicalName $logicalName -Column $col -BaseUrl $baseUrl -Headers $headers
+            if ($attrResult -and $attrResult._error) {
+                Write-Host "    WARNING: Failed to add column $($col.logicalName): $($attrResult.Message)" -ForegroundColor Yellow
+            }
+        }
+        continue
+    }
+
+    Write-Host "  Creating entity..."
+
+    # Build primary name attribute definition
+    $primaryNameCol = $entity.columns | Where-Object { $_.logicalName -eq $primaryName }
+    $primaryNameMaxLength = 200
+    if ($primaryNameCol -and $primaryNameCol.maxLength) {
+        $primaryNameMaxLength = $primaryNameCol.maxLength
+        if ($primaryNameMaxLength -gt 4000) { $primaryNameMaxLength = 4000 }
+    }
+
+    $entityPayload = @{
+        SchemaName                = $logicalName
+        "@odata.type"             = "Microsoft.Dynamics.CRM.EntityMetadata"
+        DisplayName               = @{
+            "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+            LocalizedLabels = @(
+                @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label         = $displayName
+                    LanguageCode  = 1033
+                }
+            )
+        }
+        DisplayCollectionName     = @{
+            "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+            LocalizedLabels = @(
+                @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label         = $entity.displayNamePlural
+                    LanguageCode  = 1033
+                }
+            )
+        }
+        Description               = @{
+            "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+            LocalizedLabels = @(
+                @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label         = "RE2 Compliance Platform — $displayName"
+                    LanguageCode  = 1033
+                }
+            )
+        }
+        HasActivities             = $false
+        HasNotes                  = $false
+        OwnershipType             = "OrganizationOwned"
+        IsActivity                = $false
+        PrimaryNameAttribute      = $primaryName
+        Attributes                = @(
+            @{
+                "@odata.type"    = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+                SchemaName       = $primaryName
+                AttributeType    = "String"
+                FormatName       = @{ Value = "Text" }
+                MaxLength        = $primaryNameMaxLength
+                RequiredLevel    = @{ Value = "ApplicationRequired" }
+                DisplayName      = @{
+                    "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(
+                        @{
+                            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                            Label         = if ($primaryNameCol) { $primaryNameCol.displayName } else { $primaryName }
+                            LanguageCode  = 1033
+                        }
+                    )
+                }
+                IsPrimaryName = $true
+            }
+        )
+    }
+
+    $result = Invoke-DataverseApi -Method POST -Uri "$baseUrl/EntityDefinitions" -Body $entityPayload -Headers $headers
+
+    if ($result -and $result._error) {
+        Write-Host "  FAILED: $($result.Message)" -ForegroundColor Red
+        $failedEntities += $logicalName
+        continue
+    }
+
+    Write-Host "  Entity created successfully."
+    $createdEntities += $logicalName
+
+    # Add remaining columns (skip primary name — already created with entity)
+    foreach ($col in $entity.columns) {
+        if ($col.logicalName -eq $primaryName) { continue }
+
+        $attrResult = Add-ColumnToEntity -EntityLogicalName $logicalName -Column $col -BaseUrl $baseUrl -Headers $headers
+        if ($attrResult -and $attrResult._error) {
+            Write-Host "    WARNING: Failed to add $($col.logicalName): $($attrResult.Message)" -ForegroundColor Yellow
+        }
+    }
+}
+
+# --- Create solution ---
+
+Write-Host ""
+Write-Host "=== Creating solution: $solutionName ==="
+
+# Check for existing publisher
+$publisherLogicalName = "${publisherPrefix}_publisher"
+$publisherCheck = Invoke-DataverseApi -Method GET -Uri "$baseUrl/publishers?`$filter=customizationprefix eq '$publisherPrefix'&`$select=publisherid" -Headers $headers
+
+$publisherId = $null
+if ($publisherCheck.value -and $publisherCheck.value.Count -gt 0) {
+    $publisherId = $publisherCheck.value[0].publisherid
+    Write-Host "Publisher '$publisherPrefix' already exists: $publisherId"
+}
+else {
+    Write-Host "Creating publisher '$publisherPrefix'..."
+    $pubPayload = @{
+        uniquename            = $publisherLogicalName
+        friendlyname          = "RE2 Compliance Publisher"
+        customizationprefix   = $publisherPrefix
+        customizationoptionvalueprefix = 10000
+    }
+    $pubResult = Invoke-DataverseApi -Method POST -Uri "$baseUrl/publishers" -Body $pubPayload -Headers $headers
+    if ($pubResult -and $pubResult._error) {
+        Write-Host "WARNING: Failed to create publisher: $($pubResult.Message)" -ForegroundColor Yellow
+    }
+    else {
+        # Re-fetch to get the ID
+        $publisherCheck = Invoke-DataverseApi -Method GET -Uri "$baseUrl/publishers?`$filter=customizationprefix eq '$publisherPrefix'&`$select=publisherid" -Headers $headers
+        if ($publisherCheck.value -and $publisherCheck.value.Count -gt 0) {
+            $publisherId = $publisherCheck.value[0].publisherid
+        }
+    }
+}
+
+# Check for existing solution
+$solutionCheck = Invoke-DataverseApi -Method GET -Uri "$baseUrl/solutions?`$filter=uniquename eq '$solutionName'&`$select=solutionid" -Headers $headers
+
+if ($solutionCheck.value -and $solutionCheck.value.Count -gt 0) {
+    Write-Host "Solution '$solutionName' already exists."
+    $solutionId = $solutionCheck.value[0].solutionid
+}
+else {
+    Write-Host "Creating solution '$solutionName'..."
+    $solPayload = @{
+        uniquename  = $solutionName
+        friendlyname = $solutionDisplayName
+        version     = $solutionVersion
+        "publisherid@odata.bind" = "/publishers($publisherId)"
+    }
+    $solResult = Invoke-DataverseApi -Method POST -Uri "$baseUrl/solutions" -Body $solPayload -Headers $headers
+    if ($solResult -and $solResult._error) {
+        Write-Host "WARNING: Failed to create solution: $($solResult.Message)" -ForegroundColor Yellow
+    }
+    else {
+        $solutionCheck = Invoke-DataverseApi -Method GET -Uri "$baseUrl/solutions?`$filter=uniquename eq '$solutionName'&`$select=solutionid" -Headers $headers
+        if ($solutionCheck.value -and $solutionCheck.value.Count -gt 0) {
+            $solutionId = $solutionCheck.value[0].solutionid
+        }
+    }
+}
+
+# Add entities to solution
+Write-Host ""
+Write-Host "=== Adding entities to solution ==="
+
+foreach ($entity in $schema.entities) {
+    $logicalName = $entity.logicalName
+    Write-Host "  Adding $logicalName to solution..."
+
+    $addPayload = @{
+        ComponentId   = $null
+        ComponentType = 1  # Entity
+        SolutionUniqueName = $solutionName
+        AddRequiredComponents = $false
+    }
+
+    # Get entity metadata ID
+    $entityMeta = Invoke-DataverseApi -Method GET -Uri "$baseUrl/EntityDefinitions(LogicalName='$logicalName')?`$select=MetadataId" -Headers $headers
+    if ($entityMeta -and -not $entityMeta._error) {
+        $addPayload.ComponentId = $entityMeta.MetadataId
+
+        $addResult = Invoke-DataverseApi -Method POST -Uri "$baseUrl/AddSolutionComponent" -Body $addPayload -Headers $headers
+        if ($addResult -and $addResult._error) {
+            Write-Host "    WARNING: $($addResult.Message)" -ForegroundColor Yellow
+        }
+        else {
+            Write-Host "    Added."
+        }
+    }
+    else {
+        Write-Host "    WARNING: Could not find entity metadata for $logicalName" -ForegroundColor Yellow
+    }
+}
+
+# --- Summary ---
+
+Write-Host ""
+Write-Host "=== Provisioning Summary ==="
+Write-Host "  Created: $($createdEntities.Count) entities"
+if ($createdEntities.Count -gt 0) {
+    $createdEntities | ForEach-Object { Write-Host "    - $_" }
+}
+Write-Host "  Existing (checked columns): $($skippedEntities.Count) entities"
+if ($skippedEntities.Count -gt 0) {
+    $skippedEntities | ForEach-Object { Write-Host "    - $_" }
+}
+Write-Host "  Failed: $($failedEntities.Count) entities"
+if ($failedEntities.Count -gt 0) {
+    $failedEntities | ForEach-Object { Write-Host "    - $_" -ForegroundColor Red }
+}
+Write-Host ""
+
+if ($failedEntities.Count -gt 0) {
+    Write-Host "PROVISIONING COMPLETED WITH ERRORS" -ForegroundColor Red
+    exit 1
+}
+else {
+    Write-Host "PROVISIONING COMPLETED SUCCESSFULLY" -ForegroundColor Green
+    exit 0
+}
