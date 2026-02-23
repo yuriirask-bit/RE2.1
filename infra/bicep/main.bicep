@@ -79,6 +79,17 @@ param azureAdB2CClientId string = ''
 @description('Azure AD B2C sign-up/sign-in policy ID')
 param azureAdB2CSignUpSignInPolicyId string = ''
 
+@description('D365 F&O auth mode: ManagedIdentity (Tier-2+) or ClientCredentials (CHE)')
+@allowed(['ManagedIdentity', 'ClientCredentials'])
+param d365foAuthMode string = 'ManagedIdentity'
+
+@description('D365 F&O app registration client ID (ClientCredentials only)')
+param d365foClientId string = ''
+
+@description('D365 F&O client secret (ClientCredentials only, stored in Key Vault)')
+@secure()
+param d365foClientSecret string = ''
+
 @description('Approval email distribution group')
 param approverEmailGroup string = 'compliance-approvers@company.com'
 
@@ -141,6 +152,7 @@ module keyVault 'modules/key-vault.bicep' = {
     location: location
     tenantId: azureAdTenantId
     redisConnectionString: redis.outputs.connectionString
+    d365foClientSecret: d365foClientSecret
     tags: tags
   }
 }
@@ -173,6 +185,10 @@ module apiApp 'modules/app-service.bicep' = {
     dataverseUrl: dataverseUrl
     d365foODataEndpoint: d365foODataEndpoint
     d365foResource: d365foResource
+    d365foAuthMode: d365foAuthMode
+    d365foTenantId: azureAdTenantId
+    d365foClientId: d365foClientId
+    d365foClientSecretKeyVaultReference: keyVault.outputs.d365foClientSecretKeyVaultReference
     storageBlobEndpoint: storage.outputs.blobEndpoint
     azureAdTenantId: azureAdTenantId
     azureAdClientId: azureAdClientId
@@ -201,6 +217,10 @@ module webApp 'modules/app-service.bicep' = {
     dataverseUrl: dataverseUrl
     d365foODataEndpoint: d365foODataEndpoint
     d365foResource: d365foResource
+    d365foAuthMode: d365foAuthMode
+    d365foTenantId: azureAdTenantId
+    d365foClientId: d365foClientId
+    d365foClientSecretKeyVaultReference: keyVault.outputs.d365foClientSecretKeyVaultReference
     storageBlobEndpoint: storage.outputs.blobEndpoint
     azureAdTenantId: azureAdTenantId
     azureAdClientId: azureAdClientId
@@ -224,6 +244,10 @@ module functionApp 'modules/function-app.bicep' = {
     dataverseUrl: dataverseUrl
     d365foODataEndpoint: d365foODataEndpoint
     d365foResource: d365foResource
+    d365foAuthMode: d365foAuthMode
+    d365foTenantId: azureAdTenantId
+    d365foClientId: d365foClientId
+    d365foClientSecretKeyVaultReference: keyVault.outputs.d365foClientSecretKeyVaultReference
     storageBlobEndpoint: storage.outputs.blobEndpoint
     tags: tags
   }

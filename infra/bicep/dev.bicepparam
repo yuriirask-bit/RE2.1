@@ -18,6 +18,11 @@ param dataverseUrl = 'https://org0c0b0f9a.crm11.dynamics.com'
 param d365foODataEndpoint = 'https://icu-dev160a316e3d30f4c94devaos.axcloud.dynamics.com/data'
 param d365foResource = 'https://icu-dev160a316e3d30f4c94devaos.axcloud.dynamics.com'
 
+// ── D365 F&O Auth (CHE requires ClientCredentials; override clientId/secret via pipeline) ──
+param d365foAuthMode = 'ClientCredentials'
+param d365foClientId = '00000000-0000-0000-0000-000000000000'
+param d365foClientSecret = ''
+
 // ── Azure AD (TenantId overridden via pipeline variable `azureAdTenantId`) ───
 param azureAdTenantId = '00000000-0000-0000-0000-000000000000'
 param azureAdClientId = 'e588c712-6b6d-4180-9ad4-fb7a4eece97a'

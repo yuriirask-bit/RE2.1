@@ -34,11 +34,88 @@ param d365foResource string
 @description('Storage account blob endpoint')
 param storageBlobEndpoint string
 
+@description('D365 F&O auth mode: ManagedIdentity (Tier-2+) or ClientCredentials (CHE)')
+@allowed(['ManagedIdentity', 'ClientCredentials'])
+param d365foAuthMode string = 'ManagedIdentity'
+
+@description('D365 F&O Azure AD tenant ID (ClientCredentials only)')
+param d365foTenantId string = ''
+
+@description('D365 F&O app registration client ID (ClientCredentials only)')
+param d365foClientId string = ''
+
+@description('D365 F&O client secret Key Vault reference (ClientCredentials only)')
+param d365foClientSecretKeyVaultReference string = ''
+
 @description('Standard tags to apply to all resources')
 param tags object
 
 var functionsPlanName = 'plan-${namePrefix}-func-${environment}'
 var functionAppName = 'func-${namePrefix}-compliance-${environment}'
+
+var functionBaseSettings = [
+  {
+    name: 'AzureWebJobsStorage'
+    value: storageConnectionString
+  }
+  {
+    name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
+    value: storageConnectionString
+  }
+  {
+    name: 'WEBSITE_CONTENTSHARE'
+    value: functionAppName
+  }
+  {
+    name: 'FUNCTIONS_EXTENSION_VERSION'
+    value: '~4'
+  }
+  {
+    name: 'FUNCTIONS_WORKER_RUNTIME'
+    value: 'dotnet-isolated'
+  }
+  {
+    name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+    value: appInsightsConnectionString
+  }
+  {
+    name: 'Dataverse__Url'
+    value: dataverseUrl
+  }
+  {
+    name: 'D365FO__ODataEndpoint'
+    value: d365foODataEndpoint
+  }
+  {
+    name: 'D365FO__Resource'
+    value: d365foResource
+  }
+  {
+    name: 'D365FO__AuthMode'
+    value: d365foAuthMode
+  }
+  {
+    name: 'BlobStorage__AccountUrl'
+    value: storageBlobEndpoint
+  }
+]
+
+var functionD365foClientCredentialsSettings = d365foAuthMode == 'ClientCredentials' ? [
+  {
+    name: 'D365FO__TenantId'
+    value: d365foTenantId
+  }
+  {
+    name: 'D365FO__ClientId'
+    value: d365foClientId
+  }
+  {
+    name: 'D365FO__ClientSecret'
+    value: d365foClientSecretKeyVaultReference
+  }
+] : []
+
+var functionAppSettings = concat(functionBaseSettings, functionD365foClientCredentialsSettings)
 
 resource functionsPlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: functionsPlanName
@@ -68,48 +145,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
       netFrameworkVersion: 'v8.0'
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
-      appSettings: [
-        {
-          name: 'AzureWebJobsStorage'
-          value: storageConnectionString
-        }
-        {
-          name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
-          value: storageConnectionString
-        }
-        {
-          name: 'WEBSITE_CONTENTSHARE'
-          value: functionAppName
-        }
-        {
-          name: 'FUNCTIONS_EXTENSION_VERSION'
-          value: '~4'
-        }
-        {
-          name: 'FUNCTIONS_WORKER_RUNTIME'
-          value: 'dotnet-isolated'
-        }
-        {
-          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-          value: appInsightsConnectionString
-        }
-        {
-          name: 'Dataverse__Url'
-          value: dataverseUrl
-        }
-        {
-          name: 'D365FO__ODataEndpoint'
-          value: d365foODataEndpoint
-        }
-        {
-          name: 'D365FO__Resource'
-          value: d365foResource
-        }
-        {
-          name: 'BlobStorage__AccountUrl'
-          value: storageBlobEndpoint
-        }
-      ]
+      appSettings: functionAppSettings
     }
   }
 }

@@ -16,6 +16,10 @@ param tenantId string
 @secure()
 param redisConnectionString string
 
+@description('D365 F&O client secret for ClientCredentials auth (empty = not stored)')
+@secure()
+param d365foClientSecret string = ''
+
 @description('Standard tags to apply to all resources')
 param tags object
 
@@ -46,6 +50,14 @@ resource redisSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   }
 }
 
+resource d365foSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (!empty(d365foClientSecret)) {
+  parent: keyVault
+  name: 'D365FoClientSecret'
+  properties: {
+    value: d365foClientSecret
+  }
+}
+
 @description('Key Vault name')
 output name string = keyVault.name
 
@@ -57,3 +69,6 @@ output uri string = keyVault.properties.vaultUri
 
 @description('Redis connection string Key Vault reference for App Service config')
 output redisKeyVaultReference string = '@Microsoft.KeyVault(VaultName=${keyVault.name};SecretName=RedisConnectionString)'
+
+@description('D365 F&O client secret Key Vault reference (empty if secret not stored)')
+output d365foClientSecretKeyVaultReference string = !empty(d365foClientSecret) ? '@Microsoft.KeyVault(VaultName=${keyVault.name};SecretName=D365FoClientSecret)' : ''
