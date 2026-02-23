@@ -316,6 +316,7 @@ foreach ($entity in $schema.entities) {
         }
 
         # Add missing columns
+        $failedColumns = @()
         foreach ($col in $entity.columns) {
             if ($col.logicalName -in $existingAttrNames) {
                 Write-Host "    Column $($col.logicalName) already exists — skipping"
@@ -324,7 +325,23 @@ foreach ($entity in $schema.entities) {
             Write-Host "    Adding missing column: $($col.logicalName)..."
             $attrResult = Add-ColumnToEntity -EntityLogicalName $logicalName -Column $col -BaseUrl $baseUrl -Headers $headers
             if ($attrResult -and $attrResult._error) {
-                Write-Host "    WARNING: Failed to add column $($col.logicalName): $($attrResult.Message)" -ForegroundColor Yellow
+                Write-Host "    WARNING: Failed to add column $($col.logicalName): $($attrResult.Message) — will retry" -ForegroundColor Yellow
+                $failedColumns += $col
+            }
+        }
+
+        # Retry failed columns once after a delay
+        if ($failedColumns.Count -gt 0) {
+            Write-Host "    Retrying $($failedColumns.Count) failed column(s) after 10s delay..."
+            Start-Sleep -Seconds 10
+            foreach ($col in $failedColumns) {
+                $attrResult = Add-ColumnToEntity -EntityLogicalName $logicalName -Column $col -BaseUrl $baseUrl -Headers $headers
+                if ($attrResult -and $attrResult._error) {
+                    Write-Host "    FAILED (retry): $($col.logicalName): $($attrResult.Message)" -ForegroundColor Red
+                }
+                else {
+                    Write-Host "    Retry succeeded: $($col.logicalName)" -ForegroundColor Green
+                }
             }
         }
         continue
@@ -419,13 +436,34 @@ foreach ($entity in $schema.entities) {
     Write-Host "  Entity created successfully."
     $createdEntities += $logicalName
 
+    # Wait for entity metadata to propagate before adding columns
+    Write-Host "  Waiting 10s for entity metadata propagation..."
+    Start-Sleep -Seconds 10
+
     # Add remaining columns (skip primary name — already created with entity)
+    $failedColumns = @()
     foreach ($col in $entity.columns) {
         if ($col.logicalName -eq $primaryName) { continue }
 
         $attrResult = Add-ColumnToEntity -EntityLogicalName $logicalName -Column $col -BaseUrl $baseUrl -Headers $headers
         if ($attrResult -and $attrResult._error) {
-            Write-Host "    WARNING: Failed to add $($col.logicalName): $($attrResult.Message)" -ForegroundColor Yellow
+            Write-Host "    WARNING: Failed to add $($col.logicalName): $($attrResult.Message) — will retry" -ForegroundColor Yellow
+            $failedColumns += $col
+        }
+    }
+
+    # Retry failed columns once after a delay
+    if ($failedColumns.Count -gt 0) {
+        Write-Host "  Retrying $($failedColumns.Count) failed column(s) after 10s delay..."
+        Start-Sleep -Seconds 10
+        foreach ($col in $failedColumns) {
+            $attrResult = Add-ColumnToEntity -EntityLogicalName $logicalName -Column $col -BaseUrl $baseUrl -Headers $headers
+            if ($attrResult -and $attrResult._error) {
+                Write-Host "    FAILED (retry): $($col.logicalName): $($attrResult.Message)" -ForegroundColor Red
+            }
+            else {
+                Write-Host "    Retry succeeded: $($col.logicalName)" -ForegroundColor Green
+            }
         }
     }
 }
