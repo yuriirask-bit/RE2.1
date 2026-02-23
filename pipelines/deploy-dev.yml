@@ -59,6 +59,9 @@ stages:
                   --parameters $(Pipeline.Workspace)/build/drop/infra/dev.bicepparam \
                   --parameters azureAdTenantId=$(AzureAdTenantId) \
                                azureAdClientId=$(AzureAdClientId) \
+                               d365foAuthMode=$(d365foAuthMode) \
+                               d365foClientId=$(d365foClientId) \
+                               d365foClientSecret=$(d365foClientSecret) \
                   --verbose
 
   - deployment: ProvisionDataverse
