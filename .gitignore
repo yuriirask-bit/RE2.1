@@ -125,3 +125,6 @@ infra/bicep/main.json
 docs/_build/
 docs/.doctrees/
 
+# Deployment log (local reference only)
+docs/deployment/challenges-resolved-log.md
+
