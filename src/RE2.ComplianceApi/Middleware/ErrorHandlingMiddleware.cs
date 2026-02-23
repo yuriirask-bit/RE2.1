@@ -86,8 +86,10 @@ public class ErrorHandlingMiddleware
             TimeoutException =>
                 (HttpStatusCode.GatewayTimeout, ErrorCodes.EXTERNAL_SYSTEM_UNAVAILABLE, "Operation timed out"),
 
-            HttpRequestException =>
-                (HttpStatusCode.ServiceUnavailable, ErrorCodes.EXTERNAL_SYSTEM_UNAVAILABLE, "External service unavailable"),
+            HttpRequestException httpEx =>
+                (httpEx.StatusCode ?? HttpStatusCode.ServiceUnavailable,
+                 ErrorCodes.EXTERNAL_SYSTEM_UNAVAILABLE,
+                 $"External service error: {httpEx.StatusCode?.ToString() ?? "unreachable"} — {httpEx.Message}"),
 
             _ =>
                 (HttpStatusCode.InternalServerError, ErrorCodes.INTERNAL_ERROR, "An internal error occurred")
