@@ -343,7 +343,7 @@ public class DataverseGdpSiteRepository : IGdpSiteRepository
             phr_gdpextensionid = entity.Id,
             phr_warehouseid = entity.GetAttributeValue<string>("phr_warehouseid"),
             phr_dataareaid = entity.GetAttributeValue<string>("phr_dataareaid"),
-            phr_gdpsitetype = entity.GetAttributeValue<int>("phr_gdpsitetype"),
+            phr_gdpsitetype = entity.GetAttributeValue<OptionSetValue>("phr_gdpsitetype")?.Value ?? 0,
             phr_permittedactivities = entity.GetAttributeValue<int>("phr_permittedactivities"),
             phr_isgdpactive = entity.GetAttributeValue<bool>("phr_isgdpactive"),
             phr_createddate = entity.GetAttributeValue<DateTime>("phr_createddate"),
@@ -356,7 +356,7 @@ public class DataverseGdpSiteRepository : IGdpSiteRepository
         var entity = new Entity(GdpExtensionEntityName, dto.phr_gdpextensionid);
         entity["phr_warehouseid"] = dto.phr_warehouseid;
         entity["phr_dataareaid"] = dto.phr_dataareaid;
-        entity["phr_gdpsitetype"] = dto.phr_gdpsitetype;
+        entity["phr_gdpsitetype"] = new OptionSetValue(dto.phr_gdpsitetype);
         entity["phr_permittedactivities"] = dto.phr_permittedactivities;
         entity["phr_isgdpactive"] = dto.phr_isgdpactive;
         entity["phr_createddate"] = dto.phr_createddate;
