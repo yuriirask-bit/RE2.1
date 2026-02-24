@@ -233,13 +233,13 @@ public class Customer
 /// </summary>
 public enum BusinessCategory
 {
-    HospitalPharmacy,
-    CommunityPharmacy,
-    Veterinarian,
-    Manufacturer,
-    WholesalerEU,
-    WholesalerNonEU,
-    ResearchInstitution
+    HospitalPharmacy = 100_000_000,
+    CommunityPharmacy = 100_000_001,
+    Veterinarian = 100_000_002,
+    Manufacturer = 100_000_003,
+    WholesalerEU = 100_000_004,
+    WholesalerNonEU = 100_000_005,
+    ResearchInstitution = 100_000_006
 }
 
 /// <summary>
@@ -248,11 +248,11 @@ public enum BusinessCategory
 /// </summary>
 public enum ApprovalStatus
 {
-    Pending,
-    Approved,
-    ConditionallyApproved,
-    Rejected,
-    Suspended
+    Pending = 100_000_000,
+    Approved = 100_000_001,
+    ConditionallyApproved = 100_000_002,
+    Rejected = 100_000_003,
+    Suspended = 100_000_004
 }
 
 /// <summary>
@@ -261,10 +261,10 @@ public enum ApprovalStatus
 /// </summary>
 public enum GdpQualificationStatus
 {
-    NotRequired,
-    Pending,
-    Approved,
-    ConditionallyApproved,
-    Rejected,
-    UnderReview
+    NotRequired = 100_000_000,
+    Pending = 100_000_001,
+    Approved = 100_000_002,
+    ConditionallyApproved = 100_000_003,
+    Rejected = 100_000_004,
+    UnderReview = 100_000_005
 }
