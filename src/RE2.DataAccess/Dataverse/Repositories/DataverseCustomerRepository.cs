@@ -398,9 +398,9 @@ public class DataverseCustomerRepository : ICustomerRepository
         var entity = new Entity(ExtensionEntityName) { Id = dto.phr_complianceextensionid };
         entity["phr_customeraccount"] = dto.phr_customeraccount;
         entity["phr_dataareaid"] = dto.phr_dataareaid;
-        entity["phr_businesscategory"] = dto.phr_businesscategory;
-        entity["phr_approvalstatus"] = dto.phr_approvalstatus;
-        entity["phr_gdpqualificationstatus"] = dto.phr_gdpqualificationstatus;
+        entity["phr_businesscategory"] = new OptionSetValue(dto.phr_businesscategory);
+        entity["phr_approvalstatus"] = new OptionSetValue(dto.phr_approvalstatus);
+        entity["phr_gdpqualificationstatus"] = new OptionSetValue(dto.phr_gdpqualificationstatus);
         entity["phr_onboardingdate"] = dto.phr_onboardingdate;
         entity["phr_nextreverificationdate"] = dto.phr_nextreverificationdate;
         entity["phr_issuspended"] = dto.phr_issuspended;
