@@ -10,10 +10,10 @@
 
     <div class="row">
         <div class="col-md-8">
-            <!-- D365 Classification (read-only) -->
+            <!-- Substance Classification -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-shield-check"></i> D365 Classification (Read-Only)</h5>
+                    <h5 class="mb-0"><i class="bi bi-shield-check"></i> Substance Classification</h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -22,38 +22,20 @@
                             <p><code>@Model.SubstanceCode</code></p>
                         </div>
                         <div class="col-md-4">
-                            <h6 class="text-muted">Opium Act List</h6>
-                            @if (Model.OpiumActList != SubstanceCategories.OpiumActList.None)
-                            {
-                                var opiumClass = Model.OpiumActList == SubstanceCategories.OpiumActList.ListI
-                                    ? "bg-danger" : "bg-warning text-dark";
-                                <span class="badge @opiumClass">@Model.OpiumActList</span>
-                            }
-                            else
-                            {
-                                <span class="text-muted">None</span>
-                            }
+                            <label asp-for="OpiumActList" class="form-label text-muted">Opium Act List</label>
+                            <select asp-for="OpiumActList" class="form-select"
+                                    asp-items="Html.GetEnumSelectList<SubstanceCategories.OpiumActList>()">
+                            </select>
                         </div>
                         <div class="col-md-4">
-                            <h6 class="text-muted">Precursor Category</h6>
-                            @if (Model.PrecursorCategory != SubstanceCategories.PrecursorCategory.None)
-                            {
-                                var precursorClass = Model.PrecursorCategory switch
-                                {
-                                    SubstanceCategories.PrecursorCategory.Category1 => "bg-danger",
-                                    SubstanceCategories.PrecursorCategory.Category2 => "bg-warning text-dark",
-                                    _ => "bg-info"
-                                };
-                                <span class="badge @precursorClass">@Model.PrecursorCategory</span>
-                            }
-                            else
-                            {
-                                <span class="text-muted">None</span>
-                            }
+                            <label asp-for="PrecursorCategory" class="form-label text-muted">Precursor Category</label>
+                            <select asp-for="PrecursorCategory" class="form-select"
+                                    asp-items="Html.GetEnumSelectList<SubstanceCategories.PrecursorCategory>()">
+                            </select>
                         </div>
                     </div>
                     <p class="small text-muted mt-2 mb-0">
-                        <i class="bi bi-info-circle"></i> Classification is sourced from D365 F&O product attributes. To change classification, update the product attributes in D365.
+                        <i class="bi bi-info-circle"></i> At least one of Opium Act List or Precursor Category must be selected.
                     </p>
                 </div>
             </div>
@@ -68,8 +50,6 @@
                         @Html.AntiForgeryToken()
                         <input type="hidden" asp-for="SubstanceCode" />
                         <input type="hidden" asp-for="SubstanceName" />
-                        <input type="hidden" asp-for="OpiumActList" />
-                        <input type="hidden" asp-for="PrecursorCategory" />
                         <input type="hidden" asp-for="IsComplianceConfigured" />
                         <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
