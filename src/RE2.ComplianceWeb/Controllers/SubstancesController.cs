@@ -199,7 +199,9 @@ public class SubstancesController : Controller
             };
         }
 
-        // Apply compliance extension fields
+        // Apply all editable fields from form
+        substance.OpiumActList = model.OpiumActList;
+        substance.PrecursorCategory = model.PrecursorCategory;
         substance.RegulatoryRestrictions = model.RegulatoryRestrictions;
         substance.IsActive = model.IsActive;
         substance.ClassificationEffectiveDate = model.ClassificationEffectiveDate.HasValue
