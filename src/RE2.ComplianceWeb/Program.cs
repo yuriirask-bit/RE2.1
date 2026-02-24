@@ -42,6 +42,14 @@ else
         .AddMicrosoftIdentityWebApp(options =>
         {
             builder.Configuration.Bind("AzureAd", options);
+        });
+
+    // Set RoleClaimType on the actual OpenIdConnectOptions (not MicrosoftIdentityOptions)
+    // so the OIDC handler maps the JWT "roles" claim correctly for RequireRole policies.
+    builder.Services.PostConfigure<OpenIdConnectOptions>(
+        OpenIdConnectDefaults.AuthenticationScheme,
+        options =>
+        {
             options.TokenValidationParameters.NameClaimType = "name";
             options.TokenValidationParameters.RoleClaimType = "roles";
         });
