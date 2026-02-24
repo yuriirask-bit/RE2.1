@@ -39,12 +39,12 @@ public class DataverseGdpSiteRepository : IGdpSiteRepository
     {
         try
         {
+            // Only select fields needed for browse/list views to avoid slow address joins.
+            // Individual warehouse lookups (GetWarehouseAsync) fetch full address details.
             var response = await _d365FoClient.GetAsync<WarehouseODataResponse>(
                 WarehouseEntitySet,
                 "$select=WarehouseId,WarehouseName,OperationalSiteId,dataAreaId,WarehouseType," +
-                "FormattedPrimaryAddress,PrimaryAddressStreet,PrimaryAddressStreetNumber," +
-                "PrimaryAddressCity,PrimaryAddressZipCode,PrimaryAddressCountryRegionId," +
-                "PrimaryAddressStateId,PrimaryAddressLatitude,PrimaryAddressLongitude",
+                "PrimaryAddressCity,PrimaryAddressCountryRegionId",
                 cancellationToken);
 
             if (response?.Value == null)
