@@ -177,9 +177,10 @@ public class DataverseGdpSiteRepository : IGdpSiteRepository
             var result = await _dataverseClient.RetrieveMultipleAsync(query, cancellationToken);
             var sites = result.Entities.Select(e => MapToGdpExtensionDto(e).ToDomainModel()).ToList();
 
-            // Enrich with warehouse data
-            var warehouses = (await GetAllWarehousesAsync(cancellationToken)).ToDictionary(
-                w => $"{w.WarehouseId}|{w.DataAreaId}");
+            // Enrich with warehouse data (GroupBy to handle potential duplicates from cross-company)
+            var warehouses = (await GetAllWarehousesAsync(cancellationToken))
+                .GroupBy(w => $"{w.WarehouseId}|{w.DataAreaId}")
+                .ToDictionary(g => g.Key, g => g.First());
 
             foreach (var site in sites)
             {

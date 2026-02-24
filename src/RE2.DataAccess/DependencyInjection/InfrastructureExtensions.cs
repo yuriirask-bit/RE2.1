@@ -154,6 +154,9 @@ public static class InfrastructureExtensions
         // Register licence correction impact service (T163a-T163c)
         services.AddScoped<ILicenceCorrectionImpactService, LicenceCorrectionImpactService>();
 
+        // Seed missing Dataverse OptionSet values at startup (idempotent)
+        services.AddHostedService<DataverseOptionSetSeeder>();
+
         return services;
     }
 
