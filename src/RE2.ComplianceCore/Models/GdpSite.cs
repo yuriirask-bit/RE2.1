@@ -198,17 +198,17 @@ public enum GdpSiteType
     /// <summary>
     /// Standard warehouse facility.
     /// </summary>
-    Warehouse = 0,
+    Warehouse = 100_000_000,
 
     /// <summary>
     /// Cross-docking facility for transshipment.
     /// </summary>
-    CrossDock = 1,
+    CrossDock = 100_000_001,
 
     /// <summary>
     /// Transport hub for distribution logistics.
     /// </summary>
-    TransportHub = 2
+    TransportHub = 100_000_002
 }
 
 /// <summary>

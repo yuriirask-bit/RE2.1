@@ -50,6 +50,9 @@ public class DataverseOptionSetSeeder : IHostedService
             await SeedOptionSetAsync(client, "phr_customercomplianceextension", "phr_gdpqualificationstatus",
                 GetGdpQualificationStatusOptions(), cancellationToken);
 
+            await SeedOptionSetAsync(client, "phr_gdpwarehouseextension", "phr_gdpsitetype",
+                GetGdpSiteTypeOptions(), cancellationToken);
+
             _logger.LogInformation("Dataverse OptionSet seeding completed");
         }
         catch (Exception ex)
@@ -154,5 +157,12 @@ public class DataverseOptionSetSeeder : IHostedService
         [(int)GdpQualificationStatus.ConditionallyApproved] = "Conditionally Approved",
         [(int)GdpQualificationStatus.Rejected] = "Rejected",
         [(int)GdpQualificationStatus.UnderReview] = "Under Review"
+    };
+
+    private static Dictionary<int, string> GetGdpSiteTypeOptions() => new()
+    {
+        [(int)GdpSiteType.Warehouse] = "Warehouse",
+        [(int)GdpSiteType.CrossDock] = "Cross Dock",
+        [(int)GdpSiteType.TransportHub] = "Transport Hub"
     };
 }
