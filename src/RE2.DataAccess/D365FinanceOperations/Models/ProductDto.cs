@@ -10,8 +10,8 @@ public class ReleasedProductDto
     public string ItemNumber { get; set; } = string.Empty;
     public string dataAreaId { get; set; } = string.Empty;
     public string ProductNumber { get; set; } = string.Empty;
-    public string? ProductName { get; set; }
-    public string? ProductDescription { get; set; }
+    public string? SearchName { get; set; }
+    public string? ProductSearchName { get; set; }
 
     public Product ToDomainModel()
     {
@@ -20,8 +20,8 @@ public class ReleasedProductDto
             ItemNumber = ItemNumber,
             DataAreaId = dataAreaId,
             ProductNumber = ProductNumber,
-            ProductName = ProductName ?? string.Empty,
-            ProductDescription = ProductDescription
+            ProductName = SearchName ?? ProductSearchName ?? string.Empty,
+            ProductDescription = null
         };
     }
 }

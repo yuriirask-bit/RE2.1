@@ -67,7 +67,7 @@ public class D365FoProductRepository : IProductRepository
             }
 
             // Step 2: Get all released products
-            var query = "$select=ItemNumber,dataAreaId,ProductNumber,ProductName,ProductDescription";
+            var query = "$select=ItemNumber,dataAreaId,ProductNumber,SearchName,ProductSearchName";
             var response = await _client.GetAsync<ReleasedProductODataResponse>(ReleasedProductsEntitySet, query, cancellationToken);
 
             if (response?.value == null || !response.value.Any())
@@ -121,7 +121,7 @@ public class D365FoProductRepository : IProductRepository
             var productNumbers = attrResponse.value.Select(a => a.ProductNumber).Distinct().ToHashSet();
 
             // Get released products and filter by matching product numbers
-            var query = "$select=ItemNumber,dataAreaId,ProductNumber,ProductName,ProductDescription";
+            var query = "$select=ItemNumber,dataAreaId,ProductNumber,SearchName,ProductSearchName";
             var response = await _client.GetAsync<ReleasedProductODataResponse>(ReleasedProductsEntitySet, query, cancellationToken);
 
             if (response?.value == null)
