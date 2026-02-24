@@ -24,6 +24,11 @@ public interface ICustomerService
     Task<IEnumerable<Customer>> GetAllD365CustomersAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets a single D365FO customer by composite key (master data only, no compliance extension).
+    /// </summary>
+    Task<Customer?> GetD365CustomerAsync(string customerAccount, string dataAreaId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets customers by approval status.
     /// </summary>
     Task<IEnumerable<Customer>> GetByApprovalStatusAsync(ApprovalStatus status, CancellationToken cancellationToken = default);

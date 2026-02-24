@@ -102,6 +102,9 @@ public class CachedCustomerService : ICustomerService
     public Task<IEnumerable<Customer>> GetAllD365CustomersAsync(CancellationToken cancellationToken = default)
         => _inner.GetAllD365CustomersAsync(cancellationToken);
 
+    public Task<Customer?> GetD365CustomerAsync(string customerAccount, string dataAreaId, CancellationToken cancellationToken = default)
+        => _inner.GetD365CustomerAsync(customerAccount, dataAreaId, cancellationToken);
+
     public Task<IEnumerable<Customer>> GetByApprovalStatusAsync(ApprovalStatus status, CancellationToken cancellationToken = default)
         => _inner.GetByApprovalStatusAsync(status, cancellationToken);
 

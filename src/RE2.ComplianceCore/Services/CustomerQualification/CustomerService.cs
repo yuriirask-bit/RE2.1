@@ -40,6 +40,11 @@ public class CustomerService : ICustomerService
         return await _customerRepository.GetAllD365CustomersAsync(cancellationToken);
     }
 
+    public async Task<Customer?> GetD365CustomerAsync(string customerAccount, string dataAreaId, CancellationToken cancellationToken = default)
+    {
+        return await _customerRepository.GetD365CustomerAsync(customerAccount, dataAreaId, cancellationToken);
+    }
+
     public async Task<IEnumerable<Customer>> GetByApprovalStatusAsync(ApprovalStatus status, CancellationToken cancellationToken = default)
     {
         return await _customerRepository.GetByApprovalStatusAsync(status, cancellationToken);
