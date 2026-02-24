@@ -359,8 +359,14 @@ public class DataverseGdpSiteRepository : IGdpSiteRepository
         entity["phr_gdpsitetype"] = new OptionSetValue(dto.phr_gdpsitetype);
         entity["phr_permittedactivities"] = dto.phr_permittedactivities;
         entity["phr_isgdpactive"] = dto.phr_isgdpactive;
-        entity["phr_createddate"] = dto.phr_createddate;
-        entity["phr_modifieddate"] = dto.phr_modifieddate;
+        if (dto.phr_createddate != default)
+        {
+            entity["phr_createddate"] = dto.phr_createddate;
+        }
+        if (dto.phr_modifieddate != default)
+        {
+            entity["phr_modifieddate"] = dto.phr_modifieddate;
+        }
         return entity;
     }
 
