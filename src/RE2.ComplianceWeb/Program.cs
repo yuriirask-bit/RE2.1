@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -45,16 +46,15 @@ else
         });
 
     // Fix role-based authorization: Microsoft.IdentityModel 7.x maps the JWT "roles"
-    // claim to the long URI "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
-    // via inbound claim mapping. We must set RoleClaimType to match the MAPPED type,
-    // and disable MapInboundClaims so claim names stay as their short JWT forms.
+    // claim to the long URI ClaimTypes.Role via inbound claim mapping. Microsoft.Identity.Web
+    // 2.x controls its own JsonWebTokenHandler, so MapInboundClaims on OpenIdConnectOptions
+    // does not propagate. Instead, set RoleClaimType to match the mapped claim type.
     builder.Services.PostConfigure<OpenIdConnectOptions>(
         OpenIdConnectDefaults.AuthenticationScheme,
         options =>
         {
-            options.MapInboundClaims = false;
             options.TokenValidationParameters.NameClaimType = "name";
-            options.TokenValidationParameters.RoleClaimType = "roles";
+            options.TokenValidationParameters.RoleClaimType = ClaimTypes.Role;
         });
 
     // Point AccessDenied to our own view instead of the default MicrosoftIdentity path
