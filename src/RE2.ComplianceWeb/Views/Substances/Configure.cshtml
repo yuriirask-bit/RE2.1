@@ -10,47 +10,48 @@
 
     <div class="row">
         <div class="col-md-8">
-            <!-- Substance Classification -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-shield-check"></i> Substance Classification</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <h6 class="text-muted">Substance Code</h6>
-                            <p><code>@Model.SubstanceCode</code></p>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="OpiumActList" class="form-label text-muted">Opium Act List</label>
-                            <select asp-for="OpiumActList" class="form-select"
-                                    asp-items="Html.GetEnumSelectList<SubstanceCategories.OpiumActList>()">
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="PrecursorCategory" class="form-label text-muted">Precursor Category</label>
-                            <select asp-for="PrecursorCategory" class="form-select"
-                                    asp-items="Html.GetEnumSelectList<SubstanceCategories.PrecursorCategory>()">
-                            </select>
-                        </div>
-                    </div>
-                    <p class="small text-muted mt-2 mb-0">
-                        <i class="bi bi-info-circle"></i> At least one of Opium Act List or Precursor Category must be selected.
-                    </p>
-                </div>
-            </div>
+            <form asp-action="Configure" asp-route-substanceCode="@Model.SubstanceCode" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="SubstanceCode" />
+                <input type="hidden" asp-for="SubstanceName" />
+                <input type="hidden" asp-for="IsComplianceConfigured" />
 
-            <!-- Compliance Extension (editable) -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-gear"></i> Compliance Extension</h5>
+                <!-- Substance Classification -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-shield-check"></i> Substance Classification</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h6 class="text-muted">Substance Code</h6>
+                                <p><code>@Model.SubstanceCode</code></p>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="OpiumActList" class="form-label text-muted">Opium Act List</label>
+                                <select asp-for="OpiumActList" class="form-select"
+                                        asp-items="Html.GetEnumSelectList<SubstanceCategories.OpiumActList>()">
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="PrecursorCategory" class="form-label text-muted">Precursor Category</label>
+                                <select asp-for="PrecursorCategory" class="form-select"
+                                        asp-items="Html.GetEnumSelectList<SubstanceCategories.PrecursorCategory>()">
+                                </select>
+                            </div>
+                        </div>
+                        <p class="small text-muted mt-2 mb-0">
+                            <i class="bi bi-info-circle"></i> At least one of Opium Act List or Precursor Category must be selected.
+                        </p>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <form asp-action="Configure" asp-route-substanceCode="@Model.SubstanceCode" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" asp-for="SubstanceCode" />
-                        <input type="hidden" asp-for="SubstanceName" />
-                        <input type="hidden" asp-for="IsComplianceConfigured" />
+
+                <!-- Compliance Extension (editable) -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-gear"></i> Compliance Extension</h5>
+                    </div>
+                    <div class="card-body">
                         <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
                         <div class="mb-3">
@@ -82,9 +83,9 @@
                                 <i class="bi bi-check-circle"></i> @(Model.IsComplianceConfigured ? "Update Configuration" : "Save Configuration")
                             </button>
                         </div>
-                    </form>
+                    </div>
                 </div>
-            </div>
+            </form>
         </div>
 
         <div class="col-md-4">
