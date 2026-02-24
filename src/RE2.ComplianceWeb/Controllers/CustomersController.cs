@@ -120,7 +120,10 @@ public class CustomersController : Controller
         string dataAreaId,
         CancellationToken cancellationToken = default)
     {
-        var customer = await _customerService.GetByAccountAsync(customerAccount, dataAreaId, cancellationToken);
+        // Try compliance-configured customer first, then fall back to D365 F&O master data
+        // (the customer may not have a compliance extension yet — that's what this page creates)
+        var customer = await _customerService.GetByAccountAsync(customerAccount, dataAreaId, cancellationToken)
+                       ?? await _customerService.GetD365CustomerAsync(customerAccount, dataAreaId, cancellationToken);
         if (customer == null)
         {
             return NotFound();
