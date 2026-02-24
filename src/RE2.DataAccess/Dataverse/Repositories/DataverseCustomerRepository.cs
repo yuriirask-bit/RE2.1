@@ -401,12 +401,24 @@ public class DataverseCustomerRepository : ICustomerRepository
         entity["phr_businesscategory"] = new OptionSetValue(dto.phr_businesscategory);
         entity["phr_approvalstatus"] = new OptionSetValue(dto.phr_approvalstatus);
         entity["phr_gdpqualificationstatus"] = new OptionSetValue(dto.phr_gdpqualificationstatus);
-        entity["phr_onboardingdate"] = dto.phr_onboardingdate;
-        entity["phr_nextreverificationdate"] = dto.phr_nextreverificationdate;
+        if (dto.phr_onboardingdate.HasValue)
+        {
+            entity["phr_onboardingdate"] = dto.phr_onboardingdate;
+        }
+        if (dto.phr_nextreverificationdate.HasValue)
+        {
+            entity["phr_nextreverificationdate"] = dto.phr_nextreverificationdate;
+        }
         entity["phr_issuspended"] = dto.phr_issuspended;
         entity["phr_suspensionreason"] = dto.phr_suspensionreason;
-        entity["phr_createddate"] = dto.phr_createddate;
-        entity["phr_modifieddate"] = dto.phr_modifieddate;
+        if (dto.phr_createddate != default)
+        {
+            entity["phr_createddate"] = dto.phr_createddate;
+        }
+        if (dto.phr_modifieddate != default)
+        {
+            entity["phr_modifieddate"] = dto.phr_modifieddate;
+        }
         if (dto.phr_rowversion != null)
         {
             entity["phr_rowversion"] = dto.phr_rowversion;
