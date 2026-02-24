@@ -44,46 +44,17 @@ else
             builder.Configuration.Bind("AzureAd", options);
         });
 
-    // Set RoleClaimType on the actual OpenIdConnectOptions (not MicrosoftIdentityOptions)
-    // so the OIDC handler maps the JWT "roles" claim correctly for RequireRole policies.
+    // Fix role-based authorization: Microsoft.IdentityModel 7.x maps the JWT "roles"
+    // claim to the long URI "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+    // via inbound claim mapping. We must set RoleClaimType to match the MAPPED type,
+    // and disable MapInboundClaims so claim names stay as their short JWT forms.
     builder.Services.PostConfigure<OpenIdConnectOptions>(
         OpenIdConnectDefaults.AuthenticationScheme,
         options =>
         {
+            options.MapInboundClaims = false;
             options.TokenValidationParameters.NameClaimType = "name";
             options.TokenValidationParameters.RoleClaimType = "roles";
-
-            // Diagnostic: log claims when OIDC token is validated
-            var existingOnTokenValidated = options.Events?.OnTokenValidated;
-            options.Events ??= new OpenIdConnectEvents();
-            var previousHandler = options.Events.OnTokenValidated;
-            options.Events.OnTokenValidated = async context =>
-            {
-                if (previousHandler != null)
-                    await previousHandler(context);
-
-                var logger = context.HttpContext.RequestServices
-                    .GetRequiredService<ILoggerFactory>()
-                    .CreateLogger("AuthDiagnostic");
-
-                var identity = context.Principal?.Identity as System.Security.Claims.ClaimsIdentity;
-                if (identity != null)
-                {
-                    logger.LogWarning(
-                        "DIAG OnTokenValidated — RoleClaimType: {RoleClaimType}, NameClaimType: {NameClaimType}, AuthType: {AuthType}",
-                        identity.RoleClaimType, identity.NameClaimType, identity.AuthenticationType);
-
-                    foreach (var claim in identity.Claims)
-                    {
-                        logger.LogWarning("DIAG Claim — Type: {Type}, Value: {Value}", claim.Type, claim.Value);
-                    }
-
-                    logger.LogWarning(
-                        "DIAG IsInRole checks — ComplianceManager: {CM}, SalesAdmin: {SA}",
-                        context.Principal!.IsInRole("ComplianceManager"),
-                        context.Principal!.IsInRole("SalesAdmin"));
-                }
-            };
         });
 
     // Point AccessDenied to our own view instead of the default MicrosoftIdentity path
@@ -178,37 +149,6 @@ app.UseSession();
 
 // Authentication and Authorization middleware (order matters!)
 app.UseAuthentication();
-
-// Diagnostic middleware: log claims between authentication and authorization
-app.Use(async (context, next) =>
-{
-    if (context.Request.Path.StartsWithSegments("/Customers/Configure") && context.User.Identity?.IsAuthenticated == true)
-    {
-        var logger = context.RequestServices
-            .GetRequiredService<ILoggerFactory>()
-            .CreateLogger("AuthDiagnostic");
-
-        var identity = context.User.Identity as System.Security.Claims.ClaimsIdentity;
-        if (identity != null)
-        {
-            logger.LogWarning(
-                "DIAG PreAuth — Path: {Path}, RoleClaimType: {RoleClaimType}, NameClaimType: {NameClaimType}, AuthType: {AuthType}",
-                context.Request.Path, identity.RoleClaimType, identity.NameClaimType, identity.AuthenticationType);
-
-            foreach (var claim in identity.Claims)
-            {
-                logger.LogWarning("DIAG PreAuth Claim — Type: {Type}, Value: {Value}", claim.Type, claim.Value);
-            }
-
-            logger.LogWarning(
-                "DIAG PreAuth IsInRole — ComplianceManager: {CM}, SalesAdmin: {SA}",
-                context.User.IsInRole("ComplianceManager"),
-                context.User.IsInRole("SalesAdmin"));
-        }
-    }
-    await next();
-});
-
 app.UseAuthorization();
 
 app.MapControllerRoute(
