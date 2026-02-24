@@ -124,8 +124,8 @@ public static class InfrastructureExtensions
         // Register threshold service
         services.AddScoped<IThresholdService, ThresholdService>();
 
-        // Register product repository (in-memory fallback until Dataverse implementation exists)
-        services.AddSingleton<IProductRepository, InMemoryProductRepository>();
+        // Register product repository (D365 F&O via ReleasedProductsV2 + ProductAttributeValuesV2)
+        services.AddScoped<IProductRepository, D365FoProductRepository>();
 
         // Register transaction repository (in-memory fallback until Dataverse implementation exists)
         services.AddSingleton<ITransactionRepository, InMemoryTransactionRepository>();
