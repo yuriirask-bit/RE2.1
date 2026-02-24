@@ -11,10 +11,11 @@ public class ProductAttributeValueDto
     public string AttributeName { get; set; } = string.Empty;
 
     // Polymorphic value fields
+    // D365 F&O returns BooleanValue as a string (e.g., "Yes"/"No") not a JSON boolean
     public string? TextValue { get; set; }
     public int? IntegerValue { get; set; }
     public decimal? DecimalValue { get; set; }
-    public bool? BooleanValue { get; set; }
+    public string? BooleanValue { get; set; }
 
     /// <summary>
     /// Gets the effective value from the polymorphic value fields.
@@ -37,9 +38,9 @@ public class ProductAttributeValueDto
             return DecimalValue.Value.ToString();
         }
 
-        if (BooleanValue.HasValue)
+        if (!string.IsNullOrWhiteSpace(BooleanValue))
         {
-            return BooleanValue.Value.ToString();
+            return BooleanValue;
         }
 
         return null;
