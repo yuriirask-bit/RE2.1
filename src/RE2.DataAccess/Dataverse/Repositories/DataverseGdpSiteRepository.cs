@@ -106,7 +106,10 @@ public class DataverseGdpSiteRepository : IGdpSiteRepository
                 "$select=SiteId,SiteName",
                 cancellationToken);
 
-            return response?.Value?.ToDictionary(s => s.SiteId, s => s.SiteName) ?? new Dictionary<string, string>();
+            return response?.Value?
+                       .GroupBy(s => s.SiteId)
+                       .ToDictionary(g => g.Key, g => g.First().SiteName)
+                   ?? new Dictionary<string, string>();
         }
         catch (Exception ex)
         {

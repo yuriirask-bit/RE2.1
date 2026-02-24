@@ -344,9 +344,9 @@ public class GdpSiteConfigureViewModel
 {
     public string WarehouseId { get; set; } = string.Empty;
     public string WarehouseName { get; set; } = string.Empty;
-    public string OperationalSiteName { get; set; } = string.Empty;
+    public string? OperationalSiteName { get; set; }
     public string DataAreaId { get; set; } = string.Empty;
-    public string FormattedAddress { get; set; } = string.Empty;
+    public string? FormattedAddress { get; set; }
     public GdpSiteType GdpSiteType { get; set; }
     public bool StorageOver72h { get; set; }
     public bool TemperatureControlled { get; set; }
