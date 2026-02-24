@@ -148,13 +148,13 @@ public class DataverseCustomerContractTests
     }
 
     [Theory]
-    [InlineData(0, BusinessCategory.HospitalPharmacy)]
-    [InlineData(1, BusinessCategory.CommunityPharmacy)]
-    [InlineData(2, BusinessCategory.Veterinarian)]
-    [InlineData(3, BusinessCategory.Manufacturer)]
-    [InlineData(4, BusinessCategory.WholesalerEU)]
-    [InlineData(5, BusinessCategory.WholesalerNonEU)]
-    [InlineData(6, BusinessCategory.ResearchInstitution)]
+    [InlineData(100_000_000, BusinessCategory.HospitalPharmacy)]
+    [InlineData(100_000_001, BusinessCategory.CommunityPharmacy)]
+    [InlineData(100_000_002, BusinessCategory.Veterinarian)]
+    [InlineData(100_000_003, BusinessCategory.Manufacturer)]
+    [InlineData(100_000_004, BusinessCategory.WholesalerEU)]
+    [InlineData(100_000_005, BusinessCategory.WholesalerNonEU)]
+    [InlineData(100_000_006, BusinessCategory.ResearchInstitution)]
     public void ToDomainModel_ShouldMapBusinessCategory_Correctly(int dtoValue, BusinessCategory expected)
     {
         // Arrange
@@ -179,11 +179,11 @@ public class DataverseCustomerContractTests
     }
 
     [Theory]
-    [InlineData(0, ApprovalStatus.Pending)]
-    [InlineData(1, ApprovalStatus.Approved)]
-    [InlineData(2, ApprovalStatus.ConditionallyApproved)]
-    [InlineData(3, ApprovalStatus.Rejected)]
-    [InlineData(4, ApprovalStatus.Suspended)]
+    [InlineData(100_000_000, ApprovalStatus.Pending)]
+    [InlineData(100_000_001, ApprovalStatus.Approved)]
+    [InlineData(100_000_002, ApprovalStatus.ConditionallyApproved)]
+    [InlineData(100_000_003, ApprovalStatus.Rejected)]
+    [InlineData(100_000_004, ApprovalStatus.Suspended)]
     public void ToDomainModel_ShouldMapApprovalStatus_Correctly(int dtoValue, ApprovalStatus expected)
     {
         // Arrange
@@ -208,12 +208,12 @@ public class DataverseCustomerContractTests
     }
 
     [Theory]
-    [InlineData(0, GdpQualificationStatus.NotRequired)]
-    [InlineData(1, GdpQualificationStatus.Pending)]
-    [InlineData(2, GdpQualificationStatus.Approved)]
-    [InlineData(3, GdpQualificationStatus.ConditionallyApproved)]
-    [InlineData(4, GdpQualificationStatus.Rejected)]
-    [InlineData(5, GdpQualificationStatus.UnderReview)]
+    [InlineData(100_000_000, GdpQualificationStatus.NotRequired)]
+    [InlineData(100_000_001, GdpQualificationStatus.Pending)]
+    [InlineData(100_000_002, GdpQualificationStatus.Approved)]
+    [InlineData(100_000_003, GdpQualificationStatus.ConditionallyApproved)]
+    [InlineData(100_000_004, GdpQualificationStatus.Rejected)]
+    [InlineData(100_000_005, GdpQualificationStatus.UnderReview)]
     public void ToDomainModel_ShouldMapGdpQualificationStatus_Correctly(int dtoValue, GdpQualificationStatus expected)
     {
         // Arrange
