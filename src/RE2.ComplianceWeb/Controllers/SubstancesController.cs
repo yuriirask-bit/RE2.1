@@ -78,7 +78,7 @@ public class SubstancesController : Controller
     }
 
     /// <summary>
-    /// Displays substance details.
+    /// Displays substance details. Redirects to Configure if the substance is not yet configured.
     /// </summary>
     public async Task<IActionResult> Details(string substanceCode, CancellationToken cancellationToken = default)
     {
@@ -86,7 +86,8 @@ public class SubstancesController : Controller
 
         if (substance == null)
         {
-            return NotFound();
+            // Substance not yet configured in Dataverse — redirect to Configure
+            return RedirectToAction(nameof(Configure), new { substanceCode });
         }
 
         // Get associated licences for this substance via mappings (FR-004)
@@ -127,30 +128,41 @@ public class SubstancesController : Controller
 
     /// <summary>
     /// Displays the configure compliance form for a D365-discovered substance.
+    /// Handles both new (unconfigured) and existing substances.
     /// </summary>
     [Authorize(Policy = "ComplianceManager")]
     public async Task<IActionResult> Configure(string substanceCode, CancellationToken cancellationToken = default)
     {
         var substance = await _substanceService.GetBySubstanceCodeAsync(substanceCode, cancellationToken);
 
-        if (substance == null)
+        SubstanceConfigureViewModel model;
+        if (substance != null)
         {
-            return NotFound();
+            model = new SubstanceConfigureViewModel
+            {
+                SubstanceCode = substance.SubstanceCode,
+                SubstanceName = substance.SubstanceName,
+                OpiumActList = substance.OpiumActList,
+                PrecursorCategory = substance.PrecursorCategory,
+                RegulatoryRestrictions = substance.RegulatoryRestrictions,
+                IsActive = substance.IsActive,
+                ClassificationEffectiveDate = substance.ClassificationEffectiveDate?.ToDateTime(TimeOnly.MinValue),
+                IsComplianceConfigured = substance.IsComplianceConfigured,
+                CreatedDate = substance.CreatedDate,
+                ModifiedDate = substance.ModifiedDate
+            };
         }
-
-        var model = new SubstanceConfigureViewModel
+        else
         {
-            SubstanceCode = substance.SubstanceCode,
-            SubstanceName = substance.SubstanceName,
-            OpiumActList = substance.OpiumActList,
-            PrecursorCategory = substance.PrecursorCategory,
-            RegulatoryRestrictions = substance.RegulatoryRestrictions,
-            IsActive = substance.IsActive,
-            ClassificationEffectiveDate = substance.ClassificationEffectiveDate?.ToDateTime(TimeOnly.MinValue),
-            IsComplianceConfigured = substance.IsComplianceConfigured,
-            CreatedDate = substance.CreatedDate,
-            ModifiedDate = substance.ModifiedDate
-        };
+            // New substance discovered from D365 — pre-populate for first-time configuration
+            model = new SubstanceConfigureViewModel
+            {
+                SubstanceCode = substanceCode,
+                SubstanceName = substanceCode,
+                IsActive = true,
+                IsComplianceConfigured = false
+            };
+        }
 
         return View(model);
     }
@@ -177,7 +189,14 @@ public class SubstancesController : Controller
 
         if (substance == null)
         {
-            return NotFound();
+            // New substance — create from form data
+            substance = new ControlledSubstance
+            {
+                SubstanceCode = substanceCode,
+                SubstanceName = model.SubstanceName ?? substanceCode,
+                OpiumActList = model.OpiumActList,
+                PrecursorCategory = model.PrecursorCategory
+            };
         }
 
         // Apply compliance extension fields
