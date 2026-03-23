@@ -3,7 +3,7 @@
 #
 # Prerequisites:
 #   Service Connection: RE2-UAT-ServiceConnection
-#   Variable Group:     re2-{env}-secrets (AzureAdTenantId, AzureAdClientId)
+#   Variable Group:     re2-uat-secrets (AzureAdTenantId, AzureAdClientId)
 #   Environment:        re2-uat (1 approver gate)
 
 trigger: none
@@ -17,7 +17,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-- group: re2-{env}-secrets
+- group: re2-uat-secrets
 - name: env
   value: 'uat'
 - name: rgName

@@ -3,7 +3,7 @@
 #
 # Prerequisites:
 #   Service Connection: RE2-Prod-ServiceConnection
-#   Variable Group:     re2-{env}-secrets (AzureAdTenantId, AzureAdClientId)
+#   Variable Group:     re2-prod-secrets (AzureAdTenantId, AzureAdClientId)
 #   Environment:        re2-prod (2 approver gate)
 
 trigger: none
@@ -17,7 +17,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-- group: re2-{env}-secrets
+- group: re2-prod-secrets
 - name: env
   value: 'prod'
 - name: rgName

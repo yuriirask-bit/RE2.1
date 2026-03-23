@@ -3,7 +3,7 @@
 #
 # Prerequisites:
 #   Service Connection: RE2-Dev-ServiceConnection
-#   Variable Group:     re2-{env}-secrets (AzureAdTenantId, AzureAdClientId)
+#   Variable Group:     re2-dev-secrets (AzureAdTenantId, AzureAdClientId)
 #   Environment:        re2-dev (no approval gate)
 
 trigger: none
@@ -21,7 +21,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-- group: re2-{env}-secrets
+- group: re2-dev-secrets
 - name: env
   value: 'dev'
 - name: rgName

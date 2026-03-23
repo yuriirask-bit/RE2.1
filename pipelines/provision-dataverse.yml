@@ -4,7 +4,7 @@
 #
 # Prerequisites:
 #   Service Connections: RE2-Dev-ServiceConnection, RE2-UAT-ServiceConnection, RE2-Prod-ServiceConnection
-#   Variable Groups:    re2-{env}-secrets / re2-{env}-secrets / re2-{env}-secrets
+#   Variable Groups:    re2-dev-secrets / re2-uat-secrets / re2-prod-secrets
 #     Required variables: DataverseUrl (e.g., https://org12345.crm4.dynamics.com)
 
 trigger: none
