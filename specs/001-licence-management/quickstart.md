@@ -623,10 +623,10 @@ dotnet publish src/RE2.ComplianceApi/ -c Release -o ./publish/api
 az deployment group create \
   --resource-group rg-re2-{env} \
   --template-file infra/bicep/main.bicep \
-  --parameters environment=dev
+  --parameters environment={env}
 
 # View logs from Azure App Service
-az webapp log tail --name re2-compliance-api-dev --resource-group rg-re2-{env}
+az webapp log tail --name app-re2-api-{env} --resource-group rg-re2-{env}
 ```
 
 ## Support & Resources

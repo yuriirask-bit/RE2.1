@@ -72,13 +72,13 @@ az bicep build --file infra/bicep/main.bicep
 az deployment group what-if \
   --resource-group rg-re2-{env} \
   --template-file infra/bicep/main.bicep \
-  --parameters infra/bicep/dev.bicepparam
+  --parameters infra/bicep/{env}.bicepparam
 
-# Deploy to Dev manually
+# Deploy manually
 az deployment group create \
   --resource-group rg-re2-{env} \
   --template-file infra/bicep/main.bicep \
-  --parameters infra/bicep/dev.bicepparam
+  --parameters infra/bicep/{env}.bicepparam
 ```
 
 ---

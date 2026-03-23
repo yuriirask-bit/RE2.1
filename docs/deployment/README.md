@@ -126,9 +126,9 @@ Create three service connections:
 
 | Name | Scope | Environment |
 |------|-------|-------------|
-| `RE2-Dev-ServiceConnection` | Resource group `rg-re2-{env}` | Dev |
-| `RE2-UAT-ServiceConnection` | Resource group `rg-re2-{env}` | UAT |
-| `RE2-Prod-ServiceConnection` | Resource group `rg-re2-{env}` | Prod |
+| `RE2-{Env}-ServiceConnection` | Resource group `rg-re2-{env}` | Dev |
+| `RE2-{Env}-ServiceConnection` | Resource group `rg-re2-{env}` | UAT |
+| `RE2-{Env}-ServiceConnection` | Resource group `rg-re2-{env}` | Prod |
 
 Use **Workload Identity federation (automatic)** for each. This creates an Azure AD app registration and federated credential automatically.
 
@@ -138,9 +138,9 @@ In Azure DevOps: **Pipelines** > **Environments** > **New environment**
 
 | Environment | Approvals |
 |-------------|-----------|
-| `re2-dev` | None (auto-deploy) |
-| `re2-uat` | 1 approver (e.g., QA lead) |
-| `re2-prod` | 2 approvers (e.g., QA lead + compliance manager) |
+| `re2-{env}` | None (auto-deploy) |
+| `re2-{env}` | 1 approver (e.g., QA lead) |
+| `re2-{env}` | 2 approvers (e.g., QA lead + compliance manager) |
 
 To configure approvals: Environment > **...** > **Approvals and checks** > **Approvals**
 
@@ -401,7 +401,7 @@ Before approving the Prod deployment:
 - [ ] Dataverse production environment Managed Identity registered
 - [ ] D365 F&O production Managed Identity registered
 - [ ] Azure AD app registrations configured for production
-- [ ] Approver email group (`compliance-approvers@example.com`) confirmed
+- [ ] Approver email group confirmed
 - [ ] DNS/custom domain configured (if applicable)
 
 ---
@@ -515,7 +515,7 @@ git checkout <previous-commit> -- infra/bicep/
 az deployment group create \
   --resource-group rg-re2-{env} \
   --template-file infra/bicep/main.bicep \
-  --parameters infra/bicep/prod.bicepparam
+  --parameters infra/bicep/{env}.bicepparam
 ```
 
 ---

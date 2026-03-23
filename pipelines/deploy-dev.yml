@@ -22,6 +22,16 @@ pool:
 
 variables:
 - group: re2-{env}-secrets
+- name: env
+  value: 'dev'
+- name: rgName
+  value: 'rg-re2-$(env)'
+- name: apiAppName
+  value: 'app-re2-api-$(env)'
+- name: webAppName
+  value: 'app-re2-web-$(env)'
+- name: funcAppName
+  value: 'func-re2-compliance-$(env)'
 
 stages:
 - stage: DeployDev
@@ -42,9 +52,9 @@ stages:
               scriptLocation: 'inlineScript'
               inlineScript: |
                 az group create \
-                  --name rg-re2-{env} \
+                  --name $(rgName) \
                   --location westeurope \
-                  --tags environment=dev application=re2-compliance
+                  --tags environment=$(env) application=re2-compliance
 
           - task: AzureCLI@2
             displayName: 'Deploy Bicep templates'
@@ -54,7 +64,7 @@ stages:
               scriptLocation: 'inlineScript'
               inlineScript: |
                 az deployment group create \
-                  --resource-group rg-re2-{env} \
+                  --resource-group $(rgName) \
                   --template-file $(Pipeline.Workspace)/build/drop/infra/main.bicep \
                   --parameters $(Pipeline.Workspace)/build/drop/infra/dev.bicepparam \
                   --parameters azureAdTenantId=$(AzureAdTenantId) \
@@ -79,7 +89,7 @@ stages:
               scriptType: 'pscore'
               scriptLocation: 'scriptPath'
               scriptPath: '$(Pipeline.Workspace)/build/drop/dataverse/provision-dataverse-schema.ps1'
-              arguments: '-DataverseUrl "$(DataverseUrl)" -ResourceGroupName "rg-re2-{env}" -AppNames "app-re2-api-{env},app-re2-web-{env},func-re2-compliance-{env}"'
+              arguments: '-DataverseUrl "$(DataverseUrl)" -ResourceGroupName "$(rgName)" -AppNames "$(apiAppName),$(webAppName),$(funcAppName)"'
 
   - deployment: DeployApps
     displayName: 'Deploy applications'
@@ -94,7 +104,7 @@ stages:
             inputs:
               azureSubscription: 'RE2-Dev-ServiceConnection'
               appType: 'webApp'
-              appName: 'app-re2-api-{env}'
+              appName: '$(apiAppName)'
               package: '$(Pipeline.Workspace)/build/drop/api/**/*.zip'
 
           - task: AzureWebApp@1
@@ -102,7 +112,7 @@ stages:
             inputs:
               azureSubscription: 'RE2-Dev-ServiceConnection'
               appType: 'webApp'
-              appName: 'app-re2-web-{env}'
+              appName: '$(webAppName)'
               package: '$(Pipeline.Workspace)/build/drop/web/**/*.zip'
 
           - task: AzureFunctionApp@2
@@ -110,7 +120,7 @@ stages:
             inputs:
               azureSubscription: 'RE2-Dev-ServiceConnection'
               appType: 'functionApp'
-              appName: 'func-re2-compliance-{env}'
+              appName: '$(funcAppName)'
               package: '$(Pipeline.Workspace)/build/drop/functions/**/*.zip'
 
           - task: AzureCLI@2
@@ -120,7 +130,7 @@ stages:
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: |
-                API_URL="https://app-re2-api-{env}.azurewebsites.net/health"
+                API_URL="https://$(apiAppName).azurewebsites.net/health"
                 echo "Testing $API_URL"
                 for i in {1..6}; do
                   STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL" --max-time 10)
@@ -141,7 +151,7 @@ stages:
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: |
-                WEB_URL="https://app-re2-web-{env}.azurewebsites.net/health"
+                WEB_URL="https://$(webAppName).azurewebsites.net/health"
                 echo "Testing $WEB_URL"
                 for i in {1..6}; do
                   STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$WEB_URL" --max-time 10)
