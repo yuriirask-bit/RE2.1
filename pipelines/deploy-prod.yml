@@ -65,6 +65,9 @@ stages:
                   --parameters $(Pipeline.Workspace)/build/drop/infra/prod.bicepparam \
                   --parameters azureAdTenantId=$(AzureAdTenantId) \
                                azureAdClientId=$(AzureAdClientId) \
+                               dataverseUrl=$(DataverseUrl) \
+                               d365foODataEndpoint=$(d365foODataEndpoint) \
+                               d365foResource=$(d365foResource) \
                   --verbose
 
   - deployment: ProvisionDataverse
