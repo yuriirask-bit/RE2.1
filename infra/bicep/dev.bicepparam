@@ -12,6 +12,7 @@ param redisCapacity = 0
 param storageSkuName = 'Standard_LRS'
 param logRetentionDays = 30
 param enableStagingSlots = false
+param enableAlwaysOn = false
 
 // ── External Configuration (placeholders — override via pipeline variables) ──
 param dataverseUrl = 'https://your-org.crm.dynamics.com'

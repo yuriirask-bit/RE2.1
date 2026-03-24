@@ -47,6 +47,9 @@ param logRetentionDays int = 30
 @description('Enable staging deployment slots (UAT/Prod)')
 param enableStagingSlots bool = false
 
+@description('Keep apps always running (disable for dev to save resources)')
+param enableAlwaysOn bool = true
+
 // ─── External Configuration ──────────────────────────────────────────────────
 
 @description('Dataverse environment URL')
@@ -198,6 +201,7 @@ module apiApp 'modules/app-service.bicep' = {
     azureAdB2CClientId: azureAdB2CClientId
     azureAdB2CSignUpSignInPolicyId: azureAdB2CSignUpSignInPolicyId
     enableStagingSlot: enableStagingSlots
+    enableAlwaysOn: enableAlwaysOn
     tags: tags
   }
 }
@@ -225,6 +229,7 @@ module webApp 'modules/app-service.bicep' = {
     azureAdTenantId: azureAdTenantId
     azureAdClientId: azureAdClientId
     enableStagingSlot: enableStagingSlots
+    enableAlwaysOn: enableAlwaysOn
     tags: tags
   }
 }

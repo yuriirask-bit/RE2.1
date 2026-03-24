@@ -70,6 +70,9 @@ param d365foClientSecretKeyVaultReference string = ''
 @description('Whether to create a staging deployment slot')
 param enableStagingSlot bool = false
 
+@description('Whether to keep the app always running (disable for dev to save resources)')
+param enableAlwaysOn bool = true
+
 @description('Standard tags to apply to all resources')
 param tags object
 
@@ -190,7 +193,7 @@ resource appService 'Microsoft.Web/sites@2023-12-01' = {
     httpsOnly: true
     siteConfig: {
       netFrameworkVersion: 'v8.0'
-      alwaysOn: true
+      alwaysOn: enableAlwaysOn
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       healthCheckPath: '/health'
