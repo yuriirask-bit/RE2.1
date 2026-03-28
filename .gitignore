@@ -120,6 +120,7 @@ Desktop.ini
 .bicep/
 *.main.json
 infra/bicep/main.json
+infra/bicep/backup_*.bicepparam
 
 # Documentation builds
 docs/_build/

@@ -96,7 +96,7 @@ You need three Azure subscriptions (or one subscription with three resource grou
 
 These must exist before deployment and are **NOT managed** by the pipeline:
 
-1. **Dataverse environments** (one per stage) with virtual tables configured
+1. **Dataverse environments** (one per stage) with virtual tables configured — see [Dataverse Environment Setup Guide](dataverse-environment-setup.md) for full recreation steps
 2. **D365 Finance & Operations instances** (dev sandbox, UAT sandbox, production)
 3. **Azure AD app registrations** for API authentication
 4. **Azure AD B2C tenant** (if external user access is needed)
